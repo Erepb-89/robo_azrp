@@ -4,8 +4,7 @@ import threading
 from queue import Queue
 from PyQt5 import QtWidgets
 
-from config import ROBOT_IP, OPC_ENDPOINT, LOG_PATH, PLC_MANIPULATOR_ADDRESS, \
-    PLC_VT_ADDRESS, PLC_VTOL_ADDRESS
+from config import ROBOT_IP, LOG_PATH
 from command_handler import CommandHandler
 from utils import setup_logging
 from robot_controller import RobotController
