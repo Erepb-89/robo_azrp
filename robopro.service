@@ -1,0 +1,22 @@
+[Unit]
+Description=ROBOPRO(Robotcontroller+OPC+GUI+MB
+After=graphical-session.target
+
+[Service]
+Type=notify
+
+ExecStart=/home/user/Desktop/Python_PRJ/robopro_opc_env/bin/python3.10 /home/user/Desktop/Python_PRJ/RC/main.py
+WorkingDirectory=/home/user/Desktop/Python_PRJ/RC
+Environment=PYTHONUNBUFFERED=1
+
+Restart=on-failure
+RestartSec=3
+
+TimeoutStartSec=20s
+TimeoutStopSec=20s
+WatchdogSec=20s
+
+NotifyAccess=all
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,224 @@
+{
+  "routes": [
+    {
+      "name": "rHomePosition_To_Helicopter1",
+      "trajectories": [
+        "tHomePosition_To_HelicopterModule",
+        "tHelicopterModule_To_Helicopter1"
+      ]
+    },
+    {
+      "name": "rHelicopter1_To_HomePosition",
+      "trajectories": [
+        "tHelicopter1_To_HelicopterModule",
+        "tHelicopterModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Helicopter2",
+      "trajectories": [
+        "tHomePosition_To_HelicopterModule",
+        "tHelicopterModule_To_Helicopter2"
+      ]
+    },
+    {
+      "name": "rHelicopter2_To_HomePosition",
+      "trajectories": [
+        "tHelicopter2_To_HelicopterModule",
+        "tHelicopterModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Helicopter1Payload",
+      "trajectories": [
+        "tHomePosition_To_HelicopterModule",
+        "tHelicopterModule_To_Helicopter1",
+        "tHelicopter1_To_Helicopter1Payload"
+      ]
+    },
+    {
+      "name": "rHelicopter1Payload_To_HomePosition",
+      "trajectories": [
+        "tHelicopter1Payload_To_Helicopter1",
+        "tHelicopter1_To_HelicopterModule",
+        "tHelicopterModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Helicopter2Payload",
+      "trajectories": [
+        "tHomePosition_To_HelicopterModule",
+        "tHelicopterModule_To_Helicopter2",
+        "tHelicopter2_To_Helicopter2Payload"
+      ]
+    },
+    {
+      "name": "rHelicopter2Payload_To_HomePosition",
+      "trajectories": [
+        "tHelicopter2Payload_To_Helicopter2",
+        "tHelicopter2_To_HelicopterModule",
+        "tHelicopterModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Load1",
+      "trajectories": [
+        "tHomePosition_To_Load",
+        "tLoad_To_Load1"
+      ]
+    },
+    {
+      "name": "rLoad1_To_HomePosition",
+      "trajectories": [
+        "tLoad1_To_Load",
+        "tLoad_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Load2",
+      "trajectories": [
+        "tHomePosition_To_Load",
+        "tLoad_To_Load2"
+      ]
+    },
+    {
+      "name": "rLoad2_To_HomePosition",
+      "trajectories": [
+        "tLoad2_To_Load",
+        "tLoad_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Grippers1",
+      "trajectories": [
+        "tHomePosition_To_Grippers",
+        "tGrippers_To_Grippers1"
+      ]
+    },
+    {
+      "name": "rGrippers1_To_HomePosition",
+      "trajectories": [
+        "tGrippers1_To_Grippers",
+        "tGrippers_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Grippers2",
+      "trajectories": [
+        "tHomePosition_To_Grippers",
+        "tGrippers_To_Grippers2"
+      ]
+    },
+    {
+      "name": "rGrippers2_To_HomePosition",
+      "trajectories": [
+        "tGrippers2_To_Grippers",
+        "tGrippers_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Charger1",
+      "trajectories": [
+        "tHomePosition_To_Charger",
+        "tCharger_To_Charger1"
+      ]
+    },
+    {
+      "name": "rCharger1_To_HomePosition",
+      "trajectories": [
+        "tCharger1_To_Charger",
+        "tCharger_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_Charger2",
+      "trajectories": [
+        "tHomePosition_To_Charger",
+        "tCharger_To_Charger2"
+      ]
+    },
+    {
+      "name": "rCharger2_To_HomePosition",
+      "trajectories": [
+        "tCharger2_To_Charger",
+        "tCharger_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_VTOL1",
+      "trajectories": [
+        "tHomePosition_To_VTOLModule",
+        "tVTOLModule_To_VTOL1"
+      ]
+    },
+    {
+      "name": "rVTOL1_To_HomePosition",
+      "trajectories": [
+        "tVTOL1_To_VTOLModule",
+        "tVTOLModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_VTOL2",
+      "trajectories": [
+        "tHomePosition_To_VTOLModule",
+        "tVTOLModule_To_VTOL2"
+      ]
+    },
+    {
+      "name": "rVTOL2_To_HomePosition",
+      "trajectories": [
+        "tVTOL2_To_VTOLModule",
+        "tVTOLModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_VTOL1Payload",
+      "trajectories": [
+        "tHomePosition_To_VTOLModule",
+        "tVTOLModule_To_VTOL1",
+        "tVTOL1_To_VTOL1Payload"
+      ]
+    },
+    {
+      "name": "rVTOL1Payload_To_HomePosition",
+      "trajectories": [
+        "tVTOL1Payload_To_VTOL1",
+        "tVTOL1_To_VTOLModule",
+        "tVTOLModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_VTOL1Battery",
+      "trajectories": [
+        "tHomePosition_To_VTOLModule",
+        "tVTOLModule_To_VTOL1",
+        "tVTOL1_To_VTOL1Battery"
+      ]
+    },
+    {
+      "name": "rVTOL1Battery_To_HomePosition",
+      "trajectories": [
+        "tVTOL1Battery_To_VTOL1",
+        "tVTOL1_To_VTOLModule",
+        "tVTOLModule_To_HomePosition"
+      ]
+    },
+    {
+      "name": "rHomePosition_To_VTOL2Battery",
+      "trajectories": [
+        "tHomePosition_To_VTOLModule",
+        "tVTOLModule_To_VTOL2",
+        "tVTOL2_To_VTOL2Battery"
+      ]
+    },
+    {
+      "name": "rVTOL2Battery_To_HomePosition",
+      "trajectories": [
+        "tVTOL2Battery_To_VTOL2",
+        "tVTOL2_To_VTOLModule",
+        "tVTOLModule_To_HomePosition"
+      ]
+    }
+  ]
+}

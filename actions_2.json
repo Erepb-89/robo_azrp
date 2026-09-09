@@ -1,0 +1,56 @@
+{
+  "actions": [
+    {
+      "name": "aVTOL2_To_VTOL2Battery",
+      "commands": [
+        {
+          "name": "auto",
+          "cmd_type": "WAIT_VTOL_LIFT",
+          "comment": "Позиция определяется автоматически: stationary=bottom, mobile=mid"
+        },
+        {
+          "name": "tVTOL2_To_VTOL2Battery",
+          "cmd_type": "EXECUTE_TRAJECTORY"
+        },
+        {
+          "name": "True",
+          "cmd_type": "GRIPPER_CMD"
+        }
+      ]
+    },
+    {
+      "name": "aVTOL2Battery_To_VTOL2",
+      "commands": [
+        {
+          "name": "tVTOL2Battery_To_VTOL2",
+          "cmd_type": "EXECUTE_TRAJECTORY"
+        },
+        {
+          "name": "False",
+          "cmd_type": "IO_SET"
+        }
+      ]
+    },
+    {
+      "name": "aCharger_To_Helicopter2Batt1",
+      "commands": [
+        {
+          "name": "tCharger_To_Helicopter2Charger1",
+          "cmd_type": "EXECUTE_TRAJECTORY"
+        },
+        {
+          "name": "tHelicopter2Charger1_To_Helicopter2Charger1Slot1",
+          "cmd_type": "EXECUTE_TRAJECTORY"
+        },
+        {
+          "name": "tHelicopter2Charger1Slot1_To_Helicopter2Charger1InsideSlot1",
+          "cmd_type": "EXECUTE_TRAJECTORY"
+        },
+        {
+          "name": "True",
+          "cmd_type": "GRIPPER_CMD"
+        }
+      ]
+    }
+  ]
+}
