@@ -1,5 +1,5 @@
 [Unit]
-Description=ROBOPRO(Robotcontroller+OPC+GUI+MB
+Description=ROBOPRO(Robotcontroller+GUI+MB
 After=graphical-session.target
 
 [Service]

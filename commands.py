@@ -8,7 +8,6 @@ class CmdType(Enum):
     POWER = auto()  # {'state': False/True}
     FREE_DRIVE = auto()  # {'state': 0|1}
     EXECUTE_TRAJECTORY = auto()  # {'num': int}
-    EXECUTE_ROUTE = auto()  # {'num': int}
     EXECUTE_ACTION = auto()  # {'num': int}
     MOVE_TO_POINT = auto()  # {'name': str}
     GRIPPER_CMD = auto()  # {'index': int, 'value': bool}
@@ -18,7 +17,6 @@ class CmdType(Enum):
     SHUTDOWN = auto()
     FIND_NEAREST = auto()
     START_SIMPLE_JOYSTICK = auto()
-    WAIT_VTOL_LIFT = auto()  # {'position': 'bottom'|'top', 'timeout_sec': int}
 
 
 @dataclass
@@ -73,19 +71,8 @@ class RobotPoints(enum.Enum):
 
 
 class RobotTrajectories(enum.Enum):
-    tHomePosition_To_HelicopterModule = 1
-    tHelicopterModule_To_HomePosition = 2
-    tHelicopterModule_To_Helicopter1 = 3
-    tHelicopter1_To_HelicopterModule = 4
-    tHelicopterModule_To_Helicopter2 = 5
-    tHelicopter2_To_HelicopterModule = 6
-    tHelicopter2_To_Helicopter2Payload = 7
-    tHelicopter2Payload_To_Helicopter2 = 8
-
-
-class RobotRoutes(enum.Enum):
-    rHomePosition_To_Helicopter1 = 1
+    pass
 
 
 class RobotActions(enum.Enum):
-    aVTOL2_To_VTOL2Battery = 1
+    pass

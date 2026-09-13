@@ -21,45 +21,10 @@ from config import (
     NODE_BASE_COLOR, NODE_ENDPOINT_COLOR, NODE_HOME_COLOR,
     NODE_CURRENT_COLOR, NODE_HOVER_COLOR, NODE_BLOCKED_COLOR,
     PEN_NORMAL, PEN_DIM, PEN_HL, PEN_BACK_ARROW,
-    MAP_STATUS_OK, MAP_STATUS_WARN, MAP_STATUS_ALM, MAP_STATUS_OFF,
-    ZONE_BLOCK_MAP, GROUPS, SEP_COLOR, PORT_TYPE,
+    MAP_STATUS_OFF,
+    GROUPS, SEP_COLOR, PORT_TYPE,
     STATIONARY_PORT_COLOR, MOBILE_PORT_COLOR, NODE_MAJOR_COLOR,
 )
-
-
-# ─── StatusChipItem ───────────────────────────────────────────
-class StatusChipItem(QGraphicsRectItem):
-    """
-    Маленький цветной чип с текстовой подписью.
-    Используется для отображения состояния оборудования/платформы на карте.
-    """
-    _COLORS = {
-        'green': (QColor(200, 230, 201), QColor(46, 125, 50)),
-        'yellow': (QColor(255, 249, 196), QColor(230, 81, 0)),
-        'red': (QColor(255, 205, 210), QColor(183, 28, 28)),
-        'gray': (QColor(224, 224, 224), QColor(97, 97, 97)),
-    }
-
-    def __init__(self, text: str, x: float, y: float,
-                 color_mode: str = 'gray', w: int = 56, h: int = 14):
-        super().__init__(0, 0, w, h)
-        self.setPos(x, y)
-        self.setZValue(20)
-        self._txt = QGraphicsTextItem(text, self)
-        self._txt.setFont(QFont("Segoe UI", 6, QFont.Bold))
-        self._txt.setZValue(21)
-        self._txt.setPos(2, -1)
-        self.set_color(color_mode)
-
-    def set_color(self, color_mode: str):
-        bg_color, fg_color = self._COLORS.get(color_mode, self._COLORS['gray'])
-        self.setBrush(QBrush(bg_color))
-        self.setPen(QPen(fg_color.darker(110), 1))
-        self._txt.setDefaultTextColor(fg_color)
-
-    def update_state(self, text: str, color_mode: str):
-        self._txt.setPlainText(text)
-        self.set_color(color_mode)
 
 
 # ─── NodeItem ────────────────────────────────────────────────
@@ -198,7 +163,7 @@ class TrajectoryMapWidget(QWidget):
     """
     Виджет с интерактивной картой траекторий манипулятора.
     Показывает текущую позицию манипулятора, состояния XY-платформы
-    и оборудования из ПЛК (VT/VTOL столы).
+    и оборудования из ПЛК.
     """
     node_clicked = pyqtSignal(str)
 
@@ -312,8 +277,6 @@ class TrajectoryMapWidget(QWidget):
         self._current_point = None
         self._nodes: dict[str, NodeItem] = {}
         self._edge_items: dict[tuple, list] = {}
-        self._zone_chips: dict[str, StatusChipItem] = {}  # zone_type + "_x"/"_y" → chip
-        self._equip_chips: dict[str, StatusChipItem] = {}  # key → equipment chip
         self._status_labels: dict[str, QLabel] = {}  # key → bottom panel label
         self._init_ui()
 
@@ -423,8 +386,6 @@ class TrajectoryMapWidget(QWidget):
         self._scene.clear()
         self._nodes.clear()
         self._edge_items.clear()
-        self._zone_chips.clear()
-        self._equip_chips.clear()
 
         # 1) Зоны + XY-чип платформы в каждой зоне
         for (zone_x, zone_y, zone_w, zone_h, zone_type, zone_label) in self.ZONES:
@@ -530,42 +491,21 @@ class TrajectoryMapWidget(QWidget):
         self._info_label.setText("Нажмите на точку для выбора маршрута")
         self._info_label.setStyleSheet(BLUE_COLOR)
 
-    def update_plc_state(self, platform, vt, vtol) -> None:
+    def update_plc_state(self, platform) -> None:
         """
         Обновляет визуализацию ПЛК-состояния на карте.
           platform : ManipulatorPoints | None
-          vt       : VtPoints | None
-          vtol     : VtolPoints | None
         """
-        self._update_node_blocking(platform, vt, vtol)
+        self._update_node_blocking(platform)
 
-    def _update_node_blocking(self, platform, vt=None, vtol=None) -> None:
-        """Блокирует (серым) узлы зон, куда платформа ещё не подъехала или люк не открыт."""
+    def _update_node_blocking(self, platform=None) -> None:
+        """Снимает блокировку с узлов карты (кроме текущей позиции)."""
         for point_name, node in self._nodes.items():
             # if point_name == "pHomePosition":
             #     node.set_blocked(False)
             #     continue
             if point_name == self._current_point:
                 continue  # текущую позицию не трогаем
-
-            if platform is None:
-                node.set_blocked(False)
-                continue
-
-            mapping = ZONE_BLOCK_MAP.get(point_name)
-            if mapping is None:
-                node.set_blocked(False)
-                continue
-
-            x_attr, y_attr, location = mapping
-            x_ok = getattr(platform, x_attr, True)
-            y_ok = getattr(platform, y_attr, True)
-            if not (x_ok and y_ok):
-                missing = ("XY" if not x_ok and not y_ok
-                           else "X-ось" if not x_ok
-                else "Y-ось")
-                node.set_blocked(True, f"Платформа ({missing}) не у {location}")
-                continue
 
             node.set_blocked(False)
 
