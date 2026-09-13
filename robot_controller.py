@@ -1,34 +1,26 @@
 import json
 import sys
 import math
-import time
 import threading
 import dataclasses
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, List, Optional
 from queue import Queue, Empty
 
 from actions import actions
-from routes import routes
-from available_trajectories import available_trajectories
-from config import POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_DO_INDEX, SHIFT_GRIPPER_DO_INDEX, EXECUTION, \
+from config import POINTS_PATH, TRAJ_PATH, GRIPPER_DO_INDEX, SHIFT_GRIPPER_DO_INDEX, EXECUTION, \
     FINISHED, BLOCK, EXCEPTION, \
-    EXEC_TRAJ, GRIPPER_CMD, ACTIONS_PATH, PORT_TYPE, VTOL_LIFT_WAIT_TIMEOUT, WAIT_LIFT, VTOL_LIFT_REQUIRED_POSITION
-from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints, RobotRoutes
+    EXEC_TRAJ, GRIPPER_CMD, PORT_TYPE
+from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
-sys.path.append("/home/user/robot-api")
-# sys.path.append("robot-api")
-from API.rc_api import RobotApi
+sys.path.append("robot-api")
 from API.source.core.exceptions.data_validation_error.generic_error import (
-    AddWaypointError, FunctionTimeOutError)
+    FunctionTimeOutError)
 from API.source.models.classes.enum_classes.state_classes import (
     InComingControllerState as Ics,
     InComingSafetyStatus as Iss)
-from API.source.core.exceptions.data_validation_error.version_error import \
-    VersionError
 
 
 @dataclass
@@ -83,14 +75,13 @@ class StateManager:
 class DataManager:
     """Управление waypoints и trajectories"""
 
-    def __init__(self, points_path: Path, traj_path: Path, actions_dict: dict, routes_dict: dict, logger):
+    def __init__(self, points_path: Path, traj_path: Path, actions_dict: dict, logger):
         self.points_path = points_path
         self.traj_path = traj_path
         self.log = logger
         self.waypoints: Dict[str, Dict] = {}
         self.trajectories: Dict[str, Dict] = {}
         self.actions = actions_dict
-        self.routes = routes_dict
 
     def load_waypoints(self) -> Dict[str, Dict]:
         """Загрузить waypoints из файла"""
@@ -119,12 +110,6 @@ class DataManager:
         if name not in self.waypoints:
             raise ValueError(f"Waypoint '{name}' not found")
         return self.waypoints[name]
-
-    def get_trajectory(self, name: str) -> Dict:
-        """Получить trajectory по имени"""
-        if name not in self.trajectories:
-            raise ValueError(f"Trajectory '{name}' not found")
-        return self.trajectories[name]
 
     def get_tcp_pose(self, waypoint_name: str) -> List[float]:
         """Получить TCP позицию из waypoint"""
@@ -285,43 +270,6 @@ class RobotController:
         self.stop_event = threading.Event()
         self._heartbeat_cb = heartbeat_cb
 
-        self.manipulator_points = {
-            'pHelicopterModule': 'module_h_available',
-            'pVTOLModule': 'module_v_available',
-            'pChargerH': 'charge_h_available',
-            'pChargerV': 'charge_v_available',
-            'pPayload': 'pos_load_available',
-            'pGrippers': 'pos_grippers_available',
-        }
-
-        # self.helicopter_points = {
-        #     '': self.parent.OpcClientVT.h_table_hatch_opened
-        # }
-
-        self.vtol_points = {
-
-        }
-
-        self.hatch_required_trajectories = {
-            'tHelicopter1_To_Helicopter1Payload': 'vt',
-            'tHelicopter2_To_Helicopter2Payload': 'vt',
-            'tVTOL1_To_VTOL1Payload': 'vtol',
-            'tVTOL1_To_VTOL1Battery': 'vtol',
-            'tVTOL2_To_VTOL2Battery': 'vtol',
-        }
-
-        # Траектории, для которых стол ВТОЛ обязан быть в нижней позиции.
-        # Стационарный порт: Легионер опущен хвостом к модулю, подход снизу.
-        # Мобильный порт: mid высота уточняется при наладке
-
-        # Траектории требующие определённой позиции лифта ВТОЛ перед выполнением.
-        # Ключ — имя траектории, значение — требуемая позиция лифта.
-        self.vtol_lift_required = {
-            'tVTOL1_To_VTOL1Battery': 'bottom',  # стационарный
-            'tVTOL2_To_VTOL2Battery': 'bottom',  # стационарный
-            'tVTOL2_To_VTOL2Battery_Mobile': 'mid',  # мобильный
-        }
-
         # Раскомментить для отладки с манипулятором по месту
         # Robot API
         # try:
@@ -332,7 +280,7 @@ class RobotController:
 
         # Компоненты
         self.state = StateManager()
-        self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, routes, logger)
+        self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
         # Раскомментить для отладки с манипулятором по месту
         # self.mc = MotionController(self.Robot, self.data, logger)
         # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO)
@@ -361,9 +309,6 @@ class RobotController:
 
     def get_actions_snapshot(self) -> dict:
         return dict(self.data.actions)
-
-    def get_routes_snapshot(self) -> dict:
-        return dict(self.data.routes)
 
     def get_current_tcp_position(self) -> List[float]:
         return self.state.get_field('tcp_position')
@@ -490,11 +435,6 @@ class RobotController:
             nearest_point = self.find_nearest_waypoint()
             nearest_wp = nearest_point.get("waypoint")
 
-            # commissioning
-            # if nearest_wp not in available_trajectories:
-            #     self.log.error("available_trajectories not filled correctly")
-            #     return
-
             self.exec_available_trajectory(nearest_wp, trajectory)
 
         except FunctionTimeOutError as e:
@@ -506,43 +446,7 @@ class RobotController:
 
     def exec_available_trajectory(self, nearest_wp, trajectory) -> None:
         """Выполнить доступную траекторию"""
-        # Проверка люка ВТ
-        hatch_module = self.hatch_required_trajectories.get(trajectory.name)
-        if hatch_module == 'vt':
-            self.state.update(
-                trajectory_state=trajectory.value + BLOCK,
-                last_error=LastError.err_hatch_not_open
-            )
-            self.log.error(f"Trajectory {trajectory.name} blocked: VT hatch not open")
-            return
-
-        # Проверка люка ВТОЛ
-        if hatch_module == 'vtol':
-            self.state.update(
-                trajectory_state=trajectory.value + BLOCK,
-                last_error=LastError.err_hatch_not_open
-            )
-            self.log.error(f"Trajectory {trajectory.name} blocked: VTOL hatch not open")
-            return
-
-        # Проверка позиции лифта ВТОЛ
-        # Для каждого типа порта требуется своя позиция лифта перед подходом к батарее:
-        #   stationary → bottom (Легионер опущен хвостом к манипулятору)
-        #   mobile → mid (промежуточная высота, уточняется при наладке)
-        required_position = self.vtol_lift_required.get(trajectory.name)
-        if required_position:
-            self.state.update(
-                trajectory_state=trajectory.value + BLOCK,
-                last_error=LastError.err_vtol_lift_not_position
-            )
-            self.log.error(
-                f"Trajectory {trajectory.name} blocked: "
-                f"VTOL lift not at '{required_position}' (PORT_TYPE={PORT_TYPE})"
-            )
-            return
-
-        attr = self.manipulator_points.get(nearest_wp)
-        wp_available =  True # commissioning
+        wp_available = True  # commissioning
         if wp_available:  # trajectory.name in available_trajectories.get(nearest_wp) # commissioning
             for position in self.data.trajectories[trajectory.name]['positions']:
                 self.cmd_queue.put(
@@ -608,29 +512,6 @@ class RobotController:
                             {'index': GRIPPER_DO_INDEX, 'value': bool(command.name)},
                             source="GUI"
                         ))
-                    if command.cmd_type == WAIT_LIFT and finish_motion:
-                        # Синхронное ожидание позиции лифта перед следующей командой.
-                        # Для стационарного порта — нижняя позиция (Легионер опущен).
-                        # Для мобильного порта — пока пропускаем, условие при наладке.
-                        if PORT_TYPE == "stationary":
-                            ok = self.wait_vtol_lift(position=command.name)
-                            if not ok:
-                                self.state.update(
-                                    action_state=action.value + BLOCK,
-                                    last_error=LastError.err_vtol_lift_not_position
-                                )
-                                self.log.error(
-                                    f"Action {action.name} blocked: "
-                                    f"{WAIT_LIFT} timeout (position='{command.name}')"
-                                )
-                                return
-                        # elif PORT_TYPE == "mobile":
-                        #     pass
-                        else:
-                            self.log.info(
-                                f"{WAIT_LIFT} skipped for PORT_TYPE='{PORT_TYPE}' "
-                                f"(position='{command.name}' — уточнить при наладке)"
-                            )
                     # if command.cmd_type == "PLC_COM":
                     #     pass
 
@@ -646,15 +527,6 @@ class RobotController:
             self.state.update(action_state=action.value + EXCEPTION,
                               last_error=LastError.err_common_action)
             self.log.error(f"EXECUTE_ACTION failed: {e}")
-
-    def execute_route(self, route: RobotRoutes) -> None:
-        """Выполнить маршрут"""
-        for traj in self.data.routes.get(route.name).trajectories:
-            self.cmd_queue.put(Command(
-                CmdType.EXECUTE_ROUTE,
-                {'num': int(getattr(RobotRoutes, traj.name))},
-                source="GUI"
-            ))
 
     # ---------- Грипперы ----------
     def execute_gripper(self, clamp: bool) -> None:
@@ -744,10 +616,7 @@ class RobotController:
         try:
             self.state.update(current_point=getattr(RobotPoints, best_name).value)
         except AttributeError:
-            pass
-        finally:
-            self.state.update(
-                current_point=getattr(RobotPoints, "pUndefined").value)
+            print('Trajectory not found')
 
         if best_name is None:
             info = {"waypoint": "", "distance": 0.0, "trajectories": []}
@@ -845,9 +714,6 @@ class RobotController:
                 elif cmd.type == CmdType.EXECUTE_TRAJECTORY:
                     self.data.load_waypoints()
                     self.execute_trajectory(RobotTrajectories(cmd.payload['num']))
-
-                elif cmd.type == CmdType.EXECUTE_ROUTE:
-                    self.execute_route(RobotRoutes(cmd.payload['num']))
 
                 elif cmd.type == CmdType.EXECUTE_ACTION:
                     self.execute_action(RobotActions(cmd.payload['num']))

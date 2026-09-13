@@ -9,14 +9,14 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QLabel, QFrame, \
 from PyQt5.QtGui import QColor
 from datetime import datetime
 
-from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotRoutes, RobotPoints
+from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from config import (POINTS_PATH, TRAJ_PATH, RED_COLOR,
                     LOG_STYLESHEET, LOG_COLOR_NEUTRAL, LOG_COLOR_STOP,
-                    LOG_COLOR_OPC, LOG_COLOR_ERROR, LOG_COLOR_SUCCESS,
+                    LOG_COLOR_CMD, LOG_COLOR_ERROR, LOG_COLOR_SUCCESS,
                     CONN_ONLINE_STYLE, CONN_OFFLINE_STYLE, CONN_INIT_STYLE,
                     STOP_BTN_STYLE, POWER_OFF_BTN_STYLE,
-                    POWER_ON_ACTIVE_STYLE, POWER_OFF_ACTIVE_STYLE,
-                    POWER_BTN_INACTIVE_STYLE, JOURNAL_COUNT, COMMON_BTN_STYLE,
+                    POWER_OFF_ACTIVE_STYLE,
+                    JOURNAL_COUNT, COMMON_BTN_STYLE,
                     ACTIVATED_BTN_STYLE, LABEL_PADDING, GREEN_BTN_STYLE, MOVE_BTN_STYLE, GRIPPER_BTN_STYLE)
 
 from ui_form import Ui_Form
@@ -27,7 +27,6 @@ from available_points import available_points as AVAIL_PTS
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, \
     LastError, CONTROLLER_STATE_RU, \
     SAFETY_STATUS_RU, MOTION_MODE_RU, LAST_ERROR_RU
-from display_names import POINT_NAMES, ACTION_NAMES, traj_display_name
 
 
 class MainWindow(QMainWindow):
@@ -36,16 +35,14 @@ class MainWindow(QMainWindow):
     """
 
     def __init__(self, robot_controller, cmd_queue, command_handler,
-                 heartbeat=None, watchdogs=None, cmd_log_queue=None):
+                 heartbeat=None, cmd_log_queue=None):
         super().__init__()
         self.RobotController = robot_controller
         self.cmd_queue = cmd_queue
         self.Waypoints: Dict[str, dict] = {}
         self.Trajectories: Dict[str, dict] = {}
-        self.io0_state: bool = False  # 2025_09_29
         self._heartbeat = heartbeat
-        self._plc_clients = watchdogs or {}  # {'manipulator': client, 'vt': client, 'vtol': client}
-        self._cmd_log_queue = cmd_log_queue  # очередь OPC-событий
+        self._cmd_log_queue = cmd_log_queue  # очередь событий
         self._last_nearest_wp: str = ""
         self._log_last_cmd: str = ""
         self._log_last_traj_state: int = -1
@@ -60,7 +57,6 @@ class MainWindow(QMainWindow):
         self.Waypoints = self.RobotController.get_waypoints_snapshot()
         self.Trajectories = self.RobotController.get_trajectories_snapshot()
         self.Actions = self.RobotController.get_actions_snapshot()
-        self.Routes = self.RobotController.get_routes_snapshot()
         self.command_handler = command_handler
         self.nearest_info = self.RobotController.get_nearest_info()
 
@@ -83,7 +79,6 @@ class MainWindow(QMainWindow):
         self.ui.ActivateZG.toggled.connect(self.manipulator_free_drive)
         self.ui.ActivateSJ.clicked.connect(self.start_simple_joystick)
         self.ui.MoveTrajectory.clicked.connect(self.move_by_selected_trajectory)
-        self.ui.MoveRoute.clicked.connect(self.execute_selected_route)
         self.ui.ExecuteAction.clicked.connect(self.execute_selected_action)
         self.ui.OutputControl.setCheckable(True)
         self.ui.OutputControl.toggled.connect(self.manipulator_gripper_control)
@@ -107,13 +102,10 @@ class MainWindow(QMainWindow):
         self.ui.ExecuteAction.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.OutputControl.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.ShiftGripper.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.MoveRoute.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.AddTrajectoryToRoute.setStyleSheet(COMMON_BTN_STYLE)
         self.update_waypoints_combo_box()
         self.update_available_waypoints_combo_box()
         self.update_trajectories()
         self.update_actions()
-        self.update_routes()
         self._init_trajectory_map()
         self.ui.PowerOn.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.POWER, {'state': 1}, source="GUI")
@@ -240,10 +232,7 @@ class MainWindow(QMainWindow):
         self._conn_labels: Dict[str, QLabel] = {}
         conn_items = [
             ('rc', 'RC'),
-            ('opc_server', 'OPC Srv'),
-            ('manipulator', 'ПЛК M'),
-            ('vt', 'ПЛК VT'),
-            ('vtol', 'ПЛК VTOL'),
+            ('handler', 'Handler'),
         ]
         for key, display in conn_items:
             lbl = QLabel(f"● {display}")
@@ -271,11 +260,11 @@ class MainWindow(QMainWindow):
         self.StatusTimer.start(500)
 
     def _update_conn_indicators(self) -> None:
-        """Обновляет индикаторы подключения RC, OPC Server и трёх ПЛК."""
-        # RC и OPC Server — через heartbeat
+        """Обновляет индикаторы подключения RC и хендлера."""
+        # RC и хендлер — через heartbeat
         if self._heartbeat is not None:
             hb = self._heartbeat.state()
-            for key in ('rc', 'opc_server'):
+            for key in ('rc', 'handler'):
                 lbl = self._conn_labels.get(key)
                 if lbl is None:
                     continue
@@ -283,17 +272,6 @@ class MainWindow(QMainWindow):
                 lbl.setStyleSheet(
                     CONN_ONLINE_STYLE if alive else CONN_OFFLINE_STYLE
                 )
-
-        # Три ПЛК-клиента — через client.is_connected
-        for key in ('manipulator', 'vt', 'vtol'):
-            lbl = self._conn_labels.get(key)
-            client = self._plc_clients.get(key)
-            if lbl is None or client is None:
-                continue
-            alive = getattr(client, 'is_connected', False)
-            lbl.setStyleSheet(
-                CONN_ONLINE_STYLE if alive else CONN_OFFLINE_STYLE
-            )
 
     def _update_nearest(self):
         _ = self.RobotController.find_nearest_waypoint()
@@ -350,15 +328,9 @@ class MainWindow(QMainWindow):
 
         # ── PLC состояния → карта ─────────────────────────────
         try:
-            mc = self._plc_clients.get('manipulator')
-            vt = self._plc_clients.get('vt')
-            vtol = self._plc_clients.get('vtol')
-
             plat = False
-            vt_s = False
-            vtol_s = False
 
-            self.trajectory_map.update_plc_state(plat, vt_s, vtol_s)
+            self.trajectory_map.update_plc_state(plat)
 
         except Exception:
             pass
@@ -388,12 +360,12 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-        # OPC-команды из очереди (синий цвет, префикс [OPC])
+        # Команды из очереди (синий цвет, префикс [CMD])
         try:
             if self._cmd_log_queue is not None:
                 while not self._cmd_log_queue.empty():
                     msg = self._cmd_log_queue.get_nowait()
-                    self._add_log_entry(f"[OPC]  {msg}", "→", LOG_COLOR_OPC)
+                    self._add_log_entry(f"[CMD]  {msg}", "→", LOG_COLOR_CMD)
         except Exception:
             pass
 
@@ -418,7 +390,7 @@ class MainWindow(QMainWindow):
 
     def _add_log_entry(self, command: str, icon: str, fg: str) -> None:
         """Добавляет строку в журнал, удаляет лишние при переполнении."""
-        if icon == "→" and not command.startswith("[OPC]"):
+        if icon == "→" and not command.startswith("[CMD]"):
             self._pending_cmd = command  # запоминаем для атрибуции возможной ошибки
             self._log_last_cmd = ""  # сбрасываем, чтобы повторная та же команда детектировалась
             self._log_last_err = 0  # сбрасываем ошибку в 0, чтобы та же ошибка снова отобразилась
@@ -693,7 +665,6 @@ class MainWindow(QMainWindow):
         items_model = QStandardItemModel()
         last_index = len(self.Waypoints) - 1
         for point in self.Waypoints.keys():
-            # display = POINT_NAMES.get(point, point)
             item = QStandardItem(point)
             item.setData(point, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
@@ -705,7 +676,6 @@ class MainWindow(QMainWindow):
         items_model = QStandardItemModel()
         last_index = len(self.Trajectories) - 1
         for traj in self.Trajectories.keys():
-            # display = traj_display_name(traj)
             item = QStandardItem(traj)
             item.setData(traj, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
@@ -717,21 +687,11 @@ class MainWindow(QMainWindow):
     def update_actions(self) -> None:
         items_model = QStandardItemModel()
         for action in self.Actions.keys():
-            # display = ACTION_NAMES.get(action, action)
             item = QStandardItem(action)
             item.setData(action, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             items_model.appendRow(item)
         self.ui.actionsListView.setModel(items_model)
-
-    def update_routes(self) -> None:
-        items_model = QStandardItemModel()
-        for route in self.Routes.keys():
-            item = QStandardItem(route)
-            item.setData(route, Qt.ItemDataRole.UserRole)
-            item.setEditable(False)
-            items_model.appendRow(item)
-        self.ui.RoutesComboBox.setModel(items_model)
 
     def on_traj_list_clicked(self) -> None:
         index = self.ui.trajListView.currentIndex()
@@ -821,16 +781,6 @@ class MainWindow(QMainWindow):
             self.ui.ActivateZG.setChecked(False)
             if self.ZGTimer.isActive():
                 self.ZGTimer.stop()
-
-    def manipulator_free_drive_old(self, activate: bool) -> None:
-        try:
-            self.manipulator_command(
-                Command(CmdType.FREE_DRIVE, {'state': 1 if activate else 2},
-                        source="GUI"))
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(None, "Error",
-                                           f"Zero Gravity toggle failed: {e}")
-            self.ui.ActivateZG.setChecked(False)
 
     def add_current_point_to_trajectory(self) -> None:
         point_name = self.ui.PointName.text().strip()
@@ -959,24 +909,7 @@ class MainWindow(QMainWindow):
             self.command_handler.set_trajectory(traj_enum.value)
             self._add_log_entry(f"Траектория: {trajectory_name}", "→", LOG_COLOR_NEUTRAL)
         except Exception as e:
-            self._add_log_entry(f"Траектория: {trajectory_name}", f"✗  OPC: {e}", LOG_COLOR_ERROR)
-
-    def execute_selected_route(self) -> None:
-        route_name = self.ui.RouteName.text()
-        if not route_name:
-            QtWidgets.QMessageBox.warning(None, "Warning",
-                                          "Please select a route first!")
-            return
-        try:
-            # команда через OPC
-            route_enum = getattr(RobotRoutes, route_name)
-            self.command_handler.set_route(route_enum.value)
-
-            QtWidgets.QMessageBox.information(None, "Success",
-                                              f"Executing route '{route_name}'")
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(None, "Error",
-                                           f"Failed to execute route: {e}")
+            self._add_log_entry(f"Траектория: {trajectory_name}", f"✗  CMD: {e}", LOG_COLOR_ERROR)
 
     def execute_selected_action(self) -> None:
         action_name = self.ui.ActionName.text()
@@ -991,12 +924,12 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # команда через OPC
+            # команда через хендлер
             action_enum = getattr(RobotActions, action_name)
             self.command_handler.set_action(action_enum.value)
             self._add_log_entry(f"Действие: {action_name}", "→", LOG_COLOR_NEUTRAL)
         except Exception as e:
-            self._add_log_entry(f"Действие: {action_name}", f"✗  OPC: {e}", LOG_COLOR_ERROR)
+            self._add_log_entry(f"Действие: {action_name}", f"✗  CMD: {e}", LOG_COLOR_ERROR)
 
     def _zg_tick(self) -> None:  # 2025_09_29
         try:

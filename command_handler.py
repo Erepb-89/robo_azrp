@@ -28,7 +28,6 @@ class CommandHandler:
 
         self.trajectory = 0
         self.action = 0
-        self.route = 0
         self.free_drive = 0
         self.gripper_command = 0
         self.power_on = 0
@@ -41,9 +40,6 @@ class CommandHandler:
 
     def set_trajectory(self, value):
         self.trajectory = value
-
-    def set_route(self, value):
-        self.route = value
 
     def set_action(self, value):
         self.action = value
@@ -62,28 +58,24 @@ class CommandHandler:
                     # self.update_nearest_info()
 
                 except Exception as e:
-                    self.log.error(f"Error in OPC loop: {e}")
+                    self.log.error(f"Error in command handler loop: {e}")
 
                 if self._heartbeat_cb:
                     try:
-                        self._heartbeat_cb('opc_server')
+                        self._heartbeat_cb('handler')
                     except Exception:
                         pass
 
                 time.sleep(0.2)
 
         finally:
-            try:
-                self.Server.stop()
-            except Exception as e:
-                self.log.error(f"OPC stop error: {e}")
-            self.log.info("OPC UA server stopped.")
+            self.log.info("Command handler stopped.")
 
     def handle_power_cmd(self) -> None:  # 1 = ON, 0 = OFF
         if self.power_on_prev != self.power_on:
             self.cmd_queue.put(Command(CmdType.POWER,
                                        {'state': int(self.power_on)},
-                                       source="OPC"))
+                                       source="CMD"))
         self.power_on_prev = self.power_on
 
     def handle_traj_cmd(self):
@@ -91,12 +83,12 @@ class CommandHandler:
             if self.trajectory == 0:
                 self.cmd_queue.put(
                     Command(CmdType.STOP_MOVE, {},
-                            source="OPC"))
+                            source="CMD"))
             else:
                 if self.trajectory in range(1, 999):
                     self.cmd_queue.put(
                         Command(CmdType.EXECUTE_TRAJECTORY, {'num': int(self.trajectory)},
-                                source="OPC"))
+                                source="CMD"))
         self.traj_prev = self.trajectory
 
     def handle_action_cmd(self):
@@ -104,19 +96,19 @@ class CommandHandler:
             if self.action == 0:
                 self.cmd_queue.put(
                     Command(CmdType.STOP_MOVE, {},
-                            source="OPC"))
+                            source="CMD"))
             else:
                 if self.action in range(1, 999):
                     self.cmd_queue.put(
                         Command(CmdType.EXECUTE_ACTION, {'num': int(self.action)},
-                                source="OPC"))
+                                source="CMD"))
         self.act_prev = self.action
 
     def handle_free_drive_cmd(self) -> None:  # 1 = ON, 0 = OFF
         if self.free_drive_prev != self.free_drive:
             self.cmd_queue.put(Command(CmdType.FREE_DRIVE,
                                        {'state': int(self.free_drive)},
-                                       source="OPC"))
+                                       source="CMD"))
         self.free_drive_prev = self.free_drive
 
     def handle_gripper_cmd(self) -> None:  # 1 = ON, 0 = OFF
@@ -125,7 +117,7 @@ class CommandHandler:
                 self.cmd_queue.put(Command(CmdType.GRIPPER_CMD,
                                            {'index': GRIPPER_DO_INDEX,
                                             'value': bool(self.gripper_command)},
-                                           source="OPC"))
+                                           source="CMD"))
             self.gcmd_prev = self.gripper_command
         except Exception as e:
             raise RuntimeError(f"qGripperCommand Error, {e}")

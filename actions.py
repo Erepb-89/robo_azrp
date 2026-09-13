@@ -25,5 +25,3 @@ def get_actions():
 
 
 actions = get_actions()
-# print(actions["aVTOL2_To_VTOL2Battery"].commands)
-# print(actions["aVTOL2Battery_To_VTOL2"].commands[0].name)

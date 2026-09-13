@@ -472,7 +472,7 @@
              </font>
             </property>
             <property name="title">
-             <string>Trajectories/Routes</string>
+             <string>Trajectories</string>
             </property>
             <layout class="QVBoxLayout" name="trajectoriesLayout">
              <property name="spacing">
@@ -520,100 +520,6 @@
                </property>
                <property name="text">
                 <string>Move By Trajectory</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout">
-               <item>
-                <widget class="QLabel" name="RouteNameSelectText">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Routes list:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="RouteName">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>75</weight>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>RouteName</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="routeNameSpacer">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>2</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QComboBox" name="RoutesComboBox">
-               <property name="minimumSize">
-                <size>
-                 <width>180</width>
-                 <height>28</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>10</pointsize>
-                </font>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="MoveRoute">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>45</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>10</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Move By Route</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="AddTrajectoryToRoute">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>45</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>10</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Add Trajectory to Route</string>
                </property>
               </widget>
              </item>

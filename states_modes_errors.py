@@ -107,9 +107,8 @@ class LastError(Enum):
     err_not_ready: int = 14             # Manipulator not powered / not in run state
     err_sj_activation: int = 15         # Error Simple Joystick activation
     err_hatch_not_open: int = 16        # Hatch must be open before moving to this position
-    err_vtol_lift_not_position: int = 17  # VTOL table lift must be in bottom position before approach
-    err_gripper_cmd : int = 18          # GRIPPER_CMD failed
-    err_shift_gripper_cmd : int = 19    # SHIFT_GRIPPER_CMD failed
+    err_gripper_cmd : int = 17          # GRIPPER_CMD failed
+    err_shift_gripper_cmd : int = 18    # SHIFT_GRIPPER_CMD failed
 
 
 # ── Словари русских переводов для панели статуса ──────────────────────────────
@@ -162,5 +161,4 @@ LAST_ERROR_RU = {
     LastError.err_not_ready:             ("Манипулятор не готов к движению",    "background:#ffcdd2"),
     LastError.err_sj_activation:         ("Ошибка включения джойстика",         "background:#ffcdd2"),
     LastError.err_hatch_not_open:        ("Люк не открыт",                      "background:#ffcdd2"),
-    LastError.err_vtol_lift_not_position:("Стол ВТОЛ не в нижней позиции",      "background:#ffcdd2"),
 }

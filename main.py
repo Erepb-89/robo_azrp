@@ -20,7 +20,7 @@ class MainAppClass:
         self.logger = setup_logging(LOG_PATH)
         self.intentional_exit = False
 
-        self.heartbit = Heartbeat(names=['rc', 'opc_server', 'opc_client'], ttl_sec=10.0)
+        self.heartbit = Heartbeat(names=['rc', 'handler'], ttl_sec=10.0)
 
         self.cmd_queue = Queue(maxsize=1000)
 
@@ -34,14 +34,13 @@ class MainAppClass:
         self.ControllerThread.start()
 
         self.rc_ready = threading.Event()
-        self.OpcServer = CommandHandler(self.RobotController,
-                                        self.cmd_queue,
-                                        self.logger,
-                                        heartbeat_cb=self.heartbit.beat)
-        self.OpcServerThread = threading.Thread(target=self.OpcServer.start,
-                                                name="OPCServerThread", daemon=True)
-        self.OpcServerThread.start()
-        self.opc_ready = threading.Event()
+        self.CommandHandler = CommandHandler(self.RobotController,
+                                             self.cmd_queue,
+                                             self.logger,
+                                             heartbeat_cb=self.heartbit.beat)
+        self.CommandHandlerThread = threading.Thread(target=self.CommandHandler.start,
+                                                     name="CommandHandlerThread", daemon=True)
+        self.CommandHandlerThread.start()
 
         self.watchdog = WatchdogManager(self.heartbit, interval_sec=5.0,
                                         logger=self.logger)
@@ -50,9 +49,10 @@ class MainAppClass:
         self.App = QtWidgets.QApplication([])
 
         self.Form = MainWindow(
-            self.RobotController, self.cmd_queue, self.OpcServer,
-            heartbeat=self.heartbit,
-            watchdogs=None
+            self.RobotController,
+            self.cmd_queue,
+            self.CommandHandler,
+            heartbeat=self.heartbit
         )
         self.Form.closeEvent = self.on_close
         self.Form.show()
@@ -72,7 +72,7 @@ class MainAppClass:
                 Command(CmdType.SHUTDOWN, {}, source="APP"))
         except Exception as e:
             print(e)
-        self.OpcServer.stop()
+        self.CommandHandler.stop()
         self.RobotController.stop()
 
         event.accept()

@@ -1,7 +1,7 @@
 # Robopro
-## ROBOPRO — управляющее приложение для промышленного манипулятора: RobotController + OPC UA сервер + GUI. Поддерживает очереди команд, watchdog и автозапуск через systemd.
+## ROBOPRO — управляющее приложение для промышленного манипулятора: RobotController + GUI. Поддерживает очереди команд, watchdog и автозапуск через systemd.
 - Rc - robot controller
-- opc - opc handler
+- handler - command handler
 - mb - moodbus
 
 ### robopro.service path - /home/user/.config/systemd/user

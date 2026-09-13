@@ -2,9 +2,7 @@
 
 available_points = {
     "pHomePosition": [
-        "pHelicopterModule",
         "pPayload",
-        "pGrippers",
         "pCharger",
         "pVTOLModule",
         "pVTOL2Charger1",
