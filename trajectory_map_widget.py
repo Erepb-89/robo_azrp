@@ -491,24 +491,6 @@ class TrajectoryMapWidget(QWidget):
         self._info_label.setText("Нажмите на точку для выбора маршрута")
         self._info_label.setStyleSheet(BLUE_COLOR)
 
-    def update_plc_state(self, platform) -> None:
-        """
-        Обновляет визуализацию ПЛК-состояния на карте.
-          platform : ManipulatorPoints | None
-        """
-        self._update_node_blocking(platform)
-
-    def _update_node_blocking(self, platform=None) -> None:
-        """Снимает блокировку с узлов карты (кроме текущей позиции)."""
-        for point_name, node in self._nodes.items():
-            # if point_name == "pHomePosition":
-            #     node.set_blocked(False)
-            #     continue
-            if point_name == self._current_point:
-                continue  # текущую позицию не трогаем
-
-            node.set_blocked(False)
-
     # ── Внутренние обработчики ────────────────────────────────
     def _on_node_clicked(self, point_name: str):
         self._info_label.setText(f"Выбрана точка: {point_name}")

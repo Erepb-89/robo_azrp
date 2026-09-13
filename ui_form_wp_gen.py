@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QLabel, QFrame, \
 from PyQt5.QtGui import QColor
 from datetime import datetime
 
-from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
-from config import (POINTS_PATH, TRAJ_PATH, RED_COLOR,
+from commands import Command, CmdType, RobotTrajectories, RobotActions
+from config import (POINTS_PATH, TRAJ_PATH,
                     LOG_STYLESHEET, LOG_COLOR_NEUTRAL, LOG_COLOR_STOP,
                     LOG_COLOR_CMD, LOG_COLOR_ERROR, LOG_COLOR_SUCCESS,
                     CONN_ONLINE_STYLE, CONN_OFFLINE_STYLE, CONN_INIT_STYLE,
@@ -22,7 +22,6 @@ from config import (POINTS_PATH, TRAJ_PATH, RED_COLOR,
 from ui_form import Ui_Form
 from utils import atomic_write_json
 from trajectory_map_widget import TrajectoryMapWidget
-from available_trajectories import available_trajectories as AVAIL_TRAJS
 from available_points import available_points as AVAIL_PTS
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, \
     LastError, CONTROLLER_STATE_RU, \
@@ -87,7 +86,6 @@ class MainWindow(QMainWindow):
         # self.ui.SavePoint.clicked.connect(self.save_current_position)
         self.ui.AddPointToTrajectory.clicked.connect(self.add_current_point_to_trajectory)
         self.ui.TrajectoriesComboBox.currentTextChanged.connect(self.trajectory_selected)
-        self.ui.availableTrajectoriesComboBox.currentTextChanged.connect(self.available_trajectory_selected)
         self.ui.trajListView.clicked.connect(self.on_traj_list_clicked)
         self.ui.actionsListView.clicked.connect(self.on_actions_list_clicked)
         self.ui.StopMove.setStyleSheet(STOP_BTN_STYLE)
@@ -125,7 +123,6 @@ class MainWindow(QMainWindow):
             self.ui.SavePoint.clicked.connect(self.save_current_position)
         except Exception as err:
             print(err)
-        self.update_available_trajectories_combo_box("pHomePosition")
         self.show()
 
     def buttons_logging(self):
@@ -134,7 +131,8 @@ class MainWindow(QMainWindow):
             lambda: self._add_log_entry("Питание ВКЛ", "→", LOG_COLOR_NEUTRAL))
         self.ui.MoveToPoint.clicked.connect(
             lambda: self._add_log_entry(
-                f"Перемещение: {self.ui.waypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or self.ui.waypointsComboBox.currentText()}",
+                f"Перемещение: {self.ui.waypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or 
+                                self.ui.waypointsComboBox.currentText()}",
                 "→", LOG_COLOR_NEUTRAL))
         self.ui.ActivateZG.toggled.connect(
             lambda on: self._add_log_entry(
@@ -191,15 +189,6 @@ class MainWindow(QMainWindow):
         self.exact_dist.setFont(font)
         self.exact_dist.setObjectName("exactDistance")
         toolbar.addWidget(self.exact_dist)
-
-        self.close_dist = QtWidgets.QLineEdit('0.2')
-        self.close_dist.setMinimumSize(QtCore.QSize(28, 28))
-        self.close_dist.setMaximumWidth(60)
-        font.setPointSize(14)
-        font.setBold(True)
-        self.close_dist.setFont(font)
-        self.close_dist.setObjectName("closeDistance")
-        toolbar.addWidget(self.close_dist)
 
         move_to_btn = QtWidgets.QPushButton("> Двигаться к точке")
         font = move_to_btn.font()
@@ -278,7 +267,6 @@ class MainWindow(QMainWindow):
         self.nearest_info = self.RobotController.get_nearest_info()
         nearest_wp = (self.nearest_info or {}).get('waypoint') or ""
         if nearest_wp and nearest_wp != self._last_nearest_wp:
-            self.update_available_trajectories_combo_box(nearest_wp)
             self.update_available_waypoints_combo_box()
             self._last_nearest_wp = nearest_wp
             self.trajectory_map.set_current_position(self._last_nearest_wp)
@@ -325,15 +313,6 @@ class MainWindow(QMainWindow):
         except Exception as err:
             pass
             # print(err)
-
-        # ── PLC состояния → карта ─────────────────────────────
-        try:
-            plat = False
-
-            self.trajectory_map.update_plc_state(plat)
-
-        except Exception:
-            pass
 
         try:
             state = self.RobotController.get_state_snapshot()
@@ -488,14 +467,7 @@ class MainWindow(QMainWindow):
         self.ui.tabWidget.currentChanged.connect(self._on_tab_changed)
 
     def _on_map_node_clicked(self, point_name: str) -> None:
-        """
-        Клик по узлу карты:
-        - выбирает точку в комбобоксе Tab 1
-        - если текущая позиция известна, ищет прямую траекторию и подсвечивает ребро
-        - синхронизирует выбор траектории с TrajectoriesComboBox Tab 1
-        - Оператор видит подсветку на карте
-        """
-        # Синхронизация точки с Tab 1 (поиск по внутреннему имени в UserRole)
+        """Клик по узлу карты — выбирает точку в комбобоксе Tab 1."""
         model = self.ui.waypointsComboBox.model()
         index = next(
             (i for i in range(model.rowCount())
@@ -504,57 +476,6 @@ class MainWindow(QMainWindow):
         )
         if index >= 0:
             self.ui.waypointsComboBox.setCurrentIndex(index)
-
-        src = self.trajectory_map._current_point
-        if not src or src == point_name:
-            return
-
-        traj_name = self._find_direct_trajectory(src, point_name)
-        if traj_name:
-            # Подсветка ребра на карте
-            self.trajectory_map.highlight_trajectory(src, point_name, traj_name)
-            # Синхронизация с TrajectoriesComboBox и TrajectoryName на Tab 1
-            tmodel = self.ui.TrajectoriesComboBox.model()
-            tidx = next(
-                (i for i in range(tmodel.rowCount())
-                 if tmodel.item(i).data(Qt.ItemDataRole.UserRole) == traj_name),
-                -1
-            )
-            if tidx >= 0:
-                self.ui.TrajectoriesComboBox.setCurrentIndex(tidx)
-            self.ui.TrajectoryName.setText(traj_name)
-        else:
-            # Сброс подсветки ребер на карте
-            self.trajectory_map.reset_highlight()
-            self.trajectory_map._info_label.setText(
-                f"Нет прямой траектории: {src} → {point_name}")
-            self.trajectory_map._info_label.setStyleSheet(
-                RED_COLOR)
-
-    def _find_direct_trajectory(self, src: str, dst: str) -> str | None:
-        """
-        Ищет прямую траекторию между src и dst через available_trajectories.
-        Проверяет оба направления: src→dst и dst→src.
-        """
-        dst_short = dst[1:] if dst.startswith('p') else dst
-        src_short = src[1:] if src.startswith('p') else src
-
-        state = self.RobotController.get_state_snapshot()
-        # Прямое направление: из src в dst
-        try:
-            for traj in AVAIL_TRAJS.get(src):
-                if f"_To_{dst_short}" in traj and traj in self.Trajectories:
-                    return traj
-
-            # Обратное направление: из dst в src
-            for traj in AVAIL_TRAJS.get(dst):
-                if f"_To_{src_short}" in traj and traj in self.Trajectories:
-                    return traj
-
-        except Exception as err:
-            pass
-
-        return None
 
     def _on_tab_changed(self, index: int) -> None:
         """При переходе на вкладку карты — обновляем текущую позицию."""
@@ -637,30 +558,6 @@ class MainWindow(QMainWindow):
         except Exception as err:
             print(err)
 
-    def update_available_trajectories_combo_box(self, target_point) -> None:
-        self.nearest_info = self.RobotController.get_nearest_info()
-
-        try:
-            if float(self.nearest_info.get('distance')) < float(self.exact_dist.text()):
-                current_point = self.nearest_info.get('waypoint')
-                self.RobotController.state.update(current_point=getattr(RobotPoints, current_point).value)
-                st = self.RobotController.get_state_snapshot()
-                traj = self._find_direct_trajectory(current_point, target_point)
-
-                items_model = QStandardItemModel()
-                item = QStandardItem(traj)
-                item.setData(traj, Qt.ItemDataRole.UserRole)
-                item.setEditable(False)
-                items_model.appendRow(item)
-                self.ui.availableTrajectoriesComboBox.setModel(items_model)
-
-            elif float(self.nearest_info.get('distance')) < float(self.close_dist.text()):
-                current_point = self.nearest_info.get('waypoint')
-                self.RobotController.state.update(current_point=getattr(RobotPoints, current_point).value + 1)
-                st = self.RobotController.get_state_snapshot()
-        except Exception as err:
-            print(err)
-
     def update_waypoints_combo_box(self) -> None:
         items_model = QStandardItemModel()
         last_index = len(self.Waypoints) - 1
@@ -707,13 +604,8 @@ class MainWindow(QMainWindow):
         internal = self.ui.TrajectoriesComboBox.currentData(Qt.UserRole)
         self.ui.TrajectoryName.setText(internal)
 
-    def available_trajectory_selected(self, _display_name) -> None:
-        internal = self.ui.availableTrajectoriesComboBox.currentData(Qt.ItemDataRole.UserRole)
-        self.ui.TrajectoryName.setText(internal)
-
     def available_waypoint_selected(self, _display_name) -> None:
         point_name = self.ui.availableWaypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or _display_name
-        self.update_available_trajectories_combo_box(point_name)
 
         # self.ui.PointName.setText(point_name) # comment
         if point_name in self.Waypoints:
@@ -725,8 +617,6 @@ class MainWindow(QMainWindow):
     def waypoint_selected(self, _display_name) -> None:
         point_name = self.ui.waypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or _display_name
         self.update_available_waypoints_combo_box()
-        self.update_available_trajectories_combo_box(point_name)
-        self.available_trajectory_selected(_display_name)
 
         self.ui.PointName.setText(point_name)
         if point_name in self.Waypoints:
