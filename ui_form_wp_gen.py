@@ -131,8 +131,8 @@ class MainWindow(QMainWindow):
             lambda: self._add_log_entry("Питание ВКЛ", "→", LOG_COLOR_NEUTRAL))
         self.ui.MoveToPoint.clicked.connect(
             lambda: self._add_log_entry(
-                f"Перемещение: {self.ui.waypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or 
-                                self.ui.waypointsComboBox.currentText()}",
+                f"Перемещение: "
+                f"{self.ui.waypointsComboBox.currentData(Qt.ItemDataRole.UserRole) or self.ui.waypointsComboBox.currentText()}",
                 "→", LOG_COLOR_NEUTRAL))
         self.ui.ActivateZG.toggled.connect(
             lambda on: self._add_log_entry(
