@@ -1,11 +1,12 @@
 # available_points.py
 
 available_points = {
-    "pHomePosition": [
-        "pPayload",
-        "pCharger",
-        "pVTOLModule",
-        "pVTOL2Charger1",
-        "pVTOL2Charger2",
+    "BGIntP010": [
+        "BGIntP011",
+        "BGM1P010",
+        "BGM2P010",
+        "BG1IntP001",
+        "BG1IntP010",
+        "BG2IntP010",
     ]
 }

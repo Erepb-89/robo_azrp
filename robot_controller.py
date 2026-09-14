@@ -11,7 +11,7 @@ from queue import Queue, Empty
 from actions import actions
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_DO_INDEX,
                     SHIFT_GRIPPER_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
-                    EXEC_TRAJ, GRIPPER_CMD, PORT_TYPE)
+                    EXEC_TRAJ, GRIPPER_CMD)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
@@ -677,8 +677,6 @@ class RobotController:
 
     def run(self) -> None:
         """Главный цикл контроллера"""
-        self.log.info(f"RobotController started [PORT_TYPE={PORT_TYPE}]")
-
         while not self.stop_event.is_set():
             try:
                 # Мониторинг
