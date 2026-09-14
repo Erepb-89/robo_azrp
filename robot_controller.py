@@ -9,18 +9,20 @@ from typing import Dict, List, Optional
 from queue import Queue, Empty
 
 from actions import actions
-from config import POINTS_PATH, TRAJ_PATH, GRIPPER_DO_INDEX, SHIFT_GRIPPER_DO_INDEX, EXECUTION, \
-    FINISHED, BLOCK, EXCEPTION, \
-    EXEC_TRAJ, GRIPPER_CMD, PORT_TYPE
+from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_DO_INDEX,
+                    SHIFT_GRIPPER_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
+                    EXEC_TRAJ, GRIPPER_CMD, PORT_TYPE)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
 sys.path.append("robot-api")
+from API.rc_api import RobotApi
 from API.source.core.exceptions.data_validation_error.generic_error import (
     FunctionTimeOutError)
 from API.source.models.classes.enum_classes.state_classes import (
     InComingControllerState as Ics,
     InComingSafetyStatus as Iss)
+from API.source.core.exceptions.data_validation_error.version_error import VersionError
 
 
 @dataclass
@@ -270,7 +272,7 @@ class RobotController:
         self.stop_event = threading.Event()
         self._heartbeat_cb = heartbeat_cb
 
-        # Раскомментить для отладки с манипулятором по месту
+        # Раскомментить для отладки с манипулятором по месту Uncomment
         # Robot API
         # try:
         #     self.Robot = RobotApi(robot_ip, show_std_traceback=True)
@@ -281,7 +283,7 @@ class RobotController:
         # Компоненты
         self.state = StateManager()
         self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
-        # Раскомментить для отладки с манипулятором по месту
+        # Раскомментить для отладки с манипулятором по месту Uncomment
         # self.mc = MotionController(self.Robot, self.data, logger)
         # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO)
         # self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
