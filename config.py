@@ -8,11 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent
 POINTS_PATH = BASE_DIR / "points.json"
 TRAJ_PATH = BASE_DIR / "trajectories.json"
 
-# Тип порта: "stationary" — Легионер опущен, подход под хвост снизу;
-#            "mobile"     — Легионер наверху, подход сверху с доворотом.
-# Меняется при смене конфигурации порта (до запуска приложения).
-PORT_TYPE: str = "stationary"  # "stationary" | "mobile"
-
 # Параметры подключения
 ROBOT_IP = "127.0.0.1"
 
@@ -27,10 +22,10 @@ SHIFT_GRIPPER_DO_INDEX = 1
 LOG_PATH = BASE_DIR / "robopro.log"
 
 """Состояния выполнения команды"""
-EXECUTION = 1000
-FINISHED = 2000
-EXCEPTION = 3000
-BLOCK = 4000
+EXECUTION = 100
+FINISHED = 200
+EXCEPTION = 300
+BLOCK = 400
 
 # стили для trajectory_map
 RED_COLOR = "background:#fce4ec; border-radius:6px; padding:6px; color:#b71c1c;"
@@ -44,7 +39,7 @@ MOBILE_PORT_COLOR = "padding:2px 10px; border-radius:4px; font-size:11px; backgr
 # ── UI стили ────────────────────────────────────────────────────────────────
 
 # Журнал операций
-JOURNAL_COUNT = 100
+JOURNAL_COUNT = 1000
 
 LOG_STYLESHEET = (
     f"QListWidget {{ font-family: 'Consolas', monospace; font-size: 16px; }}"
@@ -170,7 +165,7 @@ NODE_BLOCKED_COLOR = QColor(190, 190, 190)
 
 # ── Карта траекторий: перья рёбер ─────────────────────────────
 PEN_NORMAL = QPen(QColor(100, 100, 100, 180), 1.8)
-PEN_DIM = QPen(QColor(180, 180, 180, 70), 1.0, Qt.DotLine)
+PEN_DIM = QPen(QColor(180, 180, 180, 70), 1.0, Qt.PenStyle.DotLine)
 PEN_HL = QPen(QColor(255, 152, 0, 240), 3.5)
 PEN_BACK_ARROW = QPen(QColor(100, 100, 100, 120), 1.5)
 
@@ -179,14 +174,3 @@ MAP_STATUS_OK = "padding:1px 4px; color:#1b5e20; background:#c8e6c9;"
 MAP_STATUS_WARN = "padding:1px 4px; color:#e65100; background:#fff3e0;"
 MAP_STATUS_ALM = "padding:1px 4px; color:#b71c1c; background:#ffcdd2;"
 MAP_STATUS_OFF = "padding:1px 4px; color:#9e9e9e; background:#f5f5f5;"
-
-# ── Статус-панель ──────────────────────
-GROUPS = [
-    ("Платформа XY", [
-        ("x_axis", "X: —"),
-        ("y_axis", "Y: —"),
-        ("platform", "Поз: —"),
-    ]),
-]
-
-SEP_COLOR = "color:#ddd;"

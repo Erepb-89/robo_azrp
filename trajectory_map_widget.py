@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsEllipseItem,
     QGraphicsRectItem, QGraphicsTextItem,
     QGraphicsPathItem, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QGraphicsItem, QFrame,
+    QLabel, QGraphicsItem
 )
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal, QLineF
 from PyQt5.QtGui import (
@@ -20,10 +20,7 @@ from config import (
     ZONE_COLORS, ZONE_BORDER_COLORS,
     NODE_BASE_COLOR, NODE_ENDPOINT_COLOR, NODE_HOME_COLOR,
     NODE_CURRENT_COLOR, NODE_HOVER_COLOR, NODE_BLOCKED_COLOR,
-    PEN_NORMAL, PEN_DIM, PEN_HL, PEN_BACK_ARROW,
-    MAP_STATUS_OFF,
-    GROUPS, SEP_COLOR, PORT_TYPE,
-    STATIONARY_PORT_COLOR, MOBILE_PORT_COLOR, NODE_MAJOR_COLOR,
+    PEN_NORMAL, PEN_DIM, PEN_HL, PEN_BACK_ARROW, NODE_MAJOR_COLOR,
 )
 
 
@@ -47,8 +44,8 @@ class NodeItem(QGraphicsEllipseItem):
         self.setPos(x, y)
         self.setZValue(10)
         self.setAcceptHoverEvents(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
 
         self.setBrush(QBrush(color))
         self.setPen(QPen(color.darker(140), 2))
@@ -56,7 +53,7 @@ class NodeItem(QGraphicsEllipseItem):
         # Метка внутри круга
         self._label = QGraphicsTextItem(display_name, self)
         self._label.setFont(QFont("Segoe UI", 7, QFont.Bold))
-        self._label.setDefaultTextColor(Qt.white)
+        self._label.setDefaultTextColor(Qt.GlobalColor.white)
         br = self._label.boundingRect()
         self._label.setPos(-br.width() / 2, -br.height() / 2)
 
@@ -80,12 +77,12 @@ class NodeItem(QGraphicsEllipseItem):
         self.setBrush(QBrush(self.base_color))
         self.setPen(QPen(self.base_color.darker(140) if not self._is_blocked
                          else QColor(183, 28, 28), 2,
-                         Qt.DashLine if self._is_blocked else Qt.SolidLine))
+                         Qt.PenStyle.DashLine if self._is_blocked else Qt.PenStyle.SolidLine))
         self._tooltip.setVisible(False)
         super().hoverLeaveEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton and self.parent_widget:
+        if event.button() == Qt.MouseButton.LeftButton and self.parent_widget:
             self.parent_widget.node_clicked.emit(self.point_name)
         super().mousePressEvent(event)
 
@@ -136,7 +133,7 @@ class NodeItem(QGraphicsEllipseItem):
     def _apply_blocked_style(self):
         self.base_color = NODE_BLOCKED_COLOR
         self.setBrush(QBrush(NODE_BLOCKED_COLOR))
-        self.setPen(QPen(QColor(183, 28, 28), 2, Qt.DashLine))
+        self.setPen(QPen(QColor(183, 28, 28), 2, Qt.PenStyle.DashLine))
         self.setScale(1.0)
 
 
@@ -167,7 +164,7 @@ class TrajectoryMapWidget(QWidget):
     """
     node_clicked = pyqtSignal(str)
 
-    NODE_LAYOUT = {                                          #node_x, node_y, display, is_endpoint, is_major
+    NODE_LAYOUT = {  # node_x, node_y, display, is_endpoint, is_major
         "BGIntP010": (510, 930, "BGIntP010", False, False),  # Home – основная
         "BGIntP011": (510, 1030, "BGIntP011", True, False),
         "BGIntP001": (510, 830, "BGIntP001", True, True),
@@ -288,22 +285,8 @@ class TrajectoryMapWidget(QWidget):
 
         title = QLabel("Схема траекторий манипулятора ЭРИ Порта")
         title.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
-
-        # Индикатор типа порта
-        _port_label_text = "ЭРИ-Порт: стационарный" \
-            if PORT_TYPE == "stationary" \
-            else "ЭРИ-Порт: мобильный"
-        _port_label_style = (
-            STATIONARY_PORT_COLOR
-            if PORT_TYPE == "stationary"
-            else MOBILE_PORT_COLOR
-        )
-        port_badge = QLabel(_port_label_text)
-        port_badge.setStyleSheet(_port_label_style)
-        port_badge.setAlignment(Qt.AlignCenter)
-        layout.addWidget(port_badge)
 
         # Легенда
         legend = QHBoxLayout()
@@ -328,7 +311,7 @@ class TrajectoryMapWidget(QWidget):
 
         self._info_label = QLabel("Нажмите на точку для выбора маршрута")
         self._info_label.setFont(QFont("Segoe UI", 10))
-        self._info_label.setAlignment(Qt.AlignCenter)
+        self._info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._info_label.setStyleSheet(BLUE_COLOR)
         layout.addWidget(self._info_label)
 
@@ -342,44 +325,12 @@ class TrajectoryMapWidget(QWidget):
         self._view.setStyleSheet(ALABASTER_COLOR)
         layout.addWidget(self._view, stretch=1)
 
-        # ── Панель состояния ПЛК ──────────────────────────────
-        layout.addWidget(self._build_status_panel())
-
         self._build_scene()
         self._view.fitInView(
             self._scene.sceneRect().adjusted(-30, -30, 30, 30),
-            Qt.KeepAspectRatio)
+            Qt.AspectRatioMode.KeepAspectRatio)
 
         self.node_clicked.connect(self._on_node_clicked)
-
-    def _build_status_panel(self) -> QWidget:
-        """Нижняя панель с компактными индикаторами ПЛК."""
-        panel = QWidget()
-        row = QHBoxLayout(panel)
-        row.setContentsMargins(6, 2, 6, 2)
-        row.setSpacing(4)
-
-        for group_name, items in GROUPS:
-            hdr = QLabel(group_name + ":")
-            hdr.setFont(QFont("Segoe UI", 8, QFont.Bold))
-            row.addWidget(hdr)
-            for key, default_text in items:
-                lbl = QLabel(default_text)
-                lbl.setFont(QFont("Segoe UI", 8))
-                lbl.setAlignment(Qt.AlignCenter)
-                lbl.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-                lbl.setStyleSheet(MAP_STATUS_OFF)
-                lbl.setMinimumWidth(80)
-                row.addWidget(lbl)
-                self._status_labels[key] = lbl
-
-            sep = QFrame()
-            sep.setFrameShape(QFrame.VLine)
-            sep.setStyleSheet(SEP_COLOR)
-            row.addWidget(sep)
-
-        row.addStretch()
-        return panel
 
     # ── Сцена ─────────────────────────────────────────────────
     def _build_scene(self):
@@ -391,7 +342,7 @@ class TrajectoryMapWidget(QWidget):
         for (zone_x, zone_y, zone_w, zone_h, zone_type, zone_label) in self.ZONES:
             rect = QGraphicsRectItem(zone_x, zone_y, zone_w, zone_h)
             rect.setBrush(QBrush(ZONE_COLORS[zone_type]))
-            rect.setPen(QPen(ZONE_BORDER_COLORS[zone_type], 2, Qt.DashLine))
+            rect.setPen(QPen(ZONE_BORDER_COLORS[zone_type], 2, Qt.PenStyle.DashLine))
             rect.setZValue(0)
             self._scene.addItem(rect)
 
@@ -403,7 +354,7 @@ class TrajectoryMapWidget(QWidget):
             self._scene.addItem(zlbl)
 
         # 4) Рёбра
-        TRIM = 20
+        trim = 20
         for (src, dst) in self.EDGES:
             if src not in self.NODE_LAYOUT or dst not in self.NODE_LAYOUT:
                 continue  # пропускаем отсутствующие узлы
@@ -413,7 +364,7 @@ class TrajectoryMapWidget(QWidget):
             length = QLineF(edge_start, edge_end).length()
             if length < 1:
                 continue
-            trim_ratio = TRIM / length
+            trim_ratio = trim / length
             trim_start = QPointF(src_x + (dst_x - src_x) * trim_ratio,
                                  src_y + (dst_y - src_y) * trim_ratio)
             trim_end = QPointF(dst_x - (dst_x - src_x) * trim_ratio,
@@ -433,7 +384,7 @@ class TrajectoryMapWidget(QWidget):
 
         # 5) Узлы
         for point_name, (node_x, node_y, display, is_endpoint, is_major) in self.NODE_LAYOUT.items():
-            if "pHomePosition" in point_name:
+            if "BGIntP010" in point_name:
                 color, radius = NODE_HOME_COLOR, 20
             elif is_major:
                 color, radius = NODE_MAJOR_COLOR, 18
@@ -504,4 +455,4 @@ class TrajectoryMapWidget(QWidget):
         super().resizeEvent(event)
         self._view.fitInView(
             self._scene.sceneRect().adjusted(-30, -30, 30, 30),
-            Qt.KeepAspectRatio)
+            Qt.AspectRatioMode.KeepAspectRatio)
