@@ -17,8 +17,9 @@ GRIPPER_CMD = "GRIPPER_CMD"
 
 # IO и прочее
 NUM_DIGITAL_IO = 24
-GRIPPER_DO_INDEX = 0
-SHIFT_GRIPPER_DO_INDEX = 1
+GRIPPER_1_DO_INDEX = 0
+GRIPPER_2_DO_INDEX = 1
+ZONE_SENSOR_DI = 1
 LOG_PATH = BASE_DIR / "robopro.log"
 
 """Состояния выполнения команды"""

@@ -1,6 +1,7 @@
 import json
 import sys
 import math
+import time
 import threading
 import dataclasses
 from dataclasses import dataclass, field
@@ -9,9 +10,9 @@ from typing import Dict, List, Optional
 from queue import Queue, Empty
 
 from actions import actions
-from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_DO_INDEX,
-                    SHIFT_GRIPPER_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
-                    EXEC_TRAJ, GRIPPER_CMD)
+from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
+                    GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
+                    EXEC_TRAJ, GRIPPER_CMD, ZONE_SENSOR_DI)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
@@ -38,11 +39,11 @@ class RobotState:
     last_command: Optional[str] = None
     trajectory_state: int = 0
     action_state: int = 0
-    gripper_cmd: bool = False
-    shift_gripper_cmd: bool = False
+    gripper1_cmd: bool = False
+    gripper2_cmd: bool = False
     current_point: int = 0
-    gripper_state: int = 0
-    shift_gripper_state: int = 0
+    gripper1_state: int = 0
+    gripper2_state: int = 0
 
 
 # state_manager.py
@@ -189,26 +190,86 @@ class MotionController:
         )
 
     def wait_motion_complete(self, await_sec: int = -1) -> bool:
-        """Ждать завершения движения (ОРИГИНАЛЬНОЕ ИМЯ МЕТОДА)"""
+        """Ждать завершения движения"""
         try:
             return self.robot.motion.wait_waypoint_completion(0, await_sec=await_sec)
         except Exception as e:
             self.log.error(f"wait motion complete failed: {e}")
             return False
 
+    def wait_motion_stopped(self,
+                            linear_deadband: float = 0.01,
+                            angular_deadband: float = 0.02,
+                            hold_time: float = 0.3,
+                            await_sec: float = -1,
+                            abort_event: Optional[threading.Event] = None) -> bool:
+        """
+        Ждать физической остановки робота после движения.
+        Проверяет пустой буфер waypoint'ов и фактические
+        скорости act_qd / act_tcp_xd из RTD:
+        они должны оставаться в пределах linear_deadband / angular_deadband
+        непрерывно hold_time секунд.
+        """
+        start = time.monotonic()
+        quiet_since = None
+
+        while True:
+            if abort_event is not None and abort_event.is_set():
+                self.log.info("wait motion stopped: aborted")
+                return False
+
+            if not self.robot.is_connected():
+                self.log.error("wait motion stopped: connection lost")
+                return False
+
+            try:
+                rtd = self.robot._rtd_receiver.get_data()
+            except Exception as e:
+                self.log.error(f"wait motion stopped: failed to read RTD: {e}")
+                return False
+            moving = (
+                    any(
+                        abs(joint_velocity) > angular_deadband
+                        for joint_velocity in rtd.act_qd
+                    )
+                    or any(
+                abs(tcp_linear_velocity) > linear_deadband
+                for tcp_linear_velocity in rtd.act_tcp_xd[:3]
+            )
+                    or any(
+                abs(tcp_angular_velocity) > angular_deadband
+                for tcp_angular_velocity in rtd.act_tcp_xd[3:]
+            )
+            )
+
+            if rtd.buff_fill <= 0 and not moving:
+                if quiet_since is None:
+                    quiet_since = time.monotonic()
+                elif time.monotonic() - quiet_since >= hold_time:
+                    return True
+            else:
+                quiet_since = None
+
+            if await_sec >= 0 and time.monotonic() - start >= await_sec:
+                self.log.warning("wait motion stopped: timeout")
+                return False
+
+            time.sleep(0.01)
+
 
 # io_controller.py
 class IOController:
     """Управление цифровыми входами/выходами"""
 
-    def __init__(self, robot_api, logger, num_outputs: int):
+    def __init__(self, robot_api, logger, num_ios: int):
         self.robot = robot_api
         self.log = logger
-        self.num_outputs = num_outputs
+        self.num_ios = num_ios
+        self.robot.io.digital.set_input_function(1, 'pause')
 
     def control_digital_outputs(self, index: int, value: bool) -> bool:
         """Управление цифровым выходом"""
-        if not 0 <= index < self.num_outputs:
+        if not 0 <= index < self.num_ios:
             self.log.error(f"Invalid output index: {index}")
             return False
 
@@ -355,6 +416,14 @@ class RobotController:
         except Exception as e:
             self.state.update(last_error=LastError.err_switching_stop_mode)
             self.log.error(f"Stop Mode Switching Error: {e}")
+
+    def manipulator_pause_drive(self) -> None:
+        """Приостановка движения (Пауза)"""
+        try:
+            self.Robot.motion.mode.set('pause')
+        except Exception as e:
+            self.state.update(last_error=LastError.err_switching_pause_mode)
+            self.log.error(f"Pause Mode Switching Error: {e}")
 
     def manipulator_free_drive(self, free_drive: int) -> None:
         """Режим свободного движения"""
@@ -511,11 +580,9 @@ class RobotController:
                     if command.cmd_type == GRIPPER_CMD and finish_motion:
                         self.cmd_queue.put(Command(
                             CmdType.GRIPPER_CMD,
-                            {'index': GRIPPER_DO_INDEX, 'value': bool(command.name)},
+                            {'index': GRIPPER_1_DO_INDEX, 'value': bool(command.name)},
                             source="GUI"
                         ))
-                    # if command.cmd_type == "PLC_COM":
-                    #     pass
 
                 finish_motion = self.mc.wait_motion_complete(await_sec=-1)
                 if action and finish_motion:
@@ -531,67 +598,61 @@ class RobotController:
             self.log.error(f"EXECUTE_ACTION failed: {e}")
 
     # ---------- Грипперы ----------
-    def execute_gripper(self, clamp: bool) -> None:
-        """Выполнение основной команды Гриппера"""
+    def execute_gripper_1(self, clamp: bool) -> None:
+        """Выполнение основной команды Гриппера 1"""
         self.state.update(last_error=0)
 
         if self.state.get_field('controller_state') != 'run':
             self.state.update(
-                gripper_state=BLOCK,
+                gripper1_state=BLOCK,
                 last_error=LastError.err_not_ready
             )
             self.log.error("Gripper command rejected: manipulator not in run state")
             return
 
         try:
-            self.state.update(gripper_state=EXECUTION)
+            self.state.update(gripper1_state=EXECUTION)
 
-            success = self.io.control_digital_outputs(GRIPPER_DO_INDEX, clamp)
+            success = self.io.control_digital_outputs(GRIPPER_1_DO_INDEX, clamp)
 
             if success:
-                self.state.update(gripper_cmd=clamp, gripper_state=FINISHED)
-                self.log.info(f"Gripper: {'CLAMPED' if clamp else 'RELEASED'}")
+                self.state.update(gripper_cmd=clamp, gripper1_state=FINISHED)
+                self.log.info(f"Gripper 1: {'CLAMPED' if clamp else 'RELEASED'}")
             else:
-                self.state.update(gripper_state=EXCEPTION, last_error=LastError.err_gripper_cmd)
-                self.log.error("Failed to execute gripper command")
+                self.state.update(gripper1_state=EXCEPTION, last_error=LastError.err_gripper1_cmd)
+                self.log.error(f"Failed to execute gripper 1 command")
 
         except Exception as e:
-            self.state.update(gripper_state=EXCEPTION, last_error=LastError.err_gripper_cmd)
-            self.log.error(f"Error executing gripper command: {e}")
+            self.state.update(gripper1_state=EXCEPTION, last_error=LastError.err_gripper1_cmd)
+            self.log.error(f"Error executing gripper 1 command: {e}")
 
-    def execute_shift_gripper(self, shift: bool) -> None:
-        """Выполнить команду смены Гриппера"""
+    def execute_gripper_2(self, clamp: bool) -> None:
+        """Выполнение основной команды Гриппера 2"""
         self.state.update(last_error=0)
 
         if self.state.get_field('controller_state') != 'run':
             self.state.update(
-                shift_gripper_state=BLOCK,
+                gripper2_state=BLOCK,
                 last_error=LastError.err_not_ready
             )
-            self.log.error("Shift gripper command rejected: manipulator not in run state")
+            self.log.error("Gripper command rejected: manipulator not in run state")
             return
 
-        # Дополнительная проверка безопасности для замены
-        if shift and not self.state.get_field('gripper_cmd'):
-            # self.log.warning("Attempting to shift gripper while gripper is open")
-            # # Можно либо заблокировать, либо позволить - зависит от требований
-            pass
-
         try:
-            self.state.update(shift_gripper_state=EXECUTION)
+            self.state.update(gripper2_state=EXECUTION)
 
-            success = self.io.control_digital_outputs(SHIFT_GRIPPER_DO_INDEX, shift)
+            success = self.io.control_digital_outputs(GRIPPER_2_DO_INDEX, clamp)
 
             if success:
-                self.state.update(shift_gripper_cmd=shift, shift_gripper_state=FINISHED)
-                self.log.info(f"Shift gripper: {'SHIFTED' if shift else 'NOT SHIFTED'}")
+                self.state.update(gripper_cmd=clamp, gripper2_state=FINISHED)
+                self.log.info(f"Gripper 2: {'CLAMPED' if clamp else 'RELEASED'}")
             else:
-                self.state.update(shift_gripper_state=EXCEPTION, last_error=LastError.err_shift_gripper_cmd)
-                self.log.error("Failed to execute shift gripper command")
+                self.state.update(gripper2_state=EXCEPTION, last_error=LastError.err_gripper2_cmd)
+                self.log.error(f"Failed to execute gripper 2 command")
 
         except Exception as e:
-            self.state.update(shift_gripper_state=EXCEPTION, last_error=LastError.err_shift_gripper_cmd)
-            self.log.error(f"Error executing shift gripper command: {e}")
+            self.state.update(gripper2_state=EXCEPTION, last_error=LastError.err_gripper2_cmd)
+            self.log.error(f"Error executing gripper 2 command: {e}")
 
     # ---------- Утилиты ----------
 
@@ -680,7 +741,7 @@ class RobotController:
         while not self.stop_event.is_set():
             try:
                 # Мониторинг
-                # Раскомментить для отладки с манипулятором по месту
+                # Раскомментить для отладки с манипулятором по месту Uncomment
                 # self.telemetry.check_controller_state()
                 # self.telemetry.update()
 
@@ -726,10 +787,10 @@ class RobotController:
                 elif cmd.type == CmdType.GRIPPER_CMD:
                     index = cmd.payload['index']
                     value = bool(cmd.payload['value'])
-                    if index == GRIPPER_DO_INDEX:
-                        self.execute_gripper(value)
-                    elif index == SHIFT_GRIPPER_DO_INDEX:
-                        self.execute_shift_gripper(value)
+                    if index == GRIPPER_1_DO_INDEX:
+                        self.execute_gripper_1(value)
+                    elif index == GRIPPER_2_DO_INDEX:
+                        self.execute_gripper_2(value)
                     else:
                         self.log.warning(f"Unknown gripper index: {index}")
 
@@ -738,6 +799,9 @@ class RobotController:
 
                 elif cmd.type == CmdType.STOP_MOVE:
                     self.manipulator_stop_drive()
+
+                elif cmd.type == CmdType.PAUSE or ZONE_SENSOR_DI:
+                    self.manipulator_pause_drive()
 
                 elif cmd.type == CmdType.FIND_NEAREST:
                     self.find_nearest_waypoint()

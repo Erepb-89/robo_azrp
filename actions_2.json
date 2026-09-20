@@ -14,7 +14,7 @@
         },
         {
           "name": "True",
-          "cmd_type": "GRIPPER_CMD"
+          "cmd_type": "GRIPPER_1_CMD"
         }
       ]
     }

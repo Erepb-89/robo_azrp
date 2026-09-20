@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -622,7 +622,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="OutputControl">
+                <widget class="QPushButton" name="Gripper_1">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -635,7 +635,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>DO Gripper</string>
+                  <string>DO Gripper 1</string>
                  </property>
                  <property name="checkable">
                   <bool>true</bool>
@@ -643,7 +643,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="ShiftGripper">
+                <widget class="QPushButton" name="Gripper_2">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -656,7 +656,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>Shift Gripper</string>
+                  <string>DO Gripper 2</string>
                  </property>
                  <property name="checkable">
                   <bool>true</bool>
@@ -742,35 +742,6 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
-       <attribute name="title">
-        <string>PLC Visualization</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="tab2Layout">
-        <property name="leftMargin">
-         <number>5</number>
-        </property>
-        <property name="topMargin">
-         <number>5</number>
-        </property>
-        <property name="rightMargin">
-         <number>5</number>
-        </property>
-        <property name="bottomMargin">
-         <number>5</number>
-        </property>
-        <item>
-         <widget class="QWebEngineView" name="webView" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>800</width>
-            <height>600</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
         <string>Trajectory Map</string>
@@ -816,14 +787,6 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QWebEngineView</class>
-   <extends>QWidget</extends>
-   <header location="global">PyQt5.QtWebEngineWidgets</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -46,8 +46,8 @@ class MainWindow(QMainWindow):
         self._log_last_cmd: str = ""
         self._log_last_traj_state: int = -1
         self._log_last_action_state: int = -1
-        self._log_last_gripper_state: int = -1
-        self._log_last_shift_gripper_state: int = -1
+        self._log_last_gripper1_state: int = -1
+        self._log_last_gripper2_state: int = -1
         self._log_last_err: int = 0  # для детекции новых ошибок
         self._pending_cmd: str = ""  # последняя GUI-команда (для атрибуции ошибки)
 
@@ -79,10 +79,10 @@ class MainWindow(QMainWindow):
         self.ui.ActivateSJ.clicked.connect(self.start_simple_joystick)
         self.ui.MoveTrajectory.clicked.connect(self.move_by_selected_trajectory)
         self.ui.ExecuteAction.clicked.connect(self.execute_selected_action)
-        self.ui.OutputControl.setCheckable(True)
-        self.ui.OutputControl.toggled.connect(self.manipulator_gripper_control)
-        self.ui.ShiftGripper.setCheckable(True)
-        self.ui.ShiftGripper.toggled.connect(self.manipulator_shift_gripper)
+        self.ui.Gripper_1.setCheckable(True)
+        self.ui.Gripper_1.toggled.connect(self.manipulator_gripper1_control)
+        self.ui.Gripper_2.setCheckable(True)
+        self.ui.Gripper_2.toggled.connect(self.manipulator_gripper2_control)
         # self.ui.SavePoint.clicked.connect(self.save_current_position)
         self.ui.AddPointToTrajectory.clicked.connect(self.add_current_point_to_trajectory)
         self.ui.TrajectoriesComboBox.currentTextChanged.connect(self.trajectory_selected)
@@ -98,8 +98,8 @@ class MainWindow(QMainWindow):
         self.ui.AddPointToTrajectory.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.MoveTrajectory.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.ExecuteAction.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.OutputControl.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.ShiftGripper.setStyleSheet(COMMON_BTN_STYLE)
+        self.ui.Gripper_1.setStyleSheet(COMMON_BTN_STYLE)
+        self.ui.Gripper_2.setStyleSheet(COMMON_BTN_STYLE)
         self.update_waypoints_combo_box()
         self.update_available_waypoints_combo_box()
         self.update_trajectories()
@@ -137,10 +137,10 @@ class MainWindow(QMainWindow):
         self.ui.ActivateZG.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Свободное движение: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
-        self.ui.OutputControl.toggled.connect(
+        self.ui.Gripper_1.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Захват: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
-        self.ui.ShiftGripper.toggled.connect(
+        self.ui.Gripper_2.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Смещение захвата: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
 
@@ -150,19 +150,31 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
 
-        gripper_btn = QtWidgets.QPushButton("Гриппер")
-        gripper_btn.setCheckable(True)
-        font = gripper_btn.font()
+        gripper1_btn = QtWidgets.QPushButton("Грип 1")
+        gripper1_btn.setCheckable(True)
+        font = gripper1_btn.font()
         font.setPointSize(14)
         font.setBold(True)
-        gripper_btn.setFont(font)
-        gripper_btn.setMinimumHeight(48)
-        gripper_btn.setMinimumWidth(160)
-        gripper_btn.setStyleSheet(GRIPPER_BTN_STYLE)
-        gripper_btn.toggled.connect(self.manipulator_gripper_control)
-        toolbar.addWidget(gripper_btn)
+        gripper1_btn.setFont(font)
+        gripper1_btn.setMinimumHeight(48)
+        gripper1_btn.setMinimumWidth(160)
+        gripper1_btn.setStyleSheet(GRIPPER_BTN_STYLE)
+        gripper1_btn.toggled.connect(self.manipulator_gripper1_control)
+        toolbar.addWidget(gripper1_btn)
 
-        power_off_btn = QtWidgets.QPushButton("⏻  Питание ВЫКЛ")
+        gripper2_btn = QtWidgets.QPushButton("Грип 2")
+        gripper2_btn.setCheckable(True)
+        font = gripper2_btn.font()
+        font.setPointSize(14)
+        font.setBold(True)
+        gripper2_btn.setFont(font)
+        gripper2_btn.setMinimumHeight(48)
+        gripper2_btn.setMinimumWidth(160)
+        gripper2_btn.setStyleSheet(GRIPPER_BTN_STYLE)
+        gripper2_btn.toggled.connect(self.manipulator_gripper2_control)
+        toolbar.addWidget(gripper2_btn)
+
+        power_off_btn = QtWidgets.QPushButton("⏻ Питание ВЫКЛ")
         power_off_btn.setFont(font)
         power_off_btn.setMinimumHeight(48)
         power_off_btn.setMinimumWidth(180)
@@ -170,7 +182,7 @@ class MainWindow(QMainWindow):
         power_off_btn.clicked.connect(self.power_off)
         toolbar.addWidget(power_off_btn)
 
-        move_to_nearest_btn = QtWidgets.QPushButton("> Двиг. к ближ. точке")
+        move_to_nearest_btn = QtWidgets.QPushButton(">Ближ. точка")
         font = move_to_nearest_btn.font()
         font.setPointSize(14)
         font.setBold(True)
@@ -190,7 +202,7 @@ class MainWindow(QMainWindow):
         self.exact_dist.setObjectName("exactDistance")
         toolbar.addWidget(self.exact_dist)
 
-        move_to_btn = QtWidgets.QPushButton("> Двигаться к точке")
+        move_to_btn = QtWidgets.QPushButton(">К точке")
         font = move_to_btn.font()
         font.setPointSize(14)
         font.setBold(True)
@@ -201,7 +213,18 @@ class MainWindow(QMainWindow):
         move_to_btn.clicked.connect(self.move_by_selected_trajectory)
         toolbar.addWidget(move_to_btn)
 
-        stop_btn = QtWidgets.QPushButton("■  СТОП")
+        pause_btn = QtWidgets.QPushButton("|| ПАУЗА")
+        font = pause_btn.font()
+        font.setPointSize(14)
+        font.setBold(True)
+        pause_btn.setFont(font)
+        pause_btn.setMinimumHeight(48)
+        pause_btn.setMinimumWidth(160)
+        pause_btn.setStyleSheet(POWER_OFF_BTN_STYLE)
+        pause_btn.clicked.connect(self.pause_drive)
+        toolbar.addWidget(pause_btn)
+
+        stop_btn = QtWidgets.QPushButton("■ СТОП")
         font = stop_btn.font()
         font.setPointSize(14)
         font.setBold(True)
@@ -382,49 +405,49 @@ class MainWindow(QMainWindow):
             self._op_log.takeItem(self._op_log.count() - 1)
 
     def _update_op_log(self, last_cmd: str, trajectory_state: int, action_state: int,
-                       gripper_state: int = 0, shift_gripper_state: int = 0) -> None:
+                       gripper1_state: int = 0, gripper2_state: int = 0) -> None:
         """
         Добавляет запись о результате команды при изменении состояния.
-        Поддерживает траектории, действия, основной схват и сдвиг схвата.
+        Поддерживает траектории, действия, гриппер 1 и гриппер 2.
         """
         cmd_changed = last_cmd != self._log_last_cmd
         traj_changed = trajectory_state != self._log_last_traj_state
         action_changed = action_state != self._log_last_action_state
-        gripper_changed = gripper_state != self._log_last_gripper_state
-        shift_gripper_changed = shift_gripper_state != self._log_last_shift_gripper_state
+        gripper1_changed = gripper1_state != self._log_last_gripper1_state
+        gripper2_changed = gripper2_state != self._log_last_gripper2_state
 
         if not (cmd_changed or traj_changed or action_changed or
-                gripper_changed or shift_gripper_changed):
+                gripper1_changed or gripper2_changed):
             return
 
         # Сохраняем предыдущие состояния
         prev_traj = self._log_last_traj_state
         prev_action = self._log_last_action_state
-        prev_gripper = self._log_last_gripper_state
-        prev_shift = self._log_last_shift_gripper_state
+        prev_gripper1 = self._log_last_gripper_state1
+        prev_gripper2 = self._log_last_gripper2_state
         prev_cmd = self._log_last_cmd
 
         # Обновляем текущие состояния
         self._log_last_traj_state = trajectory_state
         self._log_last_action_state = action_state
-        self._log_last_gripper_state = gripper_state
-        self._log_last_shift_gripper_state = shift_gripper_state
+        self._log_last_gripper1_state = gripper1_state
+        self._log_last_gripper2_state = gripper2_state
         self._log_last_cmd = last_cmd
 
         label = self._pending_cmd or last_cmd or prev_cmd
 
         def _handle_state(prev: int, current: int, code_label: str) -> bool:
             """Обрабатывает переход состояния в терминальную зону. Возвращает True если переход был."""
-            if prev < 2000 and 2000 <= current < 3000:  # EXECUTION → FINISHED
+            if prev < 200 and 200 <= current < 300:  # EXECUTION → FINISHED
                 self._add_log_entry(label, "✓", LOG_COLOR_SUCCESS)
                 QtWidgets.QMessageBox.information(self, "Выполнено", f"✓  {label}")
                 self._pending_cmd = ""
                 return True
-            elif prev < 3000 and 3000 <= current < 4000:  # EXECUTION → EXCEPTION
+            elif prev < 300 and 300 <= current < 400:  # EXECUTION → EXCEPTION
                 self._add_log_entry(label, f"✗  ошибка ({code_label} {current})", LOG_COLOR_ERROR)
                 self._pending_cmd = ""
                 return True
-            elif prev < 4000 and current >= 4000:  # EXECUTION → BLOCK
+            elif prev < 400 and current >= 400:  # EXECUTION → BLOCK
                 self._add_log_entry(label, "✗  заблокировано", LOG_COLOR_ERROR)
                 self._pending_cmd = ""
                 return True
@@ -437,17 +460,17 @@ class MainWindow(QMainWindow):
         if action_changed and not handled:
             handled = _handle_state(prev_action, action_state, "action")
 
-        if gripper_changed and not handled:
-            handled = _handle_state(prev_gripper, gripper_state, "gripper")
+        if gripper1_changed and not handled:
+            handled = _handle_state(prev_gripper1, gripper1_state, "gripper1")
 
-        if shift_gripper_changed and not handled:
-            handled = _handle_state(prev_shift, shift_gripper_state, "shift")
+        if gripper2_changed and not handled:
+            handled = _handle_state(prev_gripper2, gripper2_state, "gripper2")
 
         # Не-траекторная команда (PowerOn/Off, MoveToPoint…):
         # last_command обновляется ПОСЛЕ успешного выполнения → это подтверждение "✓"
         if not handled and cmd_changed and last_cmd and \
                 trajectory_state < 100 and action_state < 100 and \
-                gripper_state < 100 and shift_gripper_state < 100:
+                gripper1_state < 100 and gripper2_state < 100:
             self._add_log_entry(self._pending_cmd or last_cmd, "✓", LOG_COLOR_SUCCESS)
             self._pending_cmd = ""
 
@@ -601,7 +624,7 @@ class MainWindow(QMainWindow):
         self.ui.ActionName.setText(internal)
 
     def trajectory_selected(self, _display_name) -> None:
-        internal = self.ui.TrajectoriesComboBox.currentData(Qt.UserRole)
+        internal = self.ui.TrajectoriesComboBox.currentData(Qt.ItemDataRole.UserRole)
         self.ui.TrajectoryName.setText(internal)
 
     def available_waypoint_selected(self, _display_name) -> None:
@@ -631,23 +654,23 @@ class MainWindow(QMainWindow):
     def manipulator_command(self, cmd: Command) -> None:
         self.cmd_queue.put(cmd)
 
-    def manipulator_gripper_control(self, clamp: bool) -> None:
+    def manipulator_gripper1_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
                 Command(CmdType.GRIPPER_CMD, {'index': 0, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO0: {e}")
-            self.ui.OutputControl.setChecked(False)
+            self.ui.Gripper_1.setChecked(False)
 
-    def manipulator_shift_gripper(self, shift: bool) -> None:
+    def manipulator_gripper2_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
-                Command(CmdType.GRIPPER_CMD, {'index': 1, 'value': shift}, source="GUI"))
+                Command(CmdType.GRIPPER_CMD, {'index': 1, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO1: {e}")
-            # self.ui.ShiftGripper.setChecked(False)
+            self.ui.Gripper_2.setChecked(False)
 
     def manipulator_free_drive(self, activate: bool) -> None:  # 2025_09_29
         try:
@@ -750,6 +773,11 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "Error",
                                            f"Failed to save point: {e}")
+
+    def pause_drive(self) -> None:
+        self._add_log_entry("Пауза", "→", LOG_COLOR_STOP)
+        self.manipulator_command(
+            Command(CmdType.PAUSE, {}, source="GUI"))
 
     def stop_drive(self) -> None:
         self._add_log_entry("Стоп", "→", LOG_COLOR_STOP)
