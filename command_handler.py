@@ -2,7 +2,7 @@ import time
 import threading
 from queue import Queue
 from commands import Command, CmdType
-from config import GRIPPER_DO_INDEX
+from config import GRIPPER_1_DO_INDEX, GRIPPER_2_DO_INDEX
 from typing import Optional
 
 
@@ -21,7 +21,8 @@ class CommandHandler:
 
         self.traj_prev = 0
         self.act_prev = 0
-        self.gcmd_prev = 0
+        self.g1_cmd_prev = 0
+        self.g2_cmd_prev = 0
         self.power_on_prev = 0
         self.free_drive_prev = 0
         self.find_nearest = 0
@@ -29,7 +30,8 @@ class CommandHandler:
         self.trajectory = 0
         self.action = 0
         self.free_drive = 0
-        self.gripper_command = 0
+        self.gripper1_command = 0
+        self.gripper2_command = 0
         self.power_on = 0
 
         self._last_nearest_wp: Optional[str] = None
@@ -54,7 +56,8 @@ class CommandHandler:
                     self.handle_traj_cmd()
                     self.handle_action_cmd()
                     self.handle_free_drive_cmd()
-                    self.handle_gripper_cmd()
+                    self.handle_gripper1_cmd()
+                    self.handle_gripper2_cmd()
                     # self.update_nearest_info()
 
                 except Exception as e:
@@ -111,16 +114,27 @@ class CommandHandler:
                                        source="CMD"))
         self.free_drive_prev = self.free_drive
 
-    def handle_gripper_cmd(self) -> None:  # 1 = ON, 0 = OFF
+    def handle_gripper1_cmd(self) -> None:  # 1 = ON, 0 = OFF
         try:
-            if self.gcmd_prev != self.gripper_command:
+            if self.g1_cmd_prev != self.gripper1_command:
                 self.cmd_queue.put(Command(CmdType.GRIPPER_CMD,
-                                           {'index': GRIPPER_DO_INDEX,
-                                            'value': bool(self.gripper_command)},
+                                           {'index': GRIPPER_1_DO_INDEX,
+                                            'value': bool(self.gripper1_command)},
                                            source="CMD"))
-            self.gcmd_prev = self.gripper_command
+            self.g1_cmd_prev = self.gripper1_command
         except Exception as e:
-            raise RuntimeError(f"qGripperCommand Error, {e}")
+            raise RuntimeError(f"Gripper 1 Command Error, {e}")
+
+    def handle_gripper2_cmd(self) -> None:  # 1 = ON, 0 = OFF
+        try:
+            if self.g2_cmd_prev != self.gripper2_command:
+                self.cmd_queue.put(Command(CmdType.GRIPPER_CMD,
+                                           {'index': GRIPPER_2_DO_INDEX,
+                                            'value': bool(self.gripper2_command)},
+                                           source="CMD"))
+            self.g2_cmd_prev = self.gripper2_command
+        except Exception as e:
+            raise RuntimeError(f"Gripper 2 Command Error, {e}")
 
     def stop(self) -> None:
         self.stop_event.set()

@@ -11,9 +11,9 @@ class CmdType(Enum):
     EXECUTE_ACTION = auto()  # {'num': int}
     MOVE_TO_POINT = auto()  # {'name': str}
     GRIPPER_CMD = auto()  # {'index': int, 'value': bool}
-    SHIFT_GRIPPER_CMD = auto()  # {'index': int, 'value': bool}
     REFRESH_WAYPOINTS = auto()
     STOP_MOVE = auto()
+    PAUSE = auto()
     SHUTDOWN = auto()
     FIND_NEAREST = auto()
     START_SIMPLE_JOYSTICK = auto()

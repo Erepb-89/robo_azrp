@@ -90,25 +90,26 @@ class MotionMode(Enum):
 class LastError(Enum):
     """Последняя ошибка контроллера робота."""
     no_errors: int = 0
-    err_switching_power_state: int = 1  # Timeout switching controller power state
-    err_power_control: int = 2          # Error in ManipulatorPowerControl
-    err_switching_stop_mode: int = 3    # Stop Mode Switching Error
-    err_switching_run_mode: int = 4     # Run Mode Switching Error
-    err_switching_zero_gravity: int = 5 # Zero Gravity Mode Switching Error
-    err_choose_trajectory: int = 6      # Manipulator can't be moved by the selected trajectory from current point!
-    err_waypoint: int = 7               # Add waypoint error
-    err_timeout_trajectory: int = 8     # Timeout while executing trajectory
-    err_common_trajectory: int = 9      # EXECUTE_TRAJECTORY failed
+    err_switching_power_state: int = 1   # Timeout switching controller power state
+    err_power_control: int = 2           # Error in ManipulatorPowerControl
+    err_switching_stop_mode: int = 3     # Stop Mode Switching Error
+    err_switching_pause_mode: int = 4    # Pause Mode Switching Error
+    err_switching_run_mode: int = 5      # Run Mode Switching Error
+    err_switching_zero_gravity: int = 6  # Zero Gravity Mode Switching Error
+    err_choose_trajectory: int = 7       # Manipulator can't be moved by the selected trajectory from current point!
+    err_waypoint: int = 8                # Add waypoint error
+    err_timeout_trajectory: int = 9      # Timeout while executing trajectory
+    err_common_trajectory: int = 10      # EXECUTE_TRAJECTORY failed
     # сделать обработку
-    err_timeout_action: int = 10        # Timeout while executing action
-    err_common_action: int = 11         # EXECUTE_ACTION failed
-    err_check_state: int = 12           # CheckControllerState error
-    err_rc_loop: int = 13               # Unhandled error in Robot Controller loop
-    err_not_ready: int = 14             # Manipulator not powered / not in run state
-    err_sj_activation: int = 15         # Error Simple Joystick activation
-    err_hatch_not_open: int = 16        # Hatch must be open before moving to this position
-    err_gripper_cmd : int = 17          # GRIPPER_CMD failed
-    err_shift_gripper_cmd : int = 18    # SHIFT_GRIPPER_CMD failed
+    err_timeout_action: int = 11         # Timeout while executing action
+    err_common_action: int = 12          # EXECUTE_ACTION failed
+    err_check_state: int = 13            # CheckControllerState error
+    err_rc_loop: int = 14                # Unhandled error in Robot Controller loop
+    err_not_ready: int = 15              # Manipulator not powered / not in run state
+    err_sj_activation: int = 16          # Error Simple Joystick activation
+    err_hatch_not_open: int = 17         # Hatch must be open before moving to this position
+    err_gripper1_cmd : int = 18          # GRIPPER_1_CMD failed
+    err_gripper2_cmd : int = 19          # GRIPPER_2_CMD failed
 
 
 # ── Словари русских переводов для панели статуса ──────────────────────────────
@@ -149,6 +150,7 @@ LAST_ERROR_RU = {
     LastError.err_switching_power_state: ("Тайм-аут смены питания",             "background:#ffcdd2"),
     LastError.err_power_control:         ("Ошибка управления питанием",         "background:#ffcdd2"),
     LastError.err_switching_stop_mode:   ("Ошибка перехода в стоп",             "background:#ffcdd2"),
+    LastError.err_switching_pause_mode:  ("Ошибка перехода в паузу",            "background:#ffcdd2"),
     LastError.err_switching_run_mode:    ("Ошибка перехода в рабочий режим",    "background:#ffcdd2"),
     LastError.err_switching_zero_gravity:("Ошибка вкл-я свободного движения",   "background:#ffcdd2"),
     LastError.err_choose_trajectory:     ("Траектория недоступна",              "background:#ffcdd2"),
