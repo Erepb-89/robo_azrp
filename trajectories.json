@@ -2,6 +2,7 @@
     "trajectories": [
         {
             "name": "tBGIntP010_To_BGIntP011",
+            "comment": "Готовность",
             "positions": [
                 {
                     "name": "BGIntP010",
@@ -13,6 +14,681 @@
                 },
                 {
                     "name": "BGIntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGIntP010_To_BG1IntP001",
+            "comment": "Выдвигаем полку стола с заготов-ми",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1IntP001",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGIntP010_To_BG1IntP010",
+            "comment": "Исходная - Стол для гриппера №1 ",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1IntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1IntP010_To_???",
+            "comment": "Забираем заготовку со стола гриппером №1",
+            "positions": [
+                {
+                    "name": "BG1IntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGIntP010_To_BGM1P020",
+            "comment": "Исходная - Перед станком №1. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM1P020_To_BGIntP010",
+            "comment": "Перед станком №1. Для смены захвата - Исходная",
+            "positions": [
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGIntP010_To_BGM2P020",
+            "comment": "Исходная - Перед станком №2. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM2P020_To_BGIntP010",
+            "comment": "Перед станком №2. Для смены захвата - Исходная",
+            "positions": [
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM1P020_To_BAM1P015",
+            "comment": "Перед станком №1. Для смены захвата - Перед станком №1. Готовность форсунки",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM1P015",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM1P015_To_EAM1P000",
+            "comment": "Перед станком №1. Готовность форсунки - Станок №1. Обдув захвата/Обдув детали",
+            "positions": [
+                {
+                    "name": "BAM1P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_EAM1P040",
+            "comment": "Станок №1. Обдув захвата/Обдув детали",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P030",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P040",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_BGM1P015",
+            "comment": "Станок №1. Обдув захвата/Обдув детали - Перед станком №1. Готовность форсунки",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P015",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM1P015_To_BGM1P020",
+            "comment": "Перед станком №1. Готовность форсунки - Перед станком №1. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BGM1P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM1P020_To_BG2M1P010",
+            "comment": "Перед станком №1. Для смены захвата - Перед станком №1. Готовность гриппера №2",
+            "positions": [
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG2M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2M1P010_To_EG2M1P010",
+            "comment": "Перед станком №1. Готовность гриппера №2 - Станок №1. Извлечение детали Гриппером №2",
+            "positions": [
+                {
+                    "name": "BG2M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M1P010_To_EG2M1P020",
+            "comment": "Станок №1. Извлечение детали Гриппером №2",
+            "positions": [
+                {
+                    "name": "EG2M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M1P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M1P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M1P010_To_BG2M1P010",
+            "comment": "Станок №1. Извлечение детали Гриппером №2 - Перед станком №1. Готовность гриппера №2",
+            "positions": [
+                {
+                    "name": "EG2M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG2M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2M1P010_To_BGM1P020",
+            "comment": "Перед станком №1. Готовность гриппера №2 - Перед станком №1. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BG2M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM1P020_To_BG1M1P010",
+            "comment": "Перед станком №1. Для смены захвата - Перед станком №1. Готовность гриппера №1",
+            "positions": [
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1M1P010_To_EG1M1P010",
+            "comment": "Перед станком №1. Готовность гриппера №1 - Станок №1. Загрузка заготовки Гриппером №1",
+            "positions": [
+                {
+                    "name": "BG1M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG1M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P010_To_EG1M1P040",
+            "comment": "Станок №1. Загрузка заготовки Гриппером №1",
+            "positions": [
+                {
+                    "name": "EG1M1P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P010_To_BG1M1P010",
+            "comment": "Станок №1. Загрузка заготовки Гриппером №1 - Перед станком №1. Готовность гриппера №1",
+            "positions": [
+                {
+                    "name": "EG1M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1M1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1M1P010_To_BGM1P020",
+            "comment": "Перед станком №1. Готовность гриппера №1 - Перед станком №1. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BG1M1P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM1P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGIntP010_To_BG2IntP010",
+            "comment": "Исходная - Ставим деталь на стол гриппером №2",
+            "positions": [
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG2IntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2IntP010_To_???",
+            "comment": "Ставим деталь на стол гриппером №2",
+            "positions": [
+                {
+                    "name": "BG2IntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM2P020_To_BAM2P015",
+            "comment": "Перед станком №2. Для смены захвата - Перед станком №2. Готовность форсунки",
+            "positions": [
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM2P015",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM2P015_To_EAM2P000",
+            "comment": "Перед станком №2. Готовность форсунки - EAM2P000",
+            "positions": [
+                {
+                    "name": "BAM2P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_EAM2P040",
+            "comment": "Станок №2. Обдув детали",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P030",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P040",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_BAM2P015",
+            "comment": "Станок №2. Обдув детали - Перед станком №2. Готовность форсунки - EAM2P000",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM2P015",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM2P015_To_BGM2P020",
+            "comment": "Перед станком №2. Готовность форсунки - EAM2P000 - Перед станком №2. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BAM2P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBGM2P020_To_BG2M2P010",
+            "comment": "Перед станком №2. Для смены захвата - Перед станком №2. Готовность гриппера №2",
+            "positions": [
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG2M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2M2P010_To_EG2M2P010",
+            "comment": "Перед станком №2. Готовность гриппера №2 - Станок №2. Извлечение детали Гриппером №2",
+            "positions": [
+                {
+                    "name": "BG2M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M2P010_To_EG2M2P020",
+            "comment": "Станок №1. Извлечение детали Гриппером №2",
+            "positions": [
+                {
+                    "name": "EG2M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG2M2P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M2P010_To_BG2M2P010",
+            "comment": "Станок №2. Извлечение детали Гриппером №2 - Перед станком №2. Готовность гриппера №2",
+            "positions": [
+                {
+                    "name": "EG2M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG2M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2M2P010_To_BGM2P020",
+            "comment": "Перед станком №2. Готовность гриппера №2 - Перед станком №2. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BG2M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                }
+            ]
+        },
+
+        {
+            "name": "tBGM2P020_To_BG1M2P010",
+            "comment": "Перед станком №2. Для смены захвата - Перед станком №2. Готовность гриппера №1",
+            "positions": [
+                {
+                    "name": "BGM2P020",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1M2P010_To_EG1M2P010",
+            "comment": "Перед станком №2. Готовность гриппера №1 - Станок №2. Загрузка заготовки Гриппером №1",
+            "positions": [
+                {
+                    "name": "BG1M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "EG1M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P010_To_EG1M2P040",
+            "comment": "Станок №2. Загрузка заготовки Гриппером №1",
+            "positions": [
+                {
+                    "name": "EG1M2P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P010_To_BG1M2P010",
+            "comment": "Станок №2. Загрузка заготовки Гриппером №1 - Перед станком №2. Готовность гриппера №1",
+            "positions": [
+                {
+                    "name": "EG1M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BG1M2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1M2P010_To_BGM2P020",
+            "comment": "Перед станком №2. Готовность гриппера №1 - Перед станком №2. Для смены захвата",
+            "positions": [
+                {
+                    "name": "BG1M2P010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGM2P020",
                     "motion": "joint"
                 }
             ]
