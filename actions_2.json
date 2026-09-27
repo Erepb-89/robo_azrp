@@ -1,10 +1,10 @@
 {
   "actions": [
     {
-      "name": "aVTOL2_To_VTOL2Battery",
+      "name": "aBGIntP010_To_BGIntP011",
       "commands": [
         {
-          "name": "tVTOL2_To_VTOL2Battery",
+          "name": "tBGIntP010_To_BGIntP011",
           "cmd_type": "EXECUTE_TRAJECTORY"
         },
         {

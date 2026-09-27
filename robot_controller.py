@@ -12,7 +12,7 @@ from queue import Queue, Empty
 from actions import actions
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
-                    EXEC_TRAJ, GRIPPER_CMD, ZONE_SENSOR_DI)
+                    EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
@@ -376,12 +376,12 @@ class RobotController:
         self._nearest_boot_done = False
 
         # Ожидание физической остановки движения (отдельный поток)
-        self.wait_traj = None            # траектория, для которой ждём остановки
+        self.wait_traj = None  # траектория, для которой ждём остановки
         self.waiter_active = False
         self.wait_gen = 0
         self.motion_abort = threading.Event()
         # Машина состояний выполняемого действия (шаги: траектории/грипперы)
-        self.active_action = None        # {'action', 'commands', 'step'}
+        self.active_action = None  # {'action', 'commands', 'step'}
 
     # ---------- Публичные методы (используемые извне) ----------
 
@@ -834,7 +834,11 @@ class RobotController:
 
             if command.cmd_type == EXEC_TRAJ:
                 trajectory = getattr(RobotTrajectories, command.name, None)
-                if trajectory is None or not self.execute_trajectory(trajectory):
+                if trajectory is None:
+                    started = False
+                else:
+                    started = self.execute_trajectory(trajectory)
+                if not started:
                     action = self.active_action['action']
                     self.active_action = None
                     self.state.update(
@@ -845,9 +849,12 @@ class RobotController:
                     return
                 return  # продолжение — из handle_motion_done
 
-            if command.cmd_type == GRIPPER_CMD:
+            if command.cmd_type in (GRIPPER_1_CMD, GRIPPER_2_CMD, GRIPPER_CMD):
                 value = str(command.name).lower() in ('true', '1')
-                self.execute_gripper_1(value)
+                if command.cmd_type == GRIPPER_2_CMD:
+                    self.execute_gripper_2(value)
+                else:
+                    self.execute_gripper_1(value)
 
     def fail_active_action(self, err) -> None:
         """Пометить активный action, как исключение, и остановить цепочку шагов."""
@@ -937,7 +944,7 @@ class RobotController:
                     self.abort_stopped_wait()
                     self.manipulator_stop_drive()
 
-                elif cmd.type == CmdType.PAUSE or ZONE_SENSOR_DI:
+                elif cmd.type == CmdType.PAUSE:
                     self.manipulator_pause_drive()
 
                 elif cmd.type == CmdType.FIND_NEAREST:
