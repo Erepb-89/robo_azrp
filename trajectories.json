@@ -47,7 +47,7 @@
             ]
         },
         {
-            "name": "tBG1IntP010_To_???",
+            "name": "tBG1IntP010_To_XXX",
             "comment": "Забираем заготовку со стола гриппером №1",
             "positions": [
                 {
@@ -421,7 +421,7 @@
             ]
         },
         {
-            "name": "tBG2IntP010_To_???",
+            "name": "tBG2IntP010_To_XXX",
             "comment": "Ставим деталь на стол гриппером №2",
             "positions": [
                 {
