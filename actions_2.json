@@ -4,11 +4,6 @@
       "name": "aVTOL2_To_VTOL2Battery",
       "commands": [
         {
-          "name": "auto",
-          "cmd_type": "WAIT_VTOL_LIFT",
-          "comment": "Позиция определяется автоматически: stationary=bottom, mobile=mid"
-        },
-        {
           "name": "tVTOL2_To_VTOL2Battery",
           "cmd_type": "EXECUTE_TRAJECTORY"
         },

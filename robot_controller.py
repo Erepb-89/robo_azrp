@@ -202,16 +202,25 @@ class MotionController:
                             angular_deadband: float = 0.02,
                             hold_time: float = 0.3,
                             await_sec: float = -1,
-                            abort_event: Optional[threading.Event] = None) -> bool:
+                            abort_event: Optional[threading.Event] = None,
+                            require_motion_start: bool = True,
+                            start_grace_sec: float = 2.0) -> bool:
         """
         Ждать физической остановки робота после движения.
         Проверяет пустой буфер waypoint'ов и фактические
         скорости act_qd / act_tcp_xd из RTD:
         они должны оставаться в пределах linear_deadband / angular_deadband
         непрерывно hold_time секунд.
+
+        require_motion_start: сначала дождаться начала движения
+        (буфер непустой или скорости не нулевые) — защита от ложного True,
+        если вотер запущен раньше, чем точки попадут в буфер.
+        Если за start_grace_sec движение так и не началось — считать,
+        что ждать нечего, и вернуть True.
         """
         start = time.monotonic()
         quiet_since = None
+        motion_seen = not require_motion_start
 
         while True:
             if abort_event is not None and abort_event.is_set():
@@ -242,7 +251,14 @@ class MotionController:
             )
             )
 
-            if rtd.buff_fill <= 0 and not moving:
+            if not motion_seen:
+                if rtd.buff_fill > 0 or moving:
+                    motion_seen = True
+                elif time.monotonic() - start >= start_grace_sec:
+                    print("wait motion stopped: motion never started, skip")
+                    return True
+
+            elif rtd.buff_fill <= 0 and not moving:
                 if quiet_since is None:
                     quiet_since = time.monotonic()
                 elif time.monotonic() - quiet_since >= hold_time:
@@ -250,7 +266,7 @@ class MotionController:
             else:
                 quiet_since = None
 
-            if await_sec >= 0 and time.monotonic() - start >= await_sec:
+            if motion_seen and await_sec >= 0 and time.monotonic() - start >= await_sec:
                 self.log.warning("wait motion stopped: timeout")
                 return False
 
@@ -358,6 +374,14 @@ class RobotController:
         self._joystick_thread = None
         self._nearest_info = None
         self._nearest_boot_done = False
+
+        # Ожидание физической остановки движения (отдельный поток)
+        self.wait_traj = None            # траектория, для которой ждём остановки
+        self.waiter_active = False
+        self.wait_gen = 0
+        self.motion_abort = threading.Event()
+        # Машина состояний выполняемого действия (шаги: траектории/грипперы)
+        self.active_action = None        # {'action', 'commands', 'step'}
 
     # ---------- Публичные методы (используемые извне) ----------
 
@@ -487,8 +511,12 @@ class RobotController:
         self.state.update(mode='move', last_command=f"MoveToPoint:{point_name}")
         self.log.info(f"Moving to point '{point_name}'")
 
-    def execute_trajectory(self, trajectory: RobotTrajectories) -> None:
-        """Выполнить траекторию"""
+    def execute_trajectory(self, trajectory: RobotTrajectories) -> bool:
+        """
+        Выполнить траекторию.
+        Returns: True — старт состоялся (вотер ожидания запущен),
+                 False — отклонена (не в run / нет данных / ошибка).
+        """
         self.state.update(last_error=0)
         print(self.state.get_field('controller_state'))
         if self.state.get_field('controller_state') != 'run':
@@ -497,7 +525,7 @@ class RobotController:
                 last_error=LastError.err_not_ready
             )
             self.log.error("Trajectory rejected: manipulator not in run state")
-            return
+            return False
 
         try:
             if trajectory.name not in self.data.trajectories:
@@ -506,17 +534,19 @@ class RobotController:
             nearest_point = self.find_nearest_waypoint()
             nearest_wp = nearest_point.get("waypoint")
 
-            self.exec_available_trajectory(nearest_wp, trajectory)
+            return self.exec_available_trajectory(nearest_wp, trajectory)
 
         except FunctionTimeOutError as e:
             self.state.update(last_error=LastError.err_timeout_trajectory)
             self.log.error(f"Timeout executing trajectory: {e}")
+            return False
         except Exception as e:
             self.state.update(last_error=LastError.err_common_trajectory)
             self.log.error(f"EXECUTE_TRAJECTORY failed: {e}")
+            return False
 
-    def exec_available_trajectory(self, nearest_wp, trajectory) -> None:
-        """Выполнить доступную траекторию"""
+    def exec_available_trajectory(self, nearest_wp, trajectory) -> bool:
+        """Выполнить доступную траекторию. Returns: True — вотер запущен."""
         wp_available = True  # commissioning
         if wp_available:  # trajectory.name in available_trajectories.get(nearest_wp) # commissioning
             for position in self.data.trajectories[trajectory.name]['positions']:
@@ -536,18 +566,24 @@ class RobotController:
             if trajectory:
                 self.state.update(trajectory_state=trajectory.value + EXECUTION)
 
-            finish_motion = self.mc.wait_motion_complete(await_sec=-1)
-            if trajectory and finish_motion:
-                self.state.update(trajectory_state=trajectory.value + FINISHED)
+            # Неблокирующее ожидание физической остановки в отдельном потоке;
+            # trajectory_state -> FINISHED/EXCEPTION обработается в MOTION_DONE
+            self.start_stopped_wait(trajectory)
+            return True
         else:
             self.state.update(
                 trajectory_state=trajectory.value + BLOCK,
                 last_error=LastError.err_choose_trajectory
             )
             self.log.error("Can't move by selected trajectory from current point!")
+            return False
 
     def execute_action(self, action: RobotActions) -> None:
-        """Выполнить действие"""
+        """
+        Выполнить действие: последовательность шагов (траектории + грипперы).
+        Не блокирует главный цикл: после каждой траектории продолжение
+        цепочки шагов происходит из handle_motion_done (MOTION_DONE).
+        """
         self.state.update(last_error=0)
         if self.state.get_field('controller_state') != 'run':
             self.state.update(
@@ -557,45 +593,20 @@ class RobotController:
             self.log.error("Action rejected: manipulator ot in run state")
             return
 
-        try:
-            if action.name not in self.data.actions:
-                raise ValueError(f"No Action mapped for {action}")
-            else:
-                self.log.info(f"Executing action: {action.name}")
-
-                if action:
-                    self.state.update(action_state=action.value + EXECUTION)
-
-                finish_motion = self.mc.wait_motion_complete(await_sec=-1)
-
-                for command in self.data.actions.get(action.name).commands:
-                    if command.cmd_type == EXEC_TRAJ and finish_motion:
-                        # self.cmd_queue.put(Command(
-                        #     CmdType.EXECUTE_TRAJECTORY,
-                        #     {'num': int(getattr(RobotTrajectories, command.name).value)},
-                        #     source="GUI"
-                        # ))
-                        self.execute_trajectory(getattr(RobotTrajectories, command.name))
-
-                    if command.cmd_type == GRIPPER_CMD and finish_motion:
-                        self.cmd_queue.put(Command(
-                            CmdType.GRIPPER_CMD,
-                            {'index': GRIPPER_1_DO_INDEX, 'value': bool(command.name)},
-                            source="GUI"
-                        ))
-
-                finish_motion = self.mc.wait_motion_complete(await_sec=-1)
-                if action and finish_motion:
-                    self.state.update(action_state=action.value + FINISHED)
-
-        except FunctionTimeOutError as e:
-            self.state.update(action_state=action.value + EXCEPTION,
-                              last_error=LastError.err_timeout_action)
-            self.log.error(f"Timeout executing action: {e}")
-        except Exception as e:
+        if action.name not in self.data.actions:
             self.state.update(action_state=action.value + EXCEPTION,
                               last_error=LastError.err_common_action)
-            self.log.error(f"EXECUTE_ACTION failed: {e}")
+            self.log.error(f"No Action mapped for {action}")
+            return
+
+        self.log.info(f"Executing action: {action.name}")
+        self.state.update(action_state=action.value + EXECUTION)
+        self.active_action = {
+            'action': action,
+            'commands': self.data.actions[action.name].commands,
+            'step': 0,
+        }
+        self.advance_action_step()
 
     # ---------- Грипперы ----------
     def execute_gripper_1(self, clamp: bool) -> None:
@@ -734,6 +745,131 @@ class RobotController:
         )
         self._joystick_thread.start()
 
+    # ---------- Ожидание остановки движения (отдельный поток) ----------
+
+    def start_stopped_wait(self, trajectory) -> None:
+        """
+        Запустить поток ожидания физической остановки после движения
+        по траектории. Не блокирует главный цикл.
+        Результат приходит командой MOTION_DONE.
+        """
+        if self.waiter_active:
+            # Предыдущая траектория ещё ожидается — прерываем её
+            # и перезапускаем вотер под новой.
+            self.motion_abort.set()
+            self.wait_gen += 1
+            self.waiter_active = False
+            if self.wait_traj is not None:
+                self.state.update(
+                    trajectory_state=self.wait_traj.value + EXCEPTION,
+                    last_error=LastError.err_timeout_trajectory)
+        self.wait_traj = trajectory
+        self.waiter_active = True
+        self.launch_waiter()
+
+    def launch_waiter(self) -> None:
+        """Запустить поток-вотер с новым abort-ивентом и поколением (gen)."""
+        self.wait_gen += 1
+        self.motion_abort = threading.Event()
+        threading.Thread(
+            target=self.motion_wait_worker,
+            args=(self.wait_gen, self.motion_abort),
+            name="MotionWaitThread",
+            daemon=True
+        ).start()
+
+    def motion_wait_worker(self, gen: int, abort_event: threading.Event) -> None:
+        """Тело потока-вотера: ждёт остановки и ставит результат в cmd_queue."""
+        try:
+            ok = self.mc.wait_motion_stopped(
+                await_sec=-1,
+                abort_event=abort_event,
+                require_motion_start=True,
+            )
+        except Exception as e:
+            self.log.error(f"Motion wait worker failed: {e}")
+            ok = False
+        self.cmd_queue.put(Command(
+            CmdType.MOTION_DONE, {'ok': ok, 'gen': gen}, source="RC"))
+
+    def handle_motion_done(self, cmd: Command) -> None:
+        """
+        Обработка результата вотера в главном потоке:
+        траектория -> FINISHED/EXCEPTION, при успехе — продолжение action'а.
+        """
+        if cmd.payload.get('gen') != self.wait_gen:
+            return  # устаревший результат (после STOP_MOVE/перезапуска)
+        traj = self.wait_traj
+        self.wait_traj = None
+        self.waiter_active = False
+        if traj is None:
+            return
+        if cmd.payload.get('ok'):
+            self.state.update(trajectory_state=traj.value + FINISHED)
+            self.advance_action_step()
+        else:
+            self.state.update(trajectory_state=traj.value + EXCEPTION,
+                              last_error=LastError.err_timeout_trajectory)
+            self.fail_active_action(LastError.err_timeout_action)
+
+    # ---------- Машина состояний action'а ----------
+
+    def advance_action_step(self) -> None:
+        """
+        Исполнять шаги action'а по порядку.
+        GRIPPER_CMD выполняется сразу; EXECUTE_TRAJECTORY передаёт
+        управление вотеру, продолжение придёт с MOTION_DONE.
+        """
+        while self.active_action is not None:
+            commands = self.active_action['commands']
+            idx = self.active_action['step']
+            if idx >= len(commands):
+                action = self.active_action['action']
+                self.active_action = None
+                self.state.update(action_state=action.value + FINISHED)
+                return
+
+            self.active_action['step'] = idx + 1
+            command = commands[idx]
+
+            if command.cmd_type == EXEC_TRAJ:
+                trajectory = getattr(RobotTrajectories, command.name, None)
+                if trajectory is None or not self.execute_trajectory(trajectory):
+                    action = self.active_action['action']
+                    self.active_action = None
+                    self.state.update(
+                        action_state=action.value + EXCEPTION,
+                        last_error=LastError.err_choose_trajectory)
+                    self.log.error(
+                        f"Action step trajectory '{command.name}' rejected")
+                    return
+                return  # продолжение — из handle_motion_done
+
+            if command.cmd_type == GRIPPER_CMD:
+                value = str(command.name).lower() in ('true', '1')
+                self.execute_gripper_1(value)
+
+    def fail_active_action(self, err) -> None:
+        """Пометить активный action, как исключение, и остановить цепочку шагов."""
+        ctx = self.active_action
+        if not ctx:
+            return
+        self.active_action = None
+        self.state.update(action_state=ctx['action'].value + EXCEPTION,
+                          last_error=err)
+
+    def abort_stopped_wait(self) -> None:
+        """Отменить ожидание (STOP_MOVE): траектория и действие — прерваны."""
+        self.motion_abort.set()
+        self.wait_gen += 1  # не валидируем результат умирающего потока
+        self.waiter_active = False
+        if self.wait_traj is not None:
+            self.state.update(
+                trajectory_state=self.wait_traj.value + EXCEPTION,
+                last_error=LastError.err_timeout_trajectory)
+            self.wait_traj = None
+        self.fail_active_action(LastError.err_timeout_action)
+
     # ---------- Главный цикл ----------
 
     def run(self) -> None:
@@ -798,6 +934,7 @@ class RobotController:
                     self.data.load_waypoints()
 
                 elif cmd.type == CmdType.STOP_MOVE:
+                    self.abort_stopped_wait()
                     self.manipulator_stop_drive()
 
                 elif cmd.type == CmdType.PAUSE or ZONE_SENSOR_DI:
@@ -808,6 +945,9 @@ class RobotController:
 
                 elif cmd.type == CmdType.START_SIMPLE_JOYSTICK:
                     self.start_simple_joystick(cmd.payload.get('coord_sys'))
+
+                elif cmd.type == CmdType.MOTION_DONE:
+                    self.handle_motion_done(cmd)
 
                 elif cmd.type == CmdType.SHUTDOWN:
                     self.log.info("Shutdown command received")
@@ -825,3 +965,4 @@ class RobotController:
     def stop(self) -> None:
         """Остановка контроллера"""
         self.stop_event.set()
+        self.motion_abort.set()
