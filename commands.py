@@ -115,4 +115,4 @@ class RobotTrajectories(enum.Enum):
 
 
 class RobotActions(enum.Enum):
-    pass
+    aBGIntP010_To_BGIntP011 = 1
