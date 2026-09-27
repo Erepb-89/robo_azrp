@@ -17,6 +17,7 @@ class CmdType(Enum):
     SHUTDOWN = auto()
     FIND_NEAREST = auto()
     START_SIMPLE_JOYSTICK = auto()
+    MOTION_DONE = auto()  # физ. остановка движения {'ok': bool, 'gen': int}
 
 
 @dataclass
