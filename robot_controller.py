@@ -10,9 +10,12 @@ from typing import Dict, List, Optional
 from queue import Queue, Empty
 
 from actions import actions
+from io_map import (DI, DO, MACHINE_DI, MACHINE_DO, GRIPPER_DI, GRIPPER_DO,
+                    di_active)
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
-                    EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD)
+                    EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
+                    PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
@@ -24,6 +27,20 @@ from API.source.models.classes.enum_classes.state_classes import (
     InComingControllerState as Ics,
     InComingSafetyStatus as Iss)
 from API.source.core.exceptions.data_validation_error.version_error import VersionError
+
+
+def create_robot_api(robot_ip: str, logger, use_sim: bool = USE_SIM):
+    """Создаёт подключение к роботу (или SIM-фасад при ROBOPRO_SIM=1)."""
+    if use_sim:
+        try:
+            from sim.robot_sim import SimRobotApi
+        except ImportError:
+            logger.error("SIM mode requested but sim.robot_sim is not available")
+            return None
+        logger.info("SIM mode: using SimRobotApi")
+        return SimRobotApi()
+    logger.info(f"Connecting to robot at {robot_ip}")
+    return RobotApi(robot_ip, show_std_traceback=True)
 
 
 @dataclass
@@ -44,6 +61,13 @@ class RobotState:
     current_point: int = 0
     gripper1_state: int = 0
     gripper2_state: int = 0
+    signals: Dict[str, bool] = field(default_factory=dict)
+    outputs: Dict[str, bool] = field(default_factory=dict)
+    signals_ts: float = 0.0
+    last_message: Optional[str] = None
+    cycle_state: str = 'idle'
+    m_state: Dict[int, int] = field(default_factory=dict)
+    flags: Dict[str, object] = field(default_factory=dict)
 
 
 # state_manager.py
@@ -189,14 +213,6 @@ class MotionController:
             units='deg'
         )
 
-    def wait_motion_complete(self, await_sec: int = -1) -> bool:
-        """Ждать завершения движения"""
-        try:
-            return self.robot.motion.wait_waypoint_completion(0, await_sec=await_sec)
-        except Exception as e:
-            self.log.error(f"wait motion complete failed: {e}")
-            return False
-
     def wait_motion_stopped(self,
                             linear_deadband: float = 0.01,
                             angular_deadband: float = 0.02,
@@ -204,19 +220,18 @@ class MotionController:
                             await_sec: float = -1,
                             abort_event: Optional[threading.Event] = None,
                             require_motion_start: bool = True,
-                            start_grace_sec: float = 2.0) -> bool:
+                            period_sec: float = 2.0) -> bool:
         """
         Ждать физической остановки робота после движения.
-        Проверяет пустой буфер waypoint'ов и фактические
+        Проверяет пустой буфер точек и фактические
         скорости act_qd / act_tcp_xd из RTD:
         они должны оставаться в пределах linear_deadband / angular_deadband
         непрерывно hold_time секунд.
 
         require_motion_start: сначала дождаться начала движения
         (буфер непустой или скорости не нулевые) — защита от ложного True,
-        если вотер запущен раньше, чем точки попадут в буфер.
-        Если за start_grace_sec движение так и не началось — считать,
-        что ждать нечего, и вернуть True.
+        если ожидание запущено раньше, чем точки попадут в буфер.
+        Если за period_sec движение так и не началось — вернуть True.
         """
         start = time.monotonic()
         quiet_since = None
@@ -228,6 +243,7 @@ class MotionController:
                 return False
 
             if not self.robot.is_connected():
+                self.robot.state.update(last_error=LastError.err_connection_lost)
                 self.log.error("wait motion stopped: connection lost")
                 return False
 
@@ -254,7 +270,7 @@ class MotionController:
             if not motion_seen:
                 if rtd.buff_fill > 0 or moving:
                     motion_seen = True
-                elif time.monotonic() - start >= start_grace_sec:
+                elif time.monotonic() - start >= period_sec:
                     print("wait motion stopped: motion never started, skip")
                     return True
 
@@ -277,11 +293,13 @@ class MotionController:
 class IOController:
     """Управление цифровыми входами/выходами"""
 
-    def __init__(self, robot_api, logger, num_ios: int):
+    def __init__(self, robot_api, logger, num_ios: int,
+                 pause_di_index: Optional[int] = None):
         self.robot = robot_api
         self.log = logger
         self.num_ios = num_ios
-        self.robot.io.digital.set_input_function(1, 'pause')
+        if pause_di_index is not None:
+            self.robot.io.digital.set_input_function(pause_di_index, 'pause')
 
     def control_digital_outputs(self, index: int, value: bool) -> bool:
         """Управление цифровым выходом"""
@@ -292,8 +310,133 @@ class IOController:
         try:
             return self.robot.io.digital.set_output(index=index, value=value)
         except Exception as e:
+            self.robot.state.update(last_error=LastError.err_io_write)
             self.log.error(f"Error setting output {index}: {e}")
             return False
+
+    # ── Символическое управление по карте io_map ────────────────────────────
+
+    def set_do(self, do: DO, value: bool) -> bool:
+        """Установить выход по имени из io_map."""
+        try:
+            ok = self.control_digital_outputs(int(do), value)
+            self.log.debug(f"DO {do.name} = {value} -> {'OK' if ok else 'FAIL'}")
+            return ok
+        except Exception as e:
+            self.robot.state.update(last_error=LastError.err_io_write)
+            self.log.error(f"set_do {do.name}: {e}")
+            return False
+
+    def get_do(self, do: DO) -> bool:
+        """Прочитать текущее состояние выхода по имени."""
+        try:
+            return self.robot.io.digital.get_output(int(do))
+        except Exception as e:
+            self.robot.state.update(last_error=LastError.err_io_read)
+            self.log.error(f"get_do {do.name}: {e}")
+            return False
+
+    def get_di(self, di: DI) -> bool:
+        """Прочитать вход по имени из io_map с учётом полярности DI_INVERT."""
+        try:
+            raw = self.robot.io.digital.get_input(int(di))
+            return di_active(di, raw)
+        except Exception as e:
+            self.robot.state.update(last_error=LastError.err_io_read)
+            self.log.error(f"get_di {di.name}: {e}")
+            return False
+
+    def wait_di(self, di: DI, value: bool, timeout: float,
+                abort_event: Optional[threading.Event] = None) -> bool:
+        """
+        Прерываемое ожидание входа с тайм-аутом.
+        Не использует API wait_input (тот не прерывается при СТОП).
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            if abort_event is not None and abort_event.is_set():
+                self.log.info(f"wait_di {di.name}: aborted")
+                return False
+            try:
+                if not self.robot.is_connected():
+                    self.robot.state.update(last_error=LastError.err_connection_lost)
+                    self.log.error(f"wait_di {di.name}: connection lost")
+                    return False
+            except Exception:
+                return False
+            if self.get_di(di) == bool(value):
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(IO_POLL_SEC)
+
+    def machine_di(self, m: int, role: str) -> bool:
+        return self.get_di(MACHINE_DI[m][role])
+
+    def machine_do(self, m: int, role: str, value: bool) -> bool:
+        return self.set_do(MACHINE_DO[m][role], value)
+
+    def gripper_di(self, g: int, role: str) -> bool:
+        return self.get_di(GRIPPER_DI[g][role])
+
+    def gripper_do(self, g: int, value: bool) -> bool:
+        return self.set_do(GRIPPER_DO[g], value)
+
+    def snapshot_inputs(self) -> Dict[str, bool]:
+        snap = {}
+        for di in DI:
+            snap[di.name] = self.get_di(di)
+        return snap
+
+    def snapshot_outputs(self) -> Dict[str, bool]:
+        snap = {}
+        for do in DO:
+            snap[do.name] = self.get_do(do)
+        return snap
+
+
+# signal_monitor.py
+class SignalMonitor:
+    """Поток чтения сигналов: кэш DI/DO для GUI."""
+
+    def __init__(self, io_controller, state_manager, logger,
+                 heartbeat_cb=None, interval: float = 0.1):
+        self.io = io_controller
+        self.state = state_manager
+        self.log = logger
+        self._hb = heartbeat_cb
+        self._interval = interval
+        self._stop = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def start(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._loop,
+                                        name="SignalMonitorThread",
+                                        daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+    def _loop(self) -> None:
+        while not self._stop.is_set():
+            try:
+                self.state.update(
+                    signals=self.io.snapshot_inputs(),
+                    outputs=self.io.snapshot_outputs(),
+                    signals_ts=time.time(),
+                )
+            except Exception as e:
+                self.log.debug(f"SignalMonitor read error: {e}")
+            if self._hb:
+                try:
+                    self._hb('signals')
+                except Exception:
+                    pass
+            time.sleep(self._interval)
 
 
 # telemetry_monitor.py
@@ -343,27 +486,35 @@ class TelemetryMonitor:
 class RobotController:
     """Главный контроллер робота"""
 
-    def __init__(self, robot_ip: str, cmd_queue: Queue, logger, heartbeat_cb=None):
+    def __init__(self, robot_ip: str, cmd_queue: Queue, logger, heartbeat_cb=None,
+                 msg_queue: Optional[Queue] = None):
         self.log = logger
         self.cmd_queue = cmd_queue
         self.stop_event = threading.Event()
         self._heartbeat_cb = heartbeat_cb
+        self._msg_queue = msg_queue
 
-        # Раскомментить для отладки с манипулятором по месту Uncomment
-        # Robot API
+        # # Robot API (SIM при ROBOPRO_SIM=1)
         # try:
-        #     self.Robot = RobotApi(robot_ip, show_std_traceback=True)
+        #     self.Robot = create_robot_api(robot_ip, logger)
         # except VersionError as e:
         #     self.log.critical(f"Robot API version mismatch: {e}")
         #     raise
+        # except Exception as e:
+        #     self.log.critical(f"Robot API init failed: {e}")
+        #     self.Robot = None
 
         # Компоненты
         self.state = StateManager()
         self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
         # Раскомментить для отладки с манипулятором по месту Uncomment
         # self.mc = MotionController(self.Robot, self.data, logger)
-        # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO)
+        # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
+        #                        pause_di_index=PAUSE_DI_INDEX)
         # self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
+        self.signal_monitor = SignalMonitor(self.io, self.state, logger,
+                                            heartbeat_cb=heartbeat_cb)
+        self.signal_monitor.start()
 
         # Загрузка
         self.data.load_waypoints()
@@ -408,6 +559,40 @@ class RobotController:
 
     def get_nearest_info(self):
         return self._nearest_info or None
+
+    def message(self, text: str, level: str = 'info') -> None:
+        """Message(text): лог + очередь GUI-журнала + state."""
+        if level == 'error':
+            self.log.error(text)
+        elif level == 'warning':
+            self.log.warning(text)
+        else:
+            self.log.info(text)
+        if self._msg_queue is not None:
+            try:
+                self._msg_queue.put_nowait(text)
+            except Exception:
+                pass
+        self.state.update(last_message=text)
+
+    # ---------- Автоцикл ----------
+
+    def start_auto_cycle(self) -> None:
+        """Запуск автоцикла (отдельный поток)."""
+        if getattr(self, 'auto_cycle', None) is None:
+            from auto_cycle import AutoCycle
+            self.auto_cycle = AutoCycle(self, self.log,
+                                        heartbeat_cb=self._heartbeat_cb)
+        if not self.auto_cycle.is_alive():
+            self.auto_cycle.start()
+        self.auto_cycle.request_start()
+        self.log.info("AUTO_START requested")
+
+    def stop_auto_cycle(self) -> None:
+        """Стоп автоцикла: немедленный hold, состояние сохраняется."""
+        if getattr(self, 'auto_cycle', None) is not None:
+            self.auto_cycle.request_stop()
+        self.log.info("AUTO_STOP requested")
 
     # ---------- Управление режимами ----------
 
@@ -518,7 +703,6 @@ class RobotController:
                  False — отклонена (не в run / нет данных / ошибка).
         """
         self.state.update(last_error=0)
-        print(self.state.get_field('controller_state'))
         if self.state.get_field('controller_state') != 'run':
             self.state.update(
                 trajectory_state=trajectory.value + BLOCK,
@@ -528,8 +712,20 @@ class RobotController:
             return False
 
         try:
+            self.data.load_waypoints()
+            self.data.load_trajectories()
             if trajectory.name not in self.data.trajectories:
                 raise ValueError(f"No trajectory mapped for {trajectory}")
+
+            problems = self.trajectory_preflight(trajectory.name)
+            if problems:
+                self.message(
+                    f"Траектория {trajectory.name}: не готовы точки: "
+                    f"{', '.join(problems[:5])}", 'error')
+                self.state.update(
+                    trajectory_state=trajectory.value + BLOCK,
+                    last_error=LastError.err_waypoint)
+                return False
 
             nearest_point = self.find_nearest_waypoint()
             nearest_wp = nearest_point.get("waypoint")
@@ -553,7 +749,8 @@ class RobotController:
                 self.cmd_queue.put(
                     Command(
                         CmdType.MOVE_TO_POINT,
-                        {"name": position.get("name"), "motion": "joint"},
+                        {"name": position.get("name"),
+                         "motion": position.get("motion", "joint")},
                         source="GUI"
                     )
                 )
@@ -576,6 +773,55 @@ class RobotController:
                 last_error=LastError.err_choose_trajectory
             )
             self.log.error("Can't move by selected trajectory from current point!")
+            return False
+
+    # ---------- Синхронные примитивы для потока автоцикла ----------
+
+    def trajectory_preflight(self, trajectory_name: str) -> List[str]:
+        """Список точек траектории, которые не обучены/не существуют."""
+        problems: List[str] = []
+        traj = self.data.trajectories.get(trajectory_name)
+        if traj is None:
+            return [f"<траектория {trajectory_name}>"]
+        for pos in traj.get('positions', []):
+            name = pos.get('name')
+            wp = self.data.waypoints.get(name)
+            if wp is None:
+                problems.append(name)
+                continue
+            tcp = wp.get('tcp', {})
+            try:
+                x, y, z = (float(tcp.get(k, 0.0)) for k in ('x', 'y', 'z'))
+            except (TypeError, ValueError):
+                problems.append(name)
+                continue
+            if x == 0.0 and y == 0.0 and z == 0.0:
+                problems.append(name)
+        return problems
+
+    def execute_trajectory_sync(self, trajectory, abort_event=None,
+                                timeout: float = -1) -> bool:
+        """
+        Блокирующее выполнение траектории для потока автоцикла.
+        Возвращает True, если движение завершилось штатно (физически остановилось).
+        """
+        if not self.execute_trajectory(trajectory):
+            return False
+        ev = abort_event if abort_event is not None else self.motion_abort
+        return self.mc.wait_motion_stopped(abort_event=ev,
+                                           require_motion_start=True)
+
+    def move_to_point_sync(self, point_name: str, motion: str = 'joint',
+                           abort_event=None) -> bool:
+        """Блокирующее перемещение к точке для потока автоцикла."""
+        try:
+            self.move_to_point(point_name, motion)
+            ev = abort_event if abort_event is not None else self.motion_abort
+            return self.mc.wait_motion_stopped(abort_event=ev,
+                                               require_motion_start=True)
+        except Exception as e:
+            self.state.update(last_error=LastError.err_waypoint_not_taught)
+            self.log.error(f"move_to_point_sync {point_name}: {e}")
             return False
 
     def execute_action(self, action: RobotActions) -> None:
@@ -884,9 +1130,9 @@ class RobotController:
         while not self.stop_event.is_set():
             try:
                 # Мониторинг
-                # Раскомментить для отладки с манипулятором по месту Uncomment
-                # self.telemetry.check_controller_state()
-                # self.telemetry.update()
+                if self.Robot is not None:
+                    self.telemetry.check_controller_state()
+                    self.telemetry.update()
 
                 if self._heartbeat_cb:
                     try:
@@ -956,6 +1202,15 @@ class RobotController:
                 elif cmd.type == CmdType.MOTION_DONE:
                     self.handle_motion_done(cmd)
 
+                elif cmd.type == CmdType.AUTO_START:
+                    self.start_auto_cycle()
+
+                elif cmd.type == CmdType.AUTO_STOP:
+                    self.stop_auto_cycle()
+
+                elif cmd.type == CmdType.AUTO_PAUSE:
+                    self.manipulator_pause_drive()
+
                 elif cmd.type == CmdType.SHUTDOWN:
                     self.log.info("Shutdown command received")
                     break
@@ -973,3 +1228,7 @@ class RobotController:
         """Остановка контроллера"""
         self.stop_event.set()
         self.motion_abort.set()
+        if getattr(self, 'signal_monitor', None) is not None:
+            self.signal_monitor.stop()
+        if getattr(self, 'auto_cycle', None) is not None:
+            self.auto_cycle.shutdown()

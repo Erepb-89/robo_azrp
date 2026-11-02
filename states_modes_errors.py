@@ -110,6 +110,33 @@ class LastError(Enum):
     err_hatch_not_open: int = 17         # Hatch must be open before moving to this position
     err_gripper1_cmd : int = 18          # GRIPPER_1_CMD failed
     err_gripper2_cmd : int = 19          # GRIPPER_2_CMD failed
+    err_io_read: int = 20                # Ошибка чтения DI/DO
+    err_io_write: int = 21               # Ошибка записи DO
+    err_connection_lost: int = 22        # Потеря связи с роботом
+    err_door_not_open: int = 23          # Дверь не открылась (WaitForDoorOpen)
+    err_door_not_close: int = 24         # Дверь не закрылась (WaitForDoorClose)
+    err_chuck_not_relax: int = 25        # Патрон не разжался (WaitForChuckRelax)
+    err_chuck_not_clamp: int = 26        # Патрон не зажался (WaitForChuckClamp)
+    err_cnc_not_ready: int = 27          # Станок не готов (CheckMachineState)
+    err_cnc_not_started: int = 28        # Станок не запустился (StartCNC)
+    err_gripper_not_clamped: int = 29    # Гриппер не зажался
+    err_gripper_not_relaxed: int = 30    # Гриппер не разжался
+    err_cycle_aborted: int = 31          # Автоцикл прерван (СТОП)
+    err_waypoint_not_taught: int = 32    # Точка не обучена
+
+
+class Result(Enum):
+    """Возврат функций: Return: NoError / Error."""
+    NoError = 0
+    Error = 1
+
+
+class MachineState(Enum):
+    """Состояние станка M (M_state[M])."""
+    NotActive = 0
+    LoadWorkpiece = 1
+    Complete = 2
+    Error = 3
 
 
 # ── Словари русских переводов для панели статуса ──────────────────────────────
@@ -163,4 +190,17 @@ LAST_ERROR_RU = {
     LastError.err_not_ready:             ("Манипулятор не готов к движению",    "background:#ffcdd2"),
     LastError.err_sj_activation:         ("Ошибка включения джойстика",         "background:#ffcdd2"),
     LastError.err_hatch_not_open:        ("Люк не открыт",                      "background:#ffcdd2"),
+    LastError.err_io_read:               ("Ошибка чтения сигнала",              "background:#ffcdd2"),
+    LastError.err_io_write:              ("Ошибка записи выхода",               "background:#ffcdd2"),
+    LastError.err_connection_lost:       ("Потеря связи с роботом",             "background:#ffcdd2"),
+    LastError.err_door_not_open:         ("Дверь не открылась",                 "background:#ffcdd2"),
+    LastError.err_door_not_close:        ("Дверь не закрылась",                 "background:#ffcdd2"),
+    LastError.err_chuck_not_relax:       ("Патрон не разжался",                 "background:#ffcdd2"),
+    LastError.err_chuck_not_clamp:       ("Патрон не зажался",                  "background:#ffcdd2"),
+    LastError.err_cnc_not_ready:         ("Станок не готов",                    "background:#ffcdd2"),
+    LastError.err_cnc_not_started:       ("Станок не запустился",               "background:#ffcdd2"),
+    LastError.err_gripper_not_clamped:   ("Гриппер не зажался",                 "background:#ffcdd2"),
+    LastError.err_gripper_not_relaxed:   ("Гриппер не разжался",                "background:#ffcdd2"),
+    LastError.err_cycle_aborted:         ("Автоцикл прерван",                   "background:#ffcdd2"),
+    LastError.err_waypoint_not_taught:   ("Точка не обучена",                   "background:#ffcdd2"),
 }

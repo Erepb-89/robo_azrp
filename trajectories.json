@@ -149,7 +149,7 @@
             "comment": "Перед станком №1. Для смены захвата - Перед станком №1. Готовность форсунки",
             "positions": [
                 {
-                    "name": "BGIntP010",
+                    "name": "BGM1P020",
                     "motion": "joint"
                 },
                 {
@@ -237,11 +237,11 @@
             "comment": "Перед станком №1. Готовность форсунки - Перед станком №1. Для смены захвата",
             "positions": [
                 {
-                    "name": "BGM1P015",
+                    "name": "BAM1P015",
                     "motion": "joint"
                 },
                 {
-                    "name": "BGM1P010",
+                    "name": "BAM1P010",
                     "motion": "joint"
                 },
                 {
@@ -690,6 +690,444 @@
                 {
                     "name": "BGM2P020",
                     "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_BAM1P015",
+            "comment": "Обдув детали - Готовность форсунки (аналог M2)",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM1P015",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM1P015_To_BAM1P010",
+            "comment": "Форсунка - позиция обдува",
+            "positions": [
+                {
+                    "name": "BAM1P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM1P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBAM2P015_To_BAM2P010",
+            "comment": "Форсунка - позиция обдува",
+            "positions": [
+                {
+                    "name": "BAM2P015",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BAM2P010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG1IntP010_To_BGIntP010",
+            "comment": "Стол гриппера 1 - Исходная",
+            "positions": [
+                {
+                    "name": "BG1IntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tBG2IntP010_To_BGIntP010",
+            "comment": "Стол гриппера 2 - Исходная",
+            "positions": [
+                {
+                    "name": "BG2IntP010",
+                    "motion": "joint"
+                },
+                {
+                    "name": "BGIntP010",
+                    "motion": "joint"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P010_To_EG1M1P020",
+            "comment": "Внутри станка №1 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M1P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P020",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P020_To_EG1M1P030",
+            "comment": "Внутри станка №1 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M1P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P030",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P030_To_EG1M1P040",
+            "comment": "Внутри станка №1 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M1P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P040",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P020_To_EG1M1P010",
+            "comment": "Внутри станка №1 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M1P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P030_To_EG1M1P010",
+            "comment": "Внутри станка №1 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M1P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M1P040_To_EG1M1P010",
+            "comment": "Внутри станка №1 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M1P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M1P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P010_To_EG1M2P020",
+            "comment": "Внутри станка №2 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M2P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P020",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P020_To_EG1M2P030",
+            "comment": "Внутри станка №2 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M2P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P030",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P030_To_EG1M2P040",
+            "comment": "Внутри станка №2 для гриппера 1 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG1M2P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P040",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P020_To_EG1M2P010",
+            "comment": "Внутри станка №2 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M2P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P030_To_EG1M2P010",
+            "comment": "Внутри станка №2 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M2P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG1M2P040_To_EG1M2P010",
+            "comment": "Внутри станка №2 для гриппера 1 (возврат)",
+            "positions": [
+                {
+                    "name": "EG1M2P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG1M2P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_EAM1P010_S",
+            "comment": "Обдув станка №1: проход к точке P010",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_EAM1P020_S",
+            "comment": "Обдув станка №1: проход к точке P020",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_EAM1P030_S",
+            "comment": "Обдув станка №1: проход к точке P030",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM1P000_To_EAM1P040_S",
+            "comment": "Обдув станка №1: проход к точке P040",
+            "positions": [
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM1P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_EAM2P010_S",
+            "comment": "Обдув станка №2: проход к точке P010",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_EAM2P020_S",
+            "comment": "Обдув станка №2: проход к точке P020",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_EAM2P030_S",
+            "comment": "Обдув станка №2: проход к точке P030",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P030",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEAM2P000_To_EAM2P040_S",
+            "comment": "Обдув станка №2: проход к точке P040",
+            "positions": [
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P040",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EAM2P000",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M1P010_To_EG2M1P020_S",
+            "comment": "Внутри станка №1 для гриппера 2 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG2M1P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG2M1P020",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M1P020_To_EG2M1P010",
+            "comment": "Внутри станка №1 для гриппера 2 (возврат)",
+            "positions": [
+                {
+                    "name": "EG2M1P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG2M1P010",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M2P010_To_EG2M2P020_S",
+            "comment": "Внутри станка №2 для гриппера 2 (сегмент)",
+            "positions": [
+                {
+                    "name": "EG2M2P010",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG2M2P020",
+                    "motion": "linear"
+                }
+            ]
+        },
+        {
+            "name": "tEG2M2P020_To_EG2M2P010",
+            "comment": "Внутри станка №2 для гриппера 2 (возврат)",
+            "positions": [
+                {
+                    "name": "EG2M2P020",
+                    "motion": "linear"
+                },
+                {
+                    "name": "EG2M2P010",
+                    "motion": "linear"
                 }
             ]
         }

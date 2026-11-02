@@ -20,14 +20,16 @@ class MainAppClass:
         self.logger = setup_logging(LOG_PATH)
         self.intentional_exit = False
 
-        self.heartbit = Heartbeat(names=['rc', 'handler'], ttl_sec=10.0)
+        self.heartbit = Heartbeat(names=['rc', 'handler', 'signals', 'cycle'], ttl_sec=10.0)
 
         self.cmd_queue = Queue(maxsize=1000)
+        self.msg_queue = Queue(maxsize=500)
 
         self.RobotController = RobotController(ROBOT_IP,
                                                self.cmd_queue,
                                                self.logger,
-                                               heartbeat_cb=self.heartbit.beat)
+                                               heartbeat_cb=self.heartbit.beat,
+                                               msg_queue=self.msg_queue)
         self.ControllerThread = threading.Thread(
             target=self.RobotController.run,
             name="RobotControllerThread", daemon=True)
@@ -52,7 +54,8 @@ class MainAppClass:
             self.RobotController,
             self.cmd_queue,
             self.CommandHandler,
-            heartbeat=self.heartbit
+            heartbeat=self.heartbit,
+            cmd_log_queue=self.msg_queue
         )
         self.Form.closeEvent = self.on_close
         self.Form.show()
