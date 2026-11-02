@@ -23,6 +23,7 @@ from ui_form import Ui_Form
 from utils import atomic_write_json
 from trajectory_map_widget import TrajectoryMapWidget
 from available_points import available_points as AVAIL_PTS
+from io_map import DI, DO, DI_DESC, DO_DESC
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, \
     LastError, CONTROLLER_STATE_RU, \
     SAFETY_STATUS_RU, MOTION_MODE_RU, LAST_ERROR_RU
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
         self.buttons_logging()
 
         self._init_op_log_tab()
+        self._init_auto_cycle_tab()
         self._init_status_bar()
         self._init_top_toolbar()
         self.ui.waypointsComboBox.currentTextChanged.connect(self.waypoint_selected)
@@ -343,6 +345,8 @@ class MainWindow(QMainWindow):
                 last_cmd=getattr(state, 'last_command', None) or "",
                 trajectory_state=getattr(state, 'trajectory_state', 0) or 0,
                 action_state=getattr(state, 'action_state', 0) or 0,
+                gripper1_state=getattr(state, 'gripper1_state', 0) or 0,
+                gripper2_state=getattr(state, 'gripper2_state', 0) or 0,
             )
         except Exception:
             pass
@@ -362,12 +366,17 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-        # Команды из очереди (синий цвет, префикс [CMD])
+        # Команды из очереди (синий цвет, префикс [ЦИКЛ])
         try:
             if self._cmd_log_queue is not None:
                 while not self._cmd_log_queue.empty():
                     msg = self._cmd_log_queue.get_nowait()
-                    self._add_log_entry(f"[CMD]  {msg}", "→", LOG_COLOR_CMD)
+                    self._add_log_entry(f"[ЦИКЛ]  {msg}", "•", LOG_COLOR_CMD)
+        except Exception:
+            pass
+
+        try:
+            self._update_cycle_panel()
         except Exception:
             pass
 
@@ -389,6 +398,103 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._op_log)
 
         self.ui.tabWidget.addTab(tab, "Журнал")
+
+    def _init_auto_cycle_tab(self) -> None:
+        """Вкладка «Автоцикл»: кнопки, состояние станков, монитор DI/DO."""
+        tab = QtWidgets.QWidget()
+        root = QVBoxLayout(tab)
+        root.setContentsMargins(6, 6, 6, 6)
+        root.setSpacing(4)
+
+        # ── Кнопки ──
+        row = QtWidgets.QHBoxLayout()
+        btn_start = QtWidgets.QPushButton("▶ СТАРТ цикла")
+        btn_start.setStyleSheet(GREEN_BTN_STYLE)
+        btn_start.clicked.connect(lambda: self.cmd_queue.put(
+            Command(CmdType.AUTO_START, {}, source="GUI")))
+        btn_stop = QtWidgets.QPushButton("■ СТОП цикла")
+        btn_stop.setStyleSheet(STOP_BTN_STYLE)
+        btn_stop.clicked.connect(lambda: self.cmd_queue.put(
+            Command(CmdType.AUTO_STOP, {}, source="GUI")))
+        btn_pause = QtWidgets.QPushButton("|| ПАУЗА")
+        btn_pause.setStyleSheet(POWER_OFF_BTN_STYLE)
+        btn_pause.clicked.connect(lambda: self.cmd_queue.put(
+            Command(CmdType.AUTO_PAUSE, {}, source="GUI")))
+        for b in (btn_start, btn_stop, btn_pause):
+            row.addWidget(b)
+        root.addLayout(row)
+
+        # ── Состояние цикла и станков ──
+        self._cyc_state = QLabel("Цикл: —")
+        self._cyc_state.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        root.addWidget(self._cyc_state)
+
+        grid = QtWidgets.QGridLayout()
+        self._cyc_m1 = QLabel("М1: —")
+        self._cyc_m2 = QLabel("М2: —")
+        self._cyc_flags = QLabel("")
+        for lbl in (self._cyc_m1, self._cyc_m2, self._cyc_flags):
+            lbl.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        grid.addWidget(self._cyc_m1, 0, 0)
+        grid.addWidget(self._cyc_m2, 0, 1)
+        grid.addWidget(self._cyc_flags, 1, 0, 1, 2)
+        root.addLayout(grid)
+
+        # ── Монитор DI/DO ──
+        hdr = QLabel("Монитор сигналов (DI слева, DO справа)")
+        hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        root.addWidget(hdr)
+        self._io_text = QtWidgets.QPlainTextEdit()
+        self._io_text.setReadOnly(True)
+        self._io_text.setStyleSheet(
+            "font-family: Consolas, monospace; font-size: 11px;")
+        root.addWidget(self._io_text)
+
+        self.ui.tabWidget.addTab(tab, "Автоцикл")
+
+    def _update_cycle_panel(self) -> None:
+        """Обновляет состояние автоцикла и монитор сигналов."""
+        try:
+            state = self.RobotController.get_state_snapshot()
+        except Exception:
+            return
+
+        names = {0: "NotActive", 1: "LoadWorkpiece",
+                 2: "Complite", 3: "Error"}
+        cs = getattr(state, 'cycle_state', 'idle')
+        self._cyc_state.setText(f"Цикл: {cs}")
+
+        m_state = getattr(state, 'm_state', {}) or {}
+        self._cyc_m1.setText(f"М1: {names.get(m_state.get(1, 0), '—')}")
+        self._cyc_m2.setText(f"М2: {names.get(m_state.get(2, 0), '—')}")
+
+        fl = getattr(state, 'flags', {}) or {}
+        il = fl.get('is_machine_load', {}) or {}
+        lw = fl.get('last_workpiece', {}) or {}
+        self._cyc_flags.setText(
+            f"G1 пуст: {fl.get('g1_is_empty')} | "
+            f"загрузка М1: {il.get(1)} М2: {il.get(2)} | "
+            f"последняя заготовка М1: {lw.get(1)} М2: {lw.get(2)}")
+
+        signals = getattr(state, 'signals', {}) or {}
+        outputs = getattr(state, 'outputs', {}) or {}
+        di_list = list(DI)
+        do_list = list(DO)
+        n = max(len(di_list), len(do_list))
+        lines = []
+        for i in range(n):
+            left = ""
+            if i < len(di_list):
+                d = di_list[i]
+                mark = "●" if signals.get(d.name) else "○"
+                left = f"{DI_DESC.get(d, d.name):32s} {mark}"
+            right = ""
+            if i < len(do_list):
+                d = do_list[i]
+                mark = "●" if outputs.get(d.name) else "○"
+                right = f"{DO_DESC.get(d, d.name):32s} {mark}"
+            lines.append(f"{left:42s}  {right}")
+        self._io_text.setPlainText("\n".join(lines))
 
     def _add_log_entry(self, command: str, icon: str, fg: str) -> None:
         """Добавляет строку в журнал, удаляет лишние при переполнении."""
@@ -423,7 +529,7 @@ class MainWindow(QMainWindow):
         # Сохраняем предыдущие состояния
         prev_traj = self._log_last_traj_state
         prev_action = self._log_last_action_state
-        prev_gripper1 = self._log_last_gripper_state1
+        prev_gripper1 = self._log_last_gripper1_state
         prev_gripper2 = self._log_last_gripper2_state
         prev_cmd = self._log_last_cmd
 
@@ -606,7 +712,9 @@ class MainWindow(QMainWindow):
 
     def update_actions(self) -> None:
         items_model = QStandardItemModel()
-        for action in self.Actions.keys():
+        for action, obj in self.Actions.items():
+            if getattr(obj, 'params', ()) or not hasattr(RobotActions, action):
+                continue
             item = QStandardItem(action)
             item.setData(action, Qt.ItemDataRole.UserRole)
             item.setEditable(False)

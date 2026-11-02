@@ -18,6 +18,9 @@ class CmdType(Enum):
     FIND_NEAREST = auto()
     START_SIMPLE_JOYSTICK = auto()
     MOTION_DONE = auto()  # физ. остановка движения {'ok': bool, 'gen': int}
+    AUTO_START = auto()   # запуск автоцикла
+    AUTO_STOP = auto()    # стоп автоцикла (hold, состояние сохраняется)
+    AUTO_PAUSE = auto()   # пауза движения
 
 
 @dataclass
@@ -71,6 +74,7 @@ class RobotPoints(enum.Enum):
     BG1IntP010 = 4000
 
 
+# <trajectories:begin>
 class RobotTrajectories(enum.Enum):
     tBGIntP010_To_BGIntP011 = 1
     tBGIntP010_To_BG1IntP001 = 2
@@ -112,6 +116,36 @@ class RobotTrajectories(enum.Enum):
     tEG1M2P010_To_EG1M2P040 = 38
     tEG1M2P010_To_BG1M2P010 = 39
     tBG1M2P010_To_BGM2P020 = 40
+    tEAM1P000_To_BAM1P015 = 41
+    tBAM1P015_To_BAM1P010 = 42
+    tBAM2P015_To_BAM2P010 = 43
+    tBG1IntP010_To_BGIntP010 = 44
+    tBG2IntP010_To_BGIntP010 = 45
+    tEG1M1P010_To_EG1M1P020 = 46
+    tEG1M1P020_To_EG1M1P030 = 47
+    tEG1M1P030_To_EG1M1P040 = 48
+    tEG1M1P020_To_EG1M1P010 = 49
+    tEG1M1P030_To_EG1M1P010 = 50
+    tEG1M1P040_To_EG1M1P010 = 51
+    tEG1M2P010_To_EG1M2P020 = 52
+    tEG1M2P020_To_EG1M2P030 = 53
+    tEG1M2P030_To_EG1M2P040 = 54
+    tEG1M2P020_To_EG1M2P010 = 55
+    tEG1M2P030_To_EG1M2P010 = 56
+    tEG1M2P040_To_EG1M2P010 = 57
+    tEAM1P000_To_EAM1P010_S = 58
+    tEAM1P000_To_EAM1P020_S = 59
+    tEAM1P000_To_EAM1P030_S = 60
+    tEAM1P000_To_EAM1P040_S = 61
+    tEAM2P000_To_EAM2P010_S = 62
+    tEAM2P000_To_EAM2P020_S = 63
+    tEAM2P000_To_EAM2P030_S = 64
+    tEAM2P000_To_EAM2P040_S = 65
+    tEG2M1P010_To_EG2M1P020_S = 66
+    tEG2M1P020_To_EG2M1P010 = 67
+    tEG2M2P010_To_EG2M2P020_S = 68
+    tEG2M2P020_To_EG2M2P010 = 69
+# <trajectories:end>
 
 
 class RobotActions(enum.Enum):

@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPen
+
+from io_map import DI, DO
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -19,10 +22,27 @@ GRIPPER_2_CMD = "GRIPPER_2_CMD"
 
 # IO и прочее
 NUM_DIGITAL_IO = 24
-GRIPPER_1_DO_INDEX = 0
-GRIPPER_2_DO_INDEX = 1
-ZONE_SENSOR_DI = 1
+GRIPPER_1_DO_INDEX = int(DO.G1_Clamp)   # 14
+GRIPPER_2_DO_INDEX = int(DO.G2_Clamp)   # 15
+START_STOP_DI = int(DI.START_STOP)      # 6
+PAUSE_DI_INDEX = None                    # DI1 теперь M1_DoorOpenSQ — пауза с этого входа снята
 LOG_PATH = BASE_DIR / "robopro.log"
+
+# ── Тайм-ауты и задержки авто-цикла ──────────────────────────────────────────
+MAX_D_SEC = 30.0      # counter > max_d  — ожидание двери
+MAX_C_SEC = 20.0      # counter > max_c  — ожидание патрона
+MAX_M_SEC = 60.0      # counter > max_m  — ожидание запуска станка
+MAX_G_SEC = 5.0       # подтверждение гриппера
+IO_POLL_SEC = 0.05    # период опроса DI/DO (как CHECK_FREQUENCY_SEC в API)
+DOOR_OPEN_DELAY_SEC = 1.0     # Wait_ms(1000) в WaitForDoorOpen
+DOOR_CLOSE_DELAY_SEC = 2.0    # Wait_ms(2000) в WaitForDoorClose
+CHUCK_PULSE_ON_SEC = 0.5      # DO_Write(SwitchChuck, true) → Delay 500
+CHUCK_PULSE_OFF_SEC = 1.0     # DO_Write(SwitchChuck, false) → Delay 1000
+CNC_START_PULSE_SEC = 0.5     # StartProcess true → Wait_ms(500)
+CNC_START_SETTLE_SEC = 1.0    # StartProcess false → Wait_ms(1000)
+
+# SIM-режим (кусок 10): ROBOPRO_SIM=1 → SimRobotApi вместо железа
+USE_SIM = os.getenv("ROBOPRO_SIM", "0") == "1"
 
 """Состояния выполнения команды"""
 EXECUTION = 100
