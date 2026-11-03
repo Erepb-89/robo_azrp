@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
         move_to_btn.setMinimumHeight(48)
         move_to_btn.setMinimumWidth(160)
         move_to_btn.setStyleSheet(MOVE_BTN_STYLE)
-        move_to_btn.clicked.connect(self.move_by_selected_trajectory)
+        move_to_btn.clicked.connect(self.move_to_selected_point) # move_by_selected_trajectory
         toolbar.addWidget(move_to_btn)
 
         pause_btn = QtWidgets.QPushButton("|| ПАУЗА")
@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
         self._io_text = QtWidgets.QPlainTextEdit()
         self._io_text.setReadOnly(True)
         self._io_text.setStyleSheet(
-            "font-family: Consolas, monospace; font-size: 11px;")
+            "font-family: Consolas, monospace; font-size: 16px;")
         root.addWidget(self._io_text)
 
         self.ui.tabWidget.addTab(tab, "Автоцикл")
@@ -765,7 +765,7 @@ class MainWindow(QMainWindow):
     def manipulator_gripper1_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
-                Command(CmdType.GRIPPER_CMD, {'index': 0, 'value': clamp}, source="GUI"))
+                Command(CmdType.GRIPPER_CMD, {'index': 14, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO0: {e}")
@@ -774,7 +774,7 @@ class MainWindow(QMainWindow):
     def manipulator_gripper2_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
-                Command(CmdType.GRIPPER_CMD, {'index': 1, 'value': clamp}, source="GUI"))
+                Command(CmdType.GRIPPER_CMD, {'index': 15, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO1: {e}")

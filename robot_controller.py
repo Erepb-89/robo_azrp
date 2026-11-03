@@ -494,15 +494,15 @@ class RobotController:
         self._heartbeat_cb = heartbeat_cb
         self._msg_queue = msg_queue
 
-        # # Robot API (SIM при ROBOPRO_SIM=1)
-        # try:
-        #     self.Robot = create_robot_api(robot_ip, logger)
-        # except VersionError as e:
-        #     self.log.critical(f"Robot API version mismatch: {e}")
-        #     raise
-        # except Exception as e:
-        #     self.log.critical(f"Robot API init failed: {e}")
-        #     self.Robot = None
+        # Robot API (SIM при ROBOPRO_SIM=1)
+        try:
+            self.Robot = create_robot_api(robot_ip, logger)
+        except VersionError as e:
+            self.log.critical(f"Robot API version mismatch: {e}")
+            raise
+        except Exception as e:
+            self.log.critical(f"Robot API init failed: {e}")
+            self.Robot = None
 
         # Компоненты
         self.state = StateManager()

@@ -101,20 +101,20 @@ class PalletManager:
                         return cell.addr
         return None
 
-    def shelf_exhausted(self, shelf: Optional[int] = None) -> bool:
+    def shelf_empty(self, shelf: Optional[int] = None) -> bool:
         """Все ячейки полки получили готовые детали обратно."""
         shelf = self.current_shelf if shelf is None else shelf
         with self._lock:
             return all(
-                self.cells[(shelf, r, c)].state == CellState.Finished
-                for r in range(self.rows) for c in range(self.cols)
+                self.cells[(shelf, row, col)].state == CellState.Finished
+                for row in range(self.rows) for col in range(self.cols)
             )
 
     def all_shelves_done(self) -> bool:
         """Текущая (последняя) полка исчерпана — работы больше нет."""
         with self._lock:
             return (self.current_shelf == self.shelves[-1]
-                    and self.shelf_exhausted())
+                    and self.shelf_empty())
 
     def in_flight(self, shelf: Optional[int] = None) -> int:
         """Число ячеек полки, детали которых сейчас в работе."""
@@ -134,7 +134,7 @@ class PalletManager:
                 "shelves": [
                     {
                         "shelf": shelf,
-                        "exhausted": self.shelf_exhausted(shelf),
+                        "shelf_empty": self.shelf_empty(shelf),
                         "in_flight": self.in_flight(shelf),
                     }
                     for shelf in self.shelves
@@ -302,7 +302,7 @@ class PalletManager:
         None).
         """
         with self._lock:
-            if self.shelf_exhausted():
+            if self.shelf_empty():
                 if self.all_shelves_done():
                     return Result.NoError
                 if self.in_flight() > 0:
