@@ -25,11 +25,11 @@ class CycleFlags:
         default_factory=lambda: {1: False, 2: False})
     last_workpiece: Dict[int, bool] = field(
         default_factory=lambda: {1: False, 2: False})
+    picked: Dict[int, bool] = field(
+        default_factory=lambda: {1: False, 2: False})
     m_state: Dict[int, MachineState] = field(
         default_factory=lambda: {1: MachineState.NotActive,
                                  2: MachineState.NotActive})
-    cur_addr: Dict[int, Optional[CellAddr]] = field(
-        default_factory=lambda: {1: None, 2: None})
     pick_addr: Dict[int, Optional[CellAddr]] = field(
         default_factory=lambda: {1: None, 2: None})
     place_addr: Dict[int, Optional[CellAddr]] = field(
@@ -38,6 +38,7 @@ class CycleFlags:
     #    (её же вернёт гриппер 2 после обработки).
     # place_addr[m] — ячейка, в которую нужно вернуть готовую деталь,
     #    снятую гриппером 2 (снимок pick_addr на момент UnloadPart).
+    # picked[m] — в этом вызове PickWorkpiece деталь была реально взята.
 
     def reset(self) -> None:
         self.g1_is_empty = True
@@ -45,7 +46,7 @@ class CycleFlags:
             self.is_machine_load[m] = False
             self.last_workpiece[m] = False
             self.m_state[m] = MachineState.NotActive
-            self.cur_addr[m] = None
+            self.picked[m] = False
             self.pick_addr[m] = None
             self.place_addr[m] = None
 
@@ -61,6 +62,7 @@ class CycleOps:
         self.grippers = {1: Gripper(1, rc, logger),
                          2: Gripper(2, rc, logger)}
         self.pallet = pallet or PalletManager(rc, logger)
+        self.inside_machine = {1: False, 2: False}
         for m in (1, 2):
             self.machines[m].bind_ops(self)
 
@@ -69,26 +71,45 @@ class CycleOps:
     def traj(self, name: str):
         return RobotTrajectories[name]
 
+    def inside_any(self) -> bool:
+        return any(self.inside_machine.values())
+
+    def require_outside(self) -> bool:
+        if self.inside_any():
+            self.rc.message(
+                "Движение запрещено: робот не подтвердил выход из станка",
+                'error')
+            return False
+        return True
+
     # ── глобальные движения (MoveTo/LinTo из схемы) ─────────────────────────
 
     def init_move(self, abort=None) -> bool:
         """InitMove(): MoveTo(BGIntP011); MoveTo(BGIntP010)."""
+        if not self.require_outside():
+            return False
         return self.rc.execute_trajectory_sync(
             self.traj('tBGIntP010_To_BGIntP011'), abort)
 
     def move_from_g_int(self, m: int, abort=None) -> bool:
         """MoveFromGInt(M): LinTo(BG[M]P010); LinTo(BG[M]P020)."""
+        if not self.require_outside():
+            return False
         return self.rc.execute_trajectory_sync(
-            self.traj(f"tBGIntP010_To_BG{m}P020"), abort)
+            self.traj(f"tBGIntP010_To_BGM{m}P020"), abort)
 
     def move_to_g_int(self, m: int, abort=None) -> bool:
         """MoveToGInt(M): возврат в исходную точку."""
+        if not self.require_outside():
+            return False
         return self.rc.execute_trajectory_sync(
-            self.traj(f"tBG{m}P020_To_BGIntP010"), abort)
+            self.traj(f"tBGM{m}P020_To_BGIntP010"), abort)
 
     def move_to_safe(self, m: int, abort=None) -> bool:
         """MoveTo(BG[M]P020) — точка смены гриппера."""
-        return self.rc.move_to_point_sync(f"BG{m}P020", 'joint', abort)
+        if not self.require_outside():
+            return False
+        return self.rc.move_to_point_sync(f"BGM{m}P020", 'joint', abort)
 
     def exit_machine(self, g: int, m: int, from_point, abort=None) -> Result:
         """ExitMachine(G,M): из точки внутри станка — в точку готовности B[G][M]P010."""
@@ -106,12 +127,14 @@ class CycleOps:
         if not self.rc.execute_trajectory_sync(
                 self.traj(f"tEG{g}M{m}P010_To_BG{g}M{m}P010"), abort):
             return Result.Error
+        self.inside_machine[m] = False
         return Result.NoError
 
     # ── движение внутри станка ──────────────────────────────────────────────
 
     def in_machine_g1(self, m: int, abort=None) -> Result:
         """InMachineG1(M): LinTo(EG1M[m]P0i), i=10..40, проверка состояния."""
+        self.inside_machine[m] = True
         for i in (10, 20, 30, 40):
             if i == 10:
                 seg = f"tBG1M{m}P010_To_EG1M{m}P010"
@@ -120,12 +143,15 @@ class CycleOps:
             if not self.rc.execute_trajectory_sync(self.traj(seg), abort):
                 return Result.Error
             if self.machines[m].check_machine_state() != Result.NoError:
-                self.exit_machine(1, m, f"EG1M{m}P0{i}", abort)
+                if self.exit_machine(1, m, f"EG1M{m}P0{i}", abort) != Result.NoError:
+                    self.rc.message(
+                        f"Аварийно: не удалось выйти из станка M{m}", 'error')
                 return Result.Error
         return Result.NoError
 
     def in_machine_g2(self, m: int, abort=None) -> Result:
         """InMachineG2(M): LinTo(EG2M[m]P0i), i=10..20, проверка состояния."""
+        self.inside_machine[m] = True
         for i in (10, 20):
             if i == 10:
                 seg = f"tBG2M{m}P010_To_EG2M{m}P010"
@@ -134,7 +160,9 @@ class CycleOps:
             if not self.rc.execute_trajectory_sync(self.traj(seg), abort):
                 return Result.Error
             if self.machines[m].check_machine_state() != Result.NoError:
-                self.exit_machine(2, m, f"EG2M{m}P0{i}", abort)
+                if self.exit_machine(2, m, f"EG2M{m}P0{i}", abort) != Result.NoError:
+                    self.rc.message(
+                        f"Аварийно: не удалось выйти из станка M{m}", 'error')
                 return Result.Error
         return Result.NoError
 
@@ -142,16 +170,18 @@ class CycleOps:
 
     def chuck_air_blast(self, m: int, abort=None) -> Result:
         """ChuckAirBlast(M): обдув патрона круговым проходом."""
-        if not self.rc.execute_trajectory_sync(
-                self.traj(f"tBG{m}P020_To_BA{m}P015"), abort):
+        if not self.require_outside():
             return Result.Error
         if not self.rc.execute_trajectory_sync(
-                self.traj(f"tBA{m}P015_To_EA{m}P000"), abort):
+                self.traj(f"tBGM{m}P020_To_BAM{m}P015"), abort):
+            return Result.Error
+        if not self.rc.execute_trajectory_sync(
+                self.traj(f"tBAM{m}P015_To_EAM{m}P000"), abort):
             return Result.Error
         self.rc.io.set_do(DO.M_AirSpray, True)
         for step in (10, 20, 30, 40):
             if not self.rc.execute_trajectory_sync(
-                    self.traj(f"tEA{m}P000_To_EA{m}P0{step}_S"), abort):
+                    self.traj(f"tEAM{m}P000_To_EAM{m}P0{step}_S"), abort):
                 self.rc.io.set_do(DO.M_AirSpray, False)
                 return Result.Error
             if self.machines[m].check_machine_state() != Result.NoError:
@@ -160,10 +190,10 @@ class CycleOps:
                 return Result.Error
         self.rc.io.set_do(DO.M_AirSpray, False)
         if not self.rc.execute_trajectory_sync(
-                self.traj(f"tEA{m}P000_To_BA{m}P015"), abort):
+                self.traj(f"tEAM{m}P000_To_BAM{m}P015"), abort):
             return Result.Error
         if not self.rc.execute_trajectory_sync(
-                self.traj(f"tBA{m}P015_To_BA{m}P010"), abort):
+                self.traj(f"tBAM{m}P015_To_BAM{m}P010"), abort):
             return Result.Error
         return Result.NoError
 
@@ -174,34 +204,45 @@ class CycleOps:
         Смена полки (верх->середина->низ) выполняется,
         когда все её ячейки получили готовые детали обратно.
         """
+        if not self.require_outside():
+            return Result.Error
+        flags.picked[m] = False
         if not flags.g1_is_empty:
+            # Деталь уже в гриппере (например, после СТОПа между pick и load)
             return Result.NoError
         if self.pallet.prepare_for_pick(abort) != Result.NoError:
             return Result.Error
         addr = self.pallet.next_raw_cell()
         if addr is None:
-            # заготовок на паллете больше нет
-            flags.last_workpiece[m] = True
+            if not self.pallet.has_raw_workpiece():
+                flags.last_workpiece[m] = True
             return Result.NoError
-        if self.pallet.depalletizing(addr) != Result.NoError:
+        if self.pallet.depalletizing(addr, machine=m, abort=abort) != Result.NoError:
             return Result.Error
         flags.pick_addr[m] = addr
         flags.g1_is_empty = False
-        if self.pallet.next_raw_cell() is None:
+        flags.picked[m] = True
+        if not self.pallet.has_raw_workpiece():
             flags.last_workpiece[m] = True
         return Result.NoError
 
     def place_part_on_table(self, m: int, flags: CycleFlags,
                             abort=None) -> Result:
         """PlacePartOnTable(M): положить готовую деталь на паллет."""
+        if not self.require_outside():
+            return Result.Error
+        addr = flags.place_addr[m]
+        if addr is None:
+            return Result.Error
         if not self.rc.execute_trajectory_sync(
                 self.traj('tBGIntP010_To_BG2IntP010'), abort):
             return Result.Error
-        if self.pallet.palletizing(flags.place_addr[m]) != Result.NoError:
+        if self.pallet.palletizing(addr, machine=m, abort=abort) != Result.NoError:
             return Result.Error
         if not self.rc.execute_trajectory_sync(
                 self.traj('tBG2IntP010_To_BGIntP010'), abort):
             return Result.Error
+        flags.place_addr[m] = None
         return Result.NoError
 
     # ── станочные операции ───────────────────────────────────────────────────
@@ -226,9 +267,9 @@ class CycleOps:
         flags.g1_is_empty = True
         if self.exit_machine(1, m, f"EG1M{m}P040", abort) != Result.NoError:
             return Result.Error
-        if self.machines[m].wait_for_chuck_clamp(1, abort) != Result.NoError:
-            return Result.Error
-        if not self.rc.move_to_point_sync(f"BG{m}P020", 'joint', abort):
+        # if self.machines[m].wait_for_chuck_clamp(1, abort) != Result.NoError: # commissioning
+        #     return Result.Error
+        if not self.move_to_safe(m, abort):
             return Result.Error
         if self.machines[m].wait_for_door_close(abort) != Result.NoError:
             return Result.Error
@@ -245,28 +286,35 @@ class CycleOps:
             return Result.Error
         if self.chuck_air_blast(m, abort) != Result.NoError: # После обдува можно не возвращаться на исходную, а сразу забрать деталь?
             return Result.Error
-        if not self.rc.move_to_point_sync(f"BG{m}P020", 'joint', abort):
+        if not self.move_to_safe(m, abort):
             return Result.Error
         if not self.rc.execute_trajectory_sync(
-                self.traj(f"tBG{m}P020_To_BG2{m}P010"), abort):
+                self.traj(f"tBGM{m}P020_To_BG2M{m}P010"), abort):
             return Result.Error
         if self.in_machine_g2(m, abort) != Result.NoError:
             return Result.Error
         if self.machines[m].check_machine_state() != Result.NoError:
+            if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
+                self.rc.message(
+                    f"Аварийно: не удалось выйти из станка M{m}", 'error')
             return Result.Error
 
         # Захват детали гриппером 2
-        if self.grippers[2].clamp(abort) != Result.NoError:
+        # if self.grippers[2].clamp(abort) != Result.NoError: # commissioning
+        #     if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
+        #         self.rc.message(
+        #             f"Аварийно: не удалось выйти из станка M{m}", 'error')
             return Result.Error
         if self.machines[m].wait_for_chuck_relax(2, True, abort) != Result.NoError:
             return Result.Error
         if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
             return Result.Error
 
+        if flags.pick_addr[m] is None:
+            return Result.Error
         flags.is_machine_load[m] = False
-        flags.place_addr[m] = flags.cur_addr[m]
-        flags.cur_addr[m] = flags.pick_addr[m]
-        if not self.rc.move_to_point_sync(f"BG{m}P020", 'joint', abort):
+        flags.place_addr[m] = flags.pick_addr[m]
+        if not self.move_to_safe(m, abort):
             return Result.Error
         if self.chuck_air_blast(m, abort) != Result.NoError:
             return Result.Error
@@ -275,6 +323,8 @@ class CycleOps:
     def error_reset(self, m: int, flags: CycleFlags, abort=None) -> None:
         """ErrorReset(M): при ошибке — сброс гриппера 1, возврат в исходную."""
         if flags.m_state[m] != MachineState.Error:
+            return
+        if not self.require_outside():
             return
         if self.rc.execute_trajectory_sync(
                 self.traj('tBGIntP010_To_BG1IntP010'), abort):

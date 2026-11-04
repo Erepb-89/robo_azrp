@@ -2,7 +2,7 @@
 Функции станка M (M1/M2): двери, патрон, пуск, проверки.
 
 Не зависит от RobotController напрямую: использует только rc.io, rc.message
-и синхронные движения (rc.move_to_point_sync / ops.exit_machine / ops.move_to_safe).
+и синхронные движения (ops.exit_machine / ops.move_to_safe).
 """
 import time
 
@@ -33,7 +33,9 @@ class CncMachine:
 
     def _move_safe(self, abort=None) -> bool:
         """MoveTo(BGM[M]P020) — точка смены гриппера при ошибке."""
-        return self.rc.move_to_point_sync(f"BGM{self.m}P020", 'joint', abort)
+        if self.ops is None:
+            return False
+        return self.ops.move_to_safe(self.m, abort)
 
     def lamp_alarm(self, on: bool) -> bool:
         return self.io.machine_do(self.m, 'LampAlarm', on)
@@ -121,11 +123,20 @@ class CncMachine:
                 self.rc.state.update(last_error=LastError.err_chuck_not_relax)
                 self.lamp_alarm(True)
                 self.message("Chuck Not Relax", 'error')
+                can_move_safe = not pick
                 if pick:
                     self.io.gripper_do(g, False)
                     if self.ops is not None:
-                        self.ops.exit_machine(g, self.m, f"EG{g}M{self.m}P020", abort)
-                self._move_safe(abort)
+                        can_move_safe = (
+                            self.ops.exit_machine(
+                                g, self.m, f"EG{g}M{self.m}P020", abort)
+                            == Result.NoError)
+                    if not can_move_safe:
+                        self.message(
+                            f"Аварийно: не удалось выйти из станка M{self.m}",
+                            'error')
+                if can_move_safe:
+                    self._move_safe(abort)
                 return Result.Error
             self.io.machine_do(self.m, 'SwitchChuck', True)
             time.sleep(CHUCK_PULSE_ON_SEC)
@@ -150,9 +161,19 @@ class CncMachine:
                 self.rc.state.update(last_error=LastError.err_chuck_not_clamp)
                 self.lamp_alarm(True)
                 self.message("Chuck Not Clamp", 'error')
-                if exit_on_error and self.ops is not None:
-                    self.ops.exit_machine(g, self.m, f"EG{g}M{self.m}P020", abort)
-                self._move_safe(abort)
+                can_move_safe = not exit_on_error
+                if exit_on_error:
+                    if self.ops is not None:
+                        can_move_safe = (
+                            self.ops.exit_machine(
+                                g, self.m, f"EG{g}M{self.m}P020", abort)
+                            == Result.NoError)
+                    if not can_move_safe:
+                        self.message(
+                            f"Аварийно: не удалось выйти из станка M{self.m}",
+                            'error')
+                if can_move_safe:
+                    self._move_safe(abort)
                 return Result.Error
             self.io.machine_do(self.m, 'SwitchChuck', True)
             time.sleep(CHUCK_PULSE_ON_SEC)
