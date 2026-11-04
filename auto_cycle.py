@@ -1,9 +1,10 @@
 """
 Главный цикл авто-режима (отдельный поток).
 
-Состояния: M_state (NotActive/LoadWorkpiece/Complite/Error), флаги
-G1IsEmptyFlag, isMachineLoad[1,2], LastWorkpiece[1,2]. СТОП — немедленный
-hold и флаг abort, состояние сохраняется; повторный СТАРТ продолжает с места.
+Состояния: M_state (NotActive/LoadWorkpiece/Complete/Error), флаги
+G1IsEmptyFlag, isMachineLoad[1,2], LastWorkpiece[1,2]. NotActive также
+означает ожидание заготовки/смены полки. СТОП — немедленный hold и флаг
+abort, состояние сохраняется; повторный СТАРТ продолжает с места.
 """
 import threading
 import time
@@ -121,6 +122,13 @@ class AutoCycle(threading.Thread):
 
         self.rc.io.set_do(DO.M_LampRun, True)
 
+        # Не начинаем движение, пока не подтверждён выход из станка
+        if self.ops.inside_any():
+            self.rc.message(
+                "Автоцикл: не подтверждён выход из станка", 'error')
+            self.rc.io.set_do(DO.M_LampRun, False)
+            return
+
         # Сброс ошибок (по станкам)
         self.ops.error_reset(1, self.flags, self.abort)
         self.ops.error_reset(2, self.flags, self.abort)
@@ -146,7 +154,11 @@ class AutoCycle(threading.Thread):
 
         # Инициализация движения
         self.flags.reset()
-        self.ops.init_move(self.abort)
+        if not self.ops.init_move(self.abort):
+            self.rc.io.set_do(DO.M_LampRun, False)
+            if not self.abort.is_set():
+                self.rc.message("Автоцикл: InitMove не выполнен", 'error')
+            return
         if self.abort.is_set():
             self.rc.io.set_do(DO.M_LampRun, False)
             return
@@ -172,6 +184,12 @@ class AutoCycle(threading.Thread):
                 if not self.machine_ready(m):
                     continue
                 self.process_machine(m, ops, flags)
+                if flags.m_state[m] == MachineState.Error:
+                    self.rc.message(
+                        f"Автоцикл: ошибка M{m}, движение остановлено",
+                        'error')
+                    self.request_stop()
+                    break
                 if self.abort.is_set():
                     break
             if self.all_complete(flags):
@@ -190,43 +208,101 @@ class AutoCycle(threading.Thread):
     def process_machine(self, m: int, ops: CycleOps, flags: CycleFlags) -> None:
         if flags.is_machine_load[m]:
             # Станок уже был в работе
+            if not flags.g1_is_empty:
+                flags.m_state[m] = MachineState.Error
+                return
             if ops.unload_part(m, flags, self.abort) != Result.NoError:
                 flags.m_state[m] = MachineState.Error
                 return
-            if not flags.last_workpiece[m]:
-                # Заготовки не закончились: взять новую, загрузить, убрать готовую
-                if (ops.pick_workpiece(m, flags, self.abort) == Result.NoError
-                        and ops.load_workpiece(m, flags, self.abort) == Result.NoError
-                        and ops.place_part_on_table(m, flags, self.abort) == Result.NoError):
-                    flags.m_state[m] = MachineState.LoadWorkpiece
-                else:
+
+            if ops.pallet.next_raw_cell() is not None:
+                # На текущей полке есть заготовка: сначала берём новую,
+                # затем возвращаем готовую деталь
+                if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
                     flags.m_state[m] = MachineState.Error
-            else:
-                # Последняя заготовка: убрать готовую деталь, станок завершил работу
-                if ops.place_part_on_table(m, flags, self.abort) == Result.NoError:
-                    flags.m_state[m] = MachineState.Complete
-                else:
+                    return
+                if not flags.picked[m]:
+                    if flags.last_workpiece[m]:
+                        if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+                            flags.m_state[m] = MachineState.Error
+                            return
+                        flags.m_state[m] = MachineState.Complete
+                    else:
+                        flags.m_state[m] = MachineState.Error
+                    return
+                if not ops.move_from_g_int(m, self.abort):
                     flags.m_state[m] = MachineState.Error
-                ops.move_to_g_int(m, self.abort)
-        else:
-            # Станок не был в работе
-            if flags.g1_is_empty and flags.last_workpiece[m]:
-                # Заготовок для M больше нет, станок не загружен
-                flags.m_state[m] = MachineState.Complete
-                ops.move_to_g_int(m, self.abort)
+                    return
+                if ops.load_workpiece(m, flags, self.abort) != Result.NoError:
+                    flags.m_state[m] = MachineState.Error
+                    return
+                if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+                    flags.m_state[m] = MachineState.Error
+                    return
+                flags.m_state[m] = MachineState.LoadWorkpiece
                 return
-            # Сначала взять заготовку с паллета, затем к точке смены гриппера
+
+            # На текущей полке заготовок нет. Сначала возвращаем готовую
+            # деталь, иначе полку нельзя закрыть и переключить
+            if not ops.move_to_g_int(m, self.abort):
+                flags.m_state[m] = MachineState.Error
+                return
+            if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+                flags.m_state[m] = MachineState.Error
+                return
+            if flags.last_workpiece[m]:
+                flags.m_state[m] = MachineState.Complete
+                return
+
             if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
                 flags.m_state[m] = MachineState.Error
                 return
-            ops.move_from_g_int(m, self.abort)
-            if ops.load_workpiece(m, flags, self.abort) == Result.NoError:
-                flags.m_state[m] = MachineState.LoadWorkpiece
-            else:
+            if not flags.picked[m]:
+                if flags.last_workpiece[m]:
+                    flags.m_state[m] = MachineState.Complete
+                else:
+                    # Ждём смену полки или возврат детали другого станка
+                    flags.m_state[m] = MachineState.NotActive
+                return
+            if not ops.move_from_g_int(m, self.abort):
                 flags.m_state[m] = MachineState.Error
+                return
+            if ops.load_workpiece(m, flags, self.abort) != Result.NoError:
+                flags.m_state[m] = MachineState.Error
+                return
+            flags.m_state[m] = MachineState.LoadWorkpiece
+            return
+
+        # Станок не был в работе
+        if flags.g1_is_empty and flags.last_workpiece[m]:
+            flags.m_state[m] = MachineState.Complete
+            return
+        if not flags.g1_is_empty:
+            # Деталь уже взята для этого станка (продолжение после СТОПа)
+            if flags.pick_addr[m] is None:
+                flags.m_state[m] = MachineState.Error
+                return
+        else:
+            if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
+                flags.m_state[m] = MachineState.Error
+                return
+            if not flags.picked[m]:
+                if flags.last_workpiece[m]:
+                    flags.m_state[m] = MachineState.Complete
+                else:
+                    # Заготовок пока нет: не двигаемся к станку
+                    flags.m_state[m] = MachineState.NotActive
+                return
+
+        if not ops.move_from_g_int(m, self.abort):
+            flags.m_state[m] = MachineState.Error
+            return
+        if ops.load_workpiece(m, flags, self.abort) == Result.NoError:
+            flags.m_state[m] = MachineState.LoadWorkpiece
+        else:
+            flags.m_state[m] = MachineState.Error
 
     @staticmethod
     def all_complete(flags: CycleFlags) -> bool:
-        return all(flags.m_state[m] in (MachineState.Complete,
-                                        MachineState.NotActive)
+        return all(flags.m_state[m] == MachineState.Complete
                    for m in (1, 2))

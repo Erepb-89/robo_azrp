@@ -101,6 +101,12 @@ class PalletManager:
                         return cell.addr
         return None
 
+    def has_raw_workpiece(self) -> bool:
+        """Есть ли заготовка хотя бы в одной ячейке любой полки."""
+        with self._lock:
+            return any(cell.state == CellState.Raw
+                       for cell in self.cells.values())
+
     def shelf_empty(self, shelf: Optional[int] = None) -> bool:
         """Все ячейки полки получили готовые детали обратно."""
         shelf = self.current_shelf if shelf is None else shelf
