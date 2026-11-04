@@ -13,7 +13,7 @@ from commands import RobotTrajectories
 from gripper import Gripper
 from io_map import DO
 from machine import CncMachine
-from pallet_manager import PalletManager
+from pallet_manager import CellAddr, PalletManager
 from states_modes_errors import MachineState, Result
 
 
@@ -28,12 +28,16 @@ class CycleFlags:
     m_state: Dict[int, MachineState] = field(
         default_factory=lambda: {1: MachineState.NotActive,
                                  2: MachineState.NotActive})
-    cur_addr: Dict[int, Optional[int]] = field(
+    cur_addr: Dict[int, Optional[CellAddr]] = field(
         default_factory=lambda: {1: None, 2: None})
-    pick_addr: Dict[int, Optional[int]] = field(
+    pick_addr: Dict[int, Optional[CellAddr]] = field(
         default_factory=lambda: {1: None, 2: None})
-    place_addr: Dict[int, Optional[int]] = field(
+    place_addr: Dict[int, Optional[CellAddr]] = field(
         default_factory=lambda: {1: None, 2: None})
+    # pick_addr[m] — ячейка детали, загруженной/загружаемой в станок M
+    #    (её же вернёт гриппер 2 после обработки).
+    # place_addr[m] — ячейка, в которую нужно вернуть готовую деталь,
+    #    снятую гриппером 2 (снимок pick_addr на момент UnloadPart).
 
     def reset(self) -> None:
         self.g1_is_empty = True
@@ -56,7 +60,7 @@ class CycleOps:
                          2: CncMachine(2, rc, logger)}
         self.grippers = {1: Gripper(1, rc, logger),
                          2: Gripper(2, rc, logger)}
-        self.pallet = pallet or PalletManager(logger, rc.message)
+        self.pallet = pallet or PalletManager(rc, logger)
         for m in (1, 2):
             self.machines[m].bind_ops(self)
 
@@ -166,19 +170,24 @@ class CycleOps:
     # ── паллет ───────────────────────────────────────────────────────────────
 
     def pick_workpiece(self, m: int, flags: CycleFlags, abort=None) -> Result:
-        """PickWorkpiece(M): взять заготовку с паллета для станка M."""
+        """PickWorkpiece(M): взять заготовку с паллета для станка M.
+        Смена полки (верх->середина->низ) выполняется,
+        когда все её ячейки получили готовые детали обратно.
+        """
         if not flags.g1_is_empty:
             return Result.NoError
-        addr = self.pallet.get_next_address()
+        if self.pallet.prepare_for_pick(abort) != Result.NoError:
+            return Result.Error
+        addr = self.pallet.next_raw_cell()
         if addr is None:
+            # заготовок на паллете больше нет
             flags.last_workpiece[m] = True
             return Result.NoError
         if self.pallet.depalletizing(addr) != Result.NoError:
             return Result.Error
         flags.pick_addr[m] = addr
         flags.g1_is_empty = False
-        self.pallet.take_next()
-        if self.pallet.get_next_address() is None:
+        if self.pallet.next_raw_cell() is None:
             flags.last_workpiece[m] = True
         return Result.NoError
 
@@ -234,7 +243,7 @@ class CycleOps:
         """UnloadPart(M): выгрузка готовой детали из станка."""
         if self.machines[m].wait_for_door_open(abort) != Result.NoError:
             return Result.Error
-        if self.chuck_air_blast(m, abort) != Result.NoError:
+        if self.chuck_air_blast(m, abort) != Result.NoError: # После обдува можно не возвращаться на исходную, а сразу забрать деталь?
             return Result.Error
         if not self.rc.move_to_point_sync(f"BG{m}P020", 'joint', abort):
             return Result.Error

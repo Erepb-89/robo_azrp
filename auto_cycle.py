@@ -107,8 +107,9 @@ class AutoCycle(threading.Thread):
 
     def execute_cycle(self) -> None:
         # Сброс аварийных ламп
-        # rc.io.machine_do(1, 'LampAlarm', False) # uncomment on commissioning
-        # rc.io.machine_do(2, 'LampAlarm', False) # uncomment on commissioning
+        self.rc.io.machine_do(1, 'LampAlarm', False) # uncomment on commissioning
+        self.rc.io.machine_do(2, 'LampAlarm', False) # uncomment on commissioning
+        print("lamps are on")
 
         # Ожидание физической кнопки СТАРТ
         if not self.rc.io.wait_di(DI.START_STOP,
@@ -127,9 +128,12 @@ class AutoCycle(threading.Thread):
         # Проверка авто-режима дверей
         door_auto = {1: self.rc.io.machine_di(1, 'DoorAuto'),
                      2: self.rc.io.machine_di(2, 'DoorAuto')}
-        for m in (1, 2):
+        print("DoorAuto_1", self.rc.io.machine_di(1, 'DoorAuto'))
+        print("DoorAuto_2", self.rc.io.machine_di(2, 'DoorAuto'))
+        # for m in (1, 2):
+        for m in (1, 1):
             self.rc.io.machine_do(m, 'LampAuto', door_auto[m])
-        if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
+        if not door_auto[1]: # if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
             self.rc.message("Двери не в автоматическом режиме", 'error')
             self.rc.io.set_do(DO.M_LampRun, False)
             return

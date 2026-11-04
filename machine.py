@@ -32,8 +32,8 @@ class CncMachine:
         self.rc.message(text, level)
 
     def _move_safe(self, abort=None) -> bool:
-        """MoveTo(BG[M]P020) — точка смены гриппера при ошибке."""
-        return self.rc.move_to_point_sync(f"BG{self.m}P020", 'joint', abort)
+        """MoveTo(BGM[M]P020) — точка смены гриппера при ошибке."""
+        return self.rc.move_to_point_sync(f"BGM{self.m}P020", 'joint', abort)
 
     def lamp_alarm(self, on: bool) -> bool:
         return self.io.machine_do(self.m, 'LampAlarm', on)
