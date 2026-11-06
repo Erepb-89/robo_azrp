@@ -27,6 +27,7 @@ class AutoCycle(threading.Thread):
         self.abort = threading.Event()
         self.start_request = threading.Event()
         self.running = False
+        self.resume_pending = False
         self.cycle_state = 'idle'
         self.ops = CycleOps(rc, logger)
         self.flags = CycleFlags()
@@ -63,8 +64,15 @@ class AutoCycle(threading.Thread):
                 m_state={m: int(s.value) for m, s in self.flags.m_state.items()},
                 flags={
                     'g1_is_empty': self.flags.g1_is_empty,
+                    'resume_pending': self.resume_pending,
                     'is_machine_load': dict(self.flags.is_machine_load),
                     'last_workpiece': dict(self.flags.last_workpiece),
+                    'pick_addr': {m: str(a) if a else None
+                                  for m, a in self.flags.pick_addr.items()},
+                    'machine_addr': {m: str(a) if a else None
+                                     for m, a in self.flags.machine_addr.items()},
+                    'place_addr': {m: str(a) if a else None
+                                   for m, a in self.flags.place_addr.items()},
                 },
             )
         except Exception as e:
@@ -107,6 +115,8 @@ class AutoCycle(threading.Thread):
     # ── главный цикл (авто) ─────────────────────────────────────────────
 
     def execute_cycle(self) -> None:
+        resume = self.resume_pending
+
         # Сброс аварийных ламп
         self.rc.io.machine_do(1, 'LampAlarm', False) # uncomment on commissioning
         self.rc.io.machine_do(2, 'LampAlarm', False) # uncomment on commissioning
@@ -132,6 +142,10 @@ class AutoCycle(threading.Thread):
         # Сброс ошибок (по станкам)
         self.ops.error_reset(1, self.flags, self.abort)
         self.ops.error_reset(2, self.flags, self.abort)
+        if any(self.flags.m_state[m] == MachineState.Error for m in (1, 2)):
+            self.rc.message("Автоцикл: ошибка станка не сброшена", 'error')
+            self.rc.io.set_do(DO.M_LampRun, False)
+            return
 
         # Проверка авто-режима дверей
         door_auto = {1: self.rc.io.machine_di(1, 'DoorAuto'),
@@ -152,8 +166,10 @@ class AutoCycle(threading.Thread):
         if self.rc.io.gripper_di(2, 'Switch'):
             self.ops.grippers[2].reset(self.abort)
 
+        if not resume:
+            self.flags.reset()
+
         # Инициализация движения
-        self.flags.reset()
         if not self.ops.init_move(self.abort):
             self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
@@ -163,13 +179,21 @@ class AutoCycle(threading.Thread):
             self.rc.io.set_do(DO.M_LampRun, False)
             return
 
-        # Внутренний цикл по станкам M1, M2
-        self.cycle_inner(self.ops, self.flags)
+        if resume:
+            self.log.info("Автоцикл: продолжение после СТОПа")
 
-        self.rc.io.set_do(DO.M_LampRun, False)
-        if not self.abort.is_set():
-            self.rc.message("Автоцикл: завершён")
-        self.sync_state()
+        # Внутренний цикл по станкам M1, M2
+        try:
+            self.cycle_inner(self.ops, self.flags)
+        finally:
+            self.resume_pending = (
+                self.abort.is_set()
+                and not self.stop.is_set()
+                and not self.all_complete(self.flags))
+            self.rc.io.set_do(DO.M_LampRun, False)
+            if not self.abort.is_set():
+                self.rc.message("Автоцикл: завершён")
+            self.sync_state()
 
     def cycle_inner(self, ops: CycleOps, flags: CycleFlags) -> None:
         while not self.abort.is_set() and not self.stop.is_set():
@@ -178,6 +202,19 @@ class AutoCycle(threading.Thread):
                 self.rc.message("Автоцикл: СТОП по кнопке", 'warning')
                 self.abort.set()
                 break
+
+            pending_place = next(
+                (m for m in (1, 2) if flags.place_addr[m] is not None), None)
+            if pending_place is not None:
+                if not self._flush_pending_place(pending_place, ops, flags):
+                    if flags.m_state[pending_place] == MachineState.Error:
+                        self.rc.message(
+                            f"Автоцикл: ошибка укладки M{pending_place}, "
+                            "движение остановлено", 'error')
+                        self.request_stop()
+                    break
+                if self.abort.is_set():
+                    break
 
             for m in (1, 2): # надо ли в цикле или лучше по отдельности???
                 self.sync_state()
@@ -196,6 +233,18 @@ class AutoCycle(threading.Thread):
                 break
             time.sleep(IO_POLL_SEC)
 
+    def set_error(self, m: int, flags: CycleFlags) -> None:
+        if self.abort.is_set():
+            return
+        flags.m_state[m] = MachineState.Error
+
+    def _flush_pending_place(self, m: int, ops: CycleOps,
+                             flags: CycleFlags) -> bool:
+        if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+            self.set_error(m, flags)
+            return False
+        return True
+
     def machine_ready(self, m: int) -> bool:
         if self.flags.m_state[m] in (MachineState.Error, MachineState.Complete):
             return False
@@ -208,83 +257,91 @@ class AutoCycle(threading.Thread):
     def process_machine(self, m: int, ops: CycleOps, flags: CycleFlags) -> None:
         if flags.is_machine_load[m]:
             # Станок уже был в работе
-            if not flags.g1_is_empty:
-                flags.m_state[m] = MachineState.Error
+            if flags.machine_addr[m] is None:
+                self.set_error(m, flags)
+                return
+
+            if flags.g1_is_empty:
+                if ops.pallet.next_raw_cell() is not None:
+                    # Заготовка на текущей полке есть: берём её ДО выгрузки,
+                    # чтобы после выгрузки сразу установить новую.
+                    if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
+                        self.set_error(m, flags)
+                        return
+                    if not flags.picked[m]:
+                        self.set_error(m, flags)
+                        return
+                else:
+                    # На текущей полке заготовок нет. Сначала выгружаем и
+                    # укладываем готовую деталь, иначе полку нельзя сменить.
+                    if ops.unload_part(m, flags, self.abort) != Result.NoError:
+                        self.set_error(m, flags)
+                        return
+                    if not ops.move_to_g_int(m, self.abort):
+                        self.set_error(m, flags)
+                        return
+                    if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+                        self.set_error(m, flags)
+                        return
+                    if flags.last_workpiece[m]:
+                        flags.m_state[m] = MachineState.Complete
+                        return
+                    if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
+                        self.set_error(m, flags)
+                        return
+                    if not flags.picked[m]:
+                        if flags.last_workpiece[m]:
+                            flags.m_state[m] = MachineState.Complete
+                        else:
+                            # Ждём смену полки или возврат детали другого станка
+                            flags.m_state[m] = MachineState.NotActive
+                        return
+                    if not ops.move_from_g_int(m, self.abort):
+                        self.set_error(m, flags)
+                        return
+                    if ops.load_workpiece(m, flags, self.abort) != Result.NoError:
+                        self.set_error(m, flags)
+                        return
+                    flags.m_state[m] = MachineState.LoadWorkpiece
+                    return
+            else:
+                # Новая заготовка уже в гриппере 1 (продолжение после СТОПа)
+                if flags.pick_addr[m] is None:
+                    self.set_error(m, flags)
+                    return
+
+            # Новая заготовка в гриппере 1: к станку, выгрузить готовую,
+            # установить новую и уложить готовую на паллет.
+            if not ops.move_from_g_int(m, self.abort):
+                self.set_error(m, flags)
                 return
             if ops.unload_part(m, flags, self.abort) != Result.NoError:
-                flags.m_state[m] = MachineState.Error
+                self.set_error(m, flags)
                 return
-
-            if ops.pallet.next_raw_cell() is not None:
-                # На текущей полке есть заготовка: сначала берём новую,
-                # затем возвращаем готовую деталь
-                if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
-                    flags.m_state[m] = MachineState.Error
-                    return
-                if not flags.picked[m]:
-                    if flags.last_workpiece[m]:
-                        if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
-                            flags.m_state[m] = MachineState.Error
-                            return
-                        flags.m_state[m] = MachineState.Complete
-                    else:
-                        flags.m_state[m] = MachineState.Error
-                    return
-                if not ops.move_from_g_int(m, self.abort):
-                    flags.m_state[m] = MachineState.Error
-                    return
-                if ops.load_workpiece(m, flags, self.abort) != Result.NoError:
-                    flags.m_state[m] = MachineState.Error
-                    return
-                if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
-                    flags.m_state[m] = MachineState.Error
-                    return
-                flags.m_state[m] = MachineState.LoadWorkpiece
-                return
-
-            # На текущей полке заготовок нет. Сначала возвращаем готовую
-            # деталь, иначе полку нельзя закрыть и переключить
-            if not ops.move_to_g_int(m, self.abort):
-                flags.m_state[m] = MachineState.Error
-                return
-            if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
-                flags.m_state[m] = MachineState.Error
-                return
-            if flags.last_workpiece[m]:
-                flags.m_state[m] = MachineState.Complete
-                return
-
-            if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
-                flags.m_state[m] = MachineState.Error
-                return
-            if not flags.picked[m]:
-                if flags.last_workpiece[m]:
-                    flags.m_state[m] = MachineState.Complete
-                else:
-                    # Ждём смену полки или возврат детали другого станка
-                    flags.m_state[m] = MachineState.NotActive
-                return
-            if not ops.move_from_g_int(m, self.abort):
-                flags.m_state[m] = MachineState.Error
+            if not ops.move_to_safe(m, self.abort):
+                self.set_error(m, flags)
                 return
             if ops.load_workpiece(m, flags, self.abort) != Result.NoError:
-                flags.m_state[m] = MachineState.Error
+                self.set_error(m, flags)
+                return
+            if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
+                self.set_error(m, flags)
                 return
             flags.m_state[m] = MachineState.LoadWorkpiece
             return
 
         # Станок не был в работе
-        if flags.g1_is_empty and flags.last_workpiece[m]:
+        if flags.g1_is_empty and self.machine_ready(m) and flags.last_workpiece[m]:
             flags.m_state[m] = MachineState.Complete
             return
         if not flags.g1_is_empty:
             # Деталь уже взята для этого станка (продолжение после СТОПа)
             if flags.pick_addr[m] is None:
-                flags.m_state[m] = MachineState.Error
+                self.set_error(m, flags)
                 return
         else:
             if ops.pick_workpiece(m, flags, self.abort) != Result.NoError:
-                flags.m_state[m] = MachineState.Error
+                self.set_error(m, flags)
                 return
             if not flags.picked[m]:
                 if flags.last_workpiece[m]:
@@ -295,12 +352,12 @@ class AutoCycle(threading.Thread):
                 return
 
         if not ops.move_from_g_int(m, self.abort):
-            flags.m_state[m] = MachineState.Error
+            self.set_error(m, flags)
             return
         if ops.load_workpiece(m, flags, self.abort) == Result.NoError:
             flags.m_state[m] = MachineState.LoadWorkpiece
         else:
-            flags.m_state[m] = MachineState.Error
+            self.set_error(m, flags)
 
     @staticmethod
     def all_complete(flags: CycleFlags) -> bool:
