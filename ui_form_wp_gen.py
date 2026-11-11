@@ -485,14 +485,14 @@ class MainWindow(QMainWindow):
         for i in range(n):
             left = ""
             if i < len(di_list):
-                d = di_list[i]
-                mark = "●" if signals.get(d.name) else "○"
-                left = f"{DI_DESC.get(d, d.name):32s} {mark}"
+                di = di_list[i]
+                mark = "●" if signals.get(di.name) else "○"
+                left = f"{DI_DESC.get(di, di.name):32s} {mark}"
             right = ""
             if i < len(do_list):
-                d = do_list[i]
-                mark = "●" if outputs.get(d.name) else "○"
-                right = f"{DO_DESC.get(d, d.name):32s} {mark}"
+                do = do_list[i]
+                mark = "●" if outputs.get(do.name) else "○"
+                right = f"{DO_DESC.get(do, do.name):32s} {mark}"
             lines.append(f"{left:42s}  {right}")
         self._io_text.setPlainText("\n".join(lines))
 
@@ -516,6 +516,8 @@ class MainWindow(QMainWindow):
         Добавляет запись о результате команды при изменении состояния.
         Поддерживает траектории, действия, гриппер 1 и гриппер 2.
         """
+        # print("last_cmd, trajectory_state", last_cmd, trajectory_state)
+
         cmd_changed = last_cmd != self._log_last_cmd
         traj_changed = trajectory_state != self._log_last_traj_state
         action_changed = action_state != self._log_last_action_state
@@ -685,7 +687,8 @@ class MainWindow(QMainWindow):
                 items_model.appendRow(item)
             self.ui.availableWaypointsComboBox.setModel(items_model)
         except Exception as err:
-            print(err)
+            # print(err)
+            pass
 
     def update_waypoints_combo_box(self) -> None:
         items_model = QStandardItemModel()

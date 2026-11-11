@@ -29,8 +29,12 @@ class Gripper:
             self.rc.state.update(last_error=LastError.err_gripper_not_clamped)
             self.rc.message(f"Гриппер {self.gripper} не зажался", 'error')
             return Result.Error
-        self.rc.state.update(gripper_cmd=True,
-                             **{f"gripper{self.gripper}_state": 200})
+        if self.gripper == 1:
+            self.rc.state.update(gripper1_cmd=True,
+                                 **{f"gripper{self.gripper}_state": 200})
+        if self.gripper == 2:
+            self.rc.state.update(gripper2_cmd=True,
+                                 **{f"gripper{self.gripper}_state": 200})
         return Result.NoError
 
     def release(self, abort=None) -> Result:

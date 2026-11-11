@@ -28,9 +28,10 @@ PALLET_CFG = {
     "rows": ROWS,
     "cols": COLS,
 
-    # Общая базовая точка — обученная точка ячейки (row=0, col=0) верхней
-    # полки. Имя точки в points.json. Заглушка.
-    "origin_point": None,
+    # Имя точки в points.json. Заглушка.
+    "first": "first", # обученная точка ячейки (row=0, col=0) верхней полки
+    "second": "second", # обученная точка ячейки (row=1, col=0) верхней полки
+    "third": "third", # обученная точка ячейки (row=0, col=4) верхней полки
 
     # Шаги сетки между ячейками, м.
     "pitch_x": None,   # вдоль +X, 4 ячейки
@@ -38,29 +39,38 @@ PALLET_CFG = {
 
     # Вертикальное смещение каждой полки относительно origin_point, м
     # (насколько полка ниже/выше базовой). Заглушки.
-    "shelf_dz": {1: None, 2: None, 3: None},
+    "shelf_dz": {1: 0.0, 2: -0.2, 3: -0.4},
 
-    # Высоты относительно позы ячейки, м.
-    "cell_approach_dz": None,  # высота подхода/отхода над ячейкой
-    "cell_dwell_dz": None,     # рабочая высота (0 => поза ячейки)
+    # Высоты относительно позы ячейки, м
+    "cell_approach_dz": 0.1,   # высота подхода/отхода над ячейкой
+    "cell_dwell_dz": 0.0,      # рабочая высота (0 => поза ячейки)
 
     # Скорости перемещения к ячейкам паллета (м/с, м/с^2, м).
-    "cell_speed": 0.1,
-    "cell_accel": 0.1,
+    "cell_speed": 0.7,
+    "cell_accel": 0.3,
     "cell_blend": 0.0,
 
-    # Выдвижение полки крючком: ось/направление/таймаут. Заглушки.
-    "pull_axis": None,         # 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz'
-    "pull_dir": None,          # '+' | '-'
-    "pull_timeout_sec": None,  # сек
+    # Выдвижение полки крючком: ось/направление/таймаут
+    "pull_axis": 'X',         # 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz'
+    "pull_dir": '-',          # '+' | '-'
+    "pull_timeout_sec": 10.0,  # сек
+    # задвижение полки крючком: ось/направление/таймаут
+    "push_axis": 'X',         # 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz'
+    "push_dir": '+',          # '+' | '-'
+    "push_timeout_sec": 10.0,  # сек
 
     # Обученные точки крючка на каждую полку (имена точек points.json).
-    # approach — безопасный подъезд, engage — зацеп, retreat — отход после
-    # вытягивания, closed — точка задвинутой полки. Заглушки.
+    # approach — безопасный подъезд, engage — зацеп, retreat — отход после вытягивания
     "hook": {
-        1: {"approach": None, "engage": None, "retreat": None, "closed": None},
-        2: {"approach": None, "engage": None, "retreat": None, "closed": None},
-        3: {"approach": None, "engage": None, "retreat": None, "closed": None},
+        1: {"approach": "approach_1", "engage": "engage_1", "retreat": "retreat_1"},
+        2: {"approach": "approach_2", "engage": "engage_2", "retreat": "retreat_2"},
+        3: {"approach": "approach_3", "engage": "engage_3", "retreat": "retreat_3"},
+    },
+    # approach — безопасный подъезд, engage — зацеп, retreat — отход после задвижения
+    "hook_push": {
+        1: {"approach": "approach_push_1", "engage": "engage_push_1", "retreat": "retreat_push_1"},
+        2: {"approach": "approach_push_2", "engage": "engage_push_2", "retreat": "retreat_push_2"},
+        3: {"approach": "approach_push_3", "engage": "engage_push_3", "retreat": "retreat_push_3"},
     },
 
     # Строгий режим:

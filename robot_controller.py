@@ -184,7 +184,7 @@ class MotionController:
 
     def add_waypoint_line(self, tcp_pose: List[float],
                           speed: float, accel: float, blend: float):
-        """Добавить waypoint для линейного движения (ОРИГИНАЛЬНЫЙ МЕТОД)"""
+        """Добавить waypoint для линейного движения"""
         n_speed = self.normalize_ratio(speed)
         n_accel = self.normalize_ratio(accel)
 
@@ -204,7 +204,7 @@ class MotionController:
 
     def add_waypoint_joint(self, angle_pose: List[float],
                            speed: float, accel: float, blend: float):
-        """Добавить waypoint для движения по суставам (ОРИГИНАЛЬНЫЙ МЕТОД)"""
+        """Добавить waypoint для движения по суставам"""
         self.robot.motion.joint.add_new_waypoint(
             angle_pose=angle_pose,
             speed=speed,
@@ -467,8 +467,8 @@ class TelemetryMonitor:
     def check_controller_state(self):
         """Проверить состояние контроллера"""
         try:
-            safety = self.robot.safety_status.get()
-            ctrl = self.robot.controller_state.get()
+            safety = self.robot.safety.status.get()
+            ctrl = self.robot.controller.state.get()
 
             self.state.update(
                 safety_status=safety,
@@ -512,9 +512,9 @@ class RobotController:
         # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
         #                        pause_di_index=PAUSE_DI_INDEX)
         # self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
-        self.signal_monitor = SignalMonitor(self.io, self.state, logger,
-                                            heartbeat_cb=heartbeat_cb)
-        self.signal_monitor.start()
+        # self.signal_monitor = SignalMonitor(self.io, self.state, logger,
+        #                                     heartbeat_cb=heartbeat_cb)
+        # self.signal_monitor.start()
 
         # Загрузка
         self.data.load_waypoints()
@@ -600,8 +600,8 @@ class RobotController:
         """Управление питанием манипулятора"""
         try:
             if power_on == 0:
-                # self.Robot.controller_state.set('off', await_sec=10)
-                self.Robot.controller_state.set(str(ControllerState.off.name), await_sec=10)
+                # self.Robot.controller.state.set('off', await_sec=10)
+                self.Robot.controller.state.set(str(ControllerState.off.name), await_sec=10)
                 self.state.update(powered=False, last_command="PowerOff")
                 self.log.info("Manipulator deactivated")
             elif power_on == 1:
@@ -655,12 +655,12 @@ class RobotController:
     def run_controller(self):
         """Запуск контроллера в режим RUN"""
         try:
-            # if self.Robot.controller_state.get() != 'run':
-            if self.Robot.controller_state.get() != str(ControllerState.run.name):
-                # self.Robot.controller_state.set('off', await_sec=1)
-                self.Robot.controller_state.set(str(ControllerState.off.name), await_sec=1)
-                # self.Robot.controller_state.set('run', await_sec=10)
-                self.Robot.controller_state.set(str(ControllerState.run.name), await_sec=10)
+            # if self.Robot.controller.state.get() != 'run':
+            if self.Robot.controller.state.get() != str(ControllerState.run.name):
+                # self.Robot.controller.state.set('off', await_sec=1)
+                self.Robot.controller.state.set(str(ControllerState.off.name), await_sec=1)
+                # self.Robot.controller.state.set('run', await_sec=10)
+                self.Robot.controller.state.set(str(ControllerState.run.name), await_sec=10)
         except Exception as e:
             self.state.update(last_error=LastError.err_switching_run_mode)
             self.log.error(f"Run Mode Switching Error: {e}")
@@ -873,7 +873,7 @@ class RobotController:
             success = self.io.control_digital_outputs(GRIPPER_1_DO_INDEX, clamp)
 
             if success:
-                self.state.update(gripper_cmd=clamp, gripper1_state=FINISHED)
+                self.state.update(gripper1_cmd=clamp, gripper1_state=FINISHED)
                 self.log.info(f"Gripper 1: {'CLAMPED' if clamp else 'RELEASED'}")
             else:
                 self.state.update(gripper1_state=EXCEPTION, last_error=LastError.err_gripper1_cmd)
@@ -901,7 +901,7 @@ class RobotController:
             success = self.io.control_digital_outputs(GRIPPER_2_DO_INDEX, clamp)
 
             if success:
-                self.state.update(gripper_cmd=clamp, gripper2_state=FINISHED)
+                self.state.update(gripper2_cmd=clamp, gripper2_state=FINISHED)
                 self.log.info(f"Gripper 2: {'CLAMPED' if clamp else 'RELEASED'}")
             else:
                 self.state.update(gripper2_state=EXCEPTION, last_error=LastError.err_gripper2_cmd)
@@ -936,7 +936,8 @@ class RobotController:
         try:
             self.state.update(current_point=getattr(RobotPoints, best_name).value)
         except AttributeError:
-            print('Trajectory not found')
+            pass
+            # print('Trajectory not found')
 
         if best_name is None:
             info = {"waypoint": "", "distance": 0.0, "trajectories": []}
