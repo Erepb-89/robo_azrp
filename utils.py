@@ -2,12 +2,39 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from queue import Full
 import os
 import tempfile
 from typing import Any
 
 
-def setup_logging(log_path: Path) -> logging.Logger:
+class GuiLogFilter(logging.Filter):
+    """Пропускает в GUI ошибки/предупреждения и события robopro.gui.*."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return (record.levelno >= logging.WARNING
+                or record.name.startswith("robopro.gui"))
+
+
+class GuiLogHandler(logging.Handler):
+    """Неблокирующий мост logging -> очередь GUI-журнала."""
+
+    def __init__(self, gui_queue):
+        super().__init__()
+        self.gui_queue = gui_queue
+        self.dropped = 0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self.gui_queue.put_nowait(
+                (record.levelno, record.name, record.getMessage()))
+        except Full:
+            self.dropped += 1
+        except Exception:
+            self.handleError(record)
+
+
+def setup_logging(log_path: Path, gui_queue=None) -> logging.Logger:
     logger = logging.getLogger("robopro")
     logger.setLevel(logging.INFO)
     if not logger.handlers:
@@ -21,6 +48,13 @@ def setup_logging(log_path: Path) -> logging.Logger:
         console = logging.StreamHandler()
         console.setFormatter(fmt)
         logger.addHandler(console)
+    if gui_queue is not None and not any(
+            isinstance(handler, GuiLogHandler) for handler in logger.handlers):
+        gui_handler = GuiLogHandler(gui_queue)
+        gui_handler.setLevel(logging.INFO)
+        gui_handler.addFilter(GuiLogFilter())
+        gui_handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(gui_handler)
     return logger
 
 

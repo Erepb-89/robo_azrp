@@ -91,20 +91,24 @@ def jog_until_di(rc, di, axis, direction, timeout, abort_event=None) -> bool:
             # концевик уже сработал?
             try:
                 if rc.io.get_di(di):
-                    rc.message("Паллет: концевик выдвижения сработал")
+                    rc.message("Паллет: концевик выдвижения сработал",
+                               source='gui.pallet')
                     return True
             except Exception as e:
-                rc.message(f"Паллет: чтение концевика: {e}", 'error')
+                rc.message(f"Паллет: чтение концевика: {e}", 'error',
+                           source='gui.pallet')
                 return False
 
             if time.monotonic() >= deadline:
-                rc.message("Паллет: таймаут концевика выдвижения", 'error')
+                rc.message("Паллет: таймаут концевика выдвижения", 'error',
+                           source='gui.pallet')
                 return False
 
             try:
                 rc.Robot.motion.linear.jog_once(axis, direction)
             except Exception as e:
-                rc.message(f"Паллет: jog_once({axis},{direction}): {e}", 'error')
+                rc.message(f"Паллет: jog_once({axis},{direction}): {e}", 'error',
+                           source='gui.pallet')
                 return False
 
             time.sleep(IO_POLL_SEC)

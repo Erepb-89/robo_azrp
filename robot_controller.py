@@ -486,13 +486,14 @@ class TelemetryMonitor:
 class RobotController:
     """Главный контроллер робота"""
 
-    def __init__(self, robot_ip: str, cmd_queue: Queue, logger, heartbeat_cb=None,
-                 msg_queue: Optional[Queue] = None):
+    def __init__(self, robot_ip: str, cmd_queue: Queue, logger,
+                 heartbeat_cb=None):
         self.log = logger
+        self.gui_log = logger.getChild("gui")
         self.cmd_queue = cmd_queue
         self.stop_event = threading.Event()
         self._heartbeat_cb = heartbeat_cb
-        self._msg_queue = msg_queue
+        # self._msg_queue = msg_queue
 
         # Robot API (SIM при ROBOPRO_SIM=1)
         try:
@@ -560,19 +561,16 @@ class RobotController:
     def get_nearest_info(self):
         return self._nearest_info or None
 
-    def message(self, text: str, level: str = 'info') -> None:
+    def message(self, text: str, level: str = 'info',
+                source: str = 'gui') -> None:
         """Message(text): лог + очередь GUI-журнала + state."""
+        log = self.gui_log if source == 'gui' else self.log.getChild(source)
         if level == 'error':
             self.log.error(text)
         elif level == 'warning':
             self.log.warning(text)
         else:
             self.log.info(text)
-        if self._msg_queue is not None:
-            try:
-                self._msg_queue.put_nowait(text)
-            except Exception:
-                pass
         self.state.update(last_message=text)
 
     # ---------- Автоцикл ----------
@@ -586,13 +584,13 @@ class RobotController:
         if not self.auto_cycle.is_alive():
             self.auto_cycle.start()
         self.auto_cycle.request_start()
-        self.log.info("AUTO_START requested")
+        self.message("Автоцикл: запрошен СТАРТ")
 
     def stop_auto_cycle(self) -> None:
         """Стоп автоцикла: немедленный hold, состояние сохраняется."""
         if getattr(self, 'auto_cycle', None) is not None:
             self.auto_cycle.request_stop()
-        self.log.info("AUTO_STOP requested")
+        self.message("Автоцикл: запрошен СТОП")
 
     # ---------- Управление режимами ----------
 

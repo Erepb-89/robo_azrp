@@ -22,6 +22,7 @@ class AutoCycle(threading.Thread):
         super().__init__(daemon=True, name="AutoCycleThread")
         self.rc = rc
         self.log = logger
+        self.gui = logger.getChild("gui.cycle")
         self.heartbeat = heartbeat_cb
         self.stop = threading.Event()
         self.abort = threading.Event()
@@ -180,7 +181,9 @@ class AutoCycle(threading.Thread):
             return
 
         if resume:
-            self.log.info("Автоцикл: продолжение после СТОПа")
+            self.gui.info("Автоцикл: продолжение после СТОПа")
+        else:
+            self.gui.info("Автоцикл: новый цикл")
 
         # Внутренний цикл по станкам M1, M2
         try:
@@ -190,6 +193,9 @@ class AutoCycle(threading.Thread):
                 self.abort.is_set()
                 and not self.stop.is_set()
                 and not self.all_complete(self.flags))
+            if self.resume_pending:
+                self.gui.info(
+                    "Автоцикл: остановлен, состояние сохранено для продолжения")
             self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
                 self.rc.message("Автоцикл: завершён")
@@ -238,8 +244,15 @@ class AutoCycle(threading.Thread):
             return
         flags.m_state[m] = MachineState.Error
 
+    def set_complete(self, m: int, flags: CycleFlags) -> None:
+        flags.m_state[m] = MachineState.Complete
+        self.gui.info("M%d: обработка завершена", m)
+
     def _flush_pending_place(self, m: int, ops: CycleOps,
                              flags: CycleFlags) -> bool:
+        addr = flags.place_addr[m]
+        self.gui.info("M%d: отложенная укладка %s (%s)",
+                      m, addr, ops.cell_state_name(addr))
         if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
             self.set_error(m, flags)
             return False
@@ -332,7 +345,7 @@ class AutoCycle(threading.Thread):
 
         # Станок не был в работе
         if flags.g1_is_empty and self.machine_ready(m) and flags.last_workpiece[m]:
-            flags.m_state[m] = MachineState.Complete
+            self.set_complete(m, flags)
             return
         if not flags.g1_is_empty:
             # Деталь уже взята для этого станка (продолжение после СТОПа)
@@ -345,7 +358,7 @@ class AutoCycle(threading.Thread):
                 return
             if not flags.picked[m]:
                 if flags.last_workpiece[m]:
-                    flags.m_state[m] = MachineState.Complete
+                    self.set_complete(m, flags)
                 else:
                     # Заготовок пока нет: не двигаемся к станку
                     flags.m_state[m] = MachineState.NotActive

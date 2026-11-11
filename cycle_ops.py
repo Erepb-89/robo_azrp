@@ -19,6 +19,7 @@ from shelf_motion import (
     move_to_named_point_sync,
 )
 
+
 @dataclass
 class CycleFlags:
     """Флаги (глобальное состояние авто-цикла)."""
@@ -38,6 +39,7 @@ class CycleFlags:
         default_factory=lambda: {1: None, 2: None})
     place_addr: Dict[int, Optional[CellAddr]] = field(
         default_factory=lambda: {1: None, 2: None})
+
     # pick_addr[m] — ячейка следующей заготовки, взятой/берущейся в гриппер 1.
     # machine_addr[m] — ячейка детали, которая сейчас находится в станке M.
     # place_addr[m] — ячейка, в которую нужно вернуть готовую деталь,
@@ -62,6 +64,7 @@ class CycleOps:
     def __init__(self, rc, logger, pallet=None):
         self.rc = rc
         self.log = logger
+        self.gui = logger.getChild("gui.ops")
         self.machines = {1: CncMachine(1, rc, logger),
                          2: CncMachine(2, rc, logger)}
         self.grippers = {1: Gripper(1, rc, logger),
@@ -75,6 +78,12 @@ class CycleOps:
 
     def traj(self, name: str):
         return RobotTrajectories[name]
+
+    def cell_state_name(self, addr) -> str:
+        if addr is None:
+            return "?"
+        cell = self.pallet.get_cell(addr)
+        return cell.state.name if cell is not None else "?"
 
     def inside_any(self) -> bool:
         return any(self.inside_machine.values())
@@ -218,18 +227,20 @@ class CycleOps:
         if not move_to_named_point_sync(
                 self.rc, "BG1IntP010",
                 'joint', abort):
-                return Result.Error
+            return Result.Error
         if self.pallet.prepare_for_pick(abort) != Result.NoError:
             return Result.Error
         if not move_to_named_point_sync(
                 self.rc, "BG1IntP010",
                 'joint', abort):
-                return Result.Error
+            return Result.Error
         addr = self.pallet.next_raw_cell()
         if addr is None:
             if not self.pallet.has_raw_workpiece():
                 flags.last_workpiece[m] = True
             return Result.NoError
+        self.gui.info("M%d: берем заготовку %s (%s)",
+                      m, addr, self.cell_state_name(addr))
         if self.pallet.depalletizing(addr, machine=m, abort=abort) != Result.NoError:
             return Result.Error
         flags.pick_addr[m] = addr
@@ -237,6 +248,7 @@ class CycleOps:
         flags.picked[m] = True
         if not self.pallet.has_raw_workpiece():
             flags.last_workpiece[m] = True
+        self.gui.info("M%d: заготовка %s в G1", m, addr)
         return Result.NoError
 
     def place_part_on_table(self, m: int, flags: CycleFlags,
@@ -246,13 +258,17 @@ class CycleOps:
             return Result.Error
         addr = flags.place_addr[m]
         if addr is None:
+            self.gui.error("M%d: нет place_addr для укладки", m)
             return Result.Error
+        self.gui.info("M%d: укладка %s (%s)",
+                      m, addr, self.cell_state_name(addr))
         if not self.rc.execute_trajectory_sync(
                 self.traj('tBGIntP010_To_BG2IntP010'), abort):
             return Result.Error
         if self.pallet.palletizing(addr, machine=m, abort=abort) != Result.NoError:
             return Result.Error
         flags.place_addr[m] = None
+        self.gui.info("M%d: уложено %s", m, addr)
         if not self.rc.execute_trajectory_sync(
                 self.traj('tBG2IntP010_To_BGIntP010'), abort):
             return Result.Error
@@ -266,8 +282,12 @@ class CycleOps:
             # «Если гриппер1 пуст — выходим из функции без ошибки»
             return Result.NoError
         if flags.pick_addr[m] is None:
+            self.gui.error("M%d: нет pick_addr для загрузки", m)
             return Result.Error
 
+        addr = flags.pick_addr[m]
+        self.gui.info("M%d: установка %s (%s) в станок",
+                      m, addr, self.cell_state_name(addr))
         if self.machines[m].wait_for_door_open(abort) != Result.NoError:
             return Result.Error
         if self.machines[m].wait_for_chuck_relax(1, False, abort) != Result.NoError:
@@ -292,6 +312,8 @@ class CycleOps:
             return Result.Error
         flags.machine_addr[m] = flags.pick_addr[m]
         flags.is_machine_load[m] = True
+        self.gui.info("M%d: установлено %s, обработка запущена",
+                      m, flags.machine_addr[m])
         if not self.move_to_g_int(m, abort):
             return Result.Error
         return Result.NoError
@@ -299,7 +321,11 @@ class CycleOps:
     def unload_part(self, m: int, flags: CycleFlags, abort=None) -> Result:
         """UnloadPart(M): выгрузка готовой детали из станка."""
         if flags.machine_addr[m] is None:
+            self.gui.error("M%d: нет machine_addr для выгрузки", m)
             return Result.Error
+        self.gui.info("M%d: выгрузка %s (%s)",
+                      m, flags.machine_addr[m],
+                      self.cell_state_name(flags.machine_addr[m]))
         if self.machines[m].wait_for_door_open(abort) != Result.NoError:
             return Result.Error
         # if self.chuck_air_blast(m, abort) != Result.NoError: # После обдува можно не возвращаться на исходную, а сразу забрать деталь?
@@ -329,10 +355,12 @@ class CycleOps:
 
         loaded_addr = flags.machine_addr[m]
         if loaded_addr is None:
+            self.gui.error("M%d: machine_addr исчез после выгрузки", m)
             return Result.Error
         flags.is_machine_load[m] = False
         flags.place_addr[m] = loaded_addr
         flags.machine_addr[m] = None
+        self.gui.info("M%d: выгружено %s -> place_addr", m, loaded_addr)
         if not self.move_to_safe(m, abort):
             return Result.Error
         # if self.chuck_air_blast(m, abort) != Result.NoError:
