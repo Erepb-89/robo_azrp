@@ -7,7 +7,7 @@
 
 Пока параметры паллета (pallet_cfg.PALLET_CFG) — заглушки (None), логика
 работает в «мягком» режиме: состояние ячеек ведётся, а движения
-пропускаются. При "strict": True отсутствие параметров/точек = ошибка.
+пропускаются. При "strict": True отсутствие параметров/точек = ошибка
 """
 import threading
 from dataclasses import dataclass
@@ -28,7 +28,7 @@ from states_modes_errors import Result
 
 
 class CellState(Enum):
-    """Состояние ячейки полки."""
+    """Состояние ячейки полки"""
     Raw = 0  # на месте заготовка
     InProcess = 1  # заготовка снята, деталь у станка
     Finished = 2  # готовая деталь уложена обратно
@@ -36,7 +36,7 @@ class CellState(Enum):
 
 @dataclass(frozen=True)
 class CellAddr:
-    """Адрес ячейки: полка (1..3), ряд (0..1), столбец (0..3)."""
+    """Адрес ячейки: полка (1..3), ряд (0..1), столбец (0..3)"""
     shelf: int
     row: int
     col: int
@@ -57,7 +57,7 @@ class Cell:
 
 
 class PalletManager:
-    """Полки, ячейки и операции съёма/укладки поверх RobotController."""
+    """Полки, ячейки и операции съёма/укладки поверх RobotController"""
 
     def __init__(self, rc, logger, cfg: Optional[dict] = None):
         self.rc = rc
@@ -91,7 +91,7 @@ class PalletManager:
         return self._open_shelf
 
     def next_raw_cell(self) -> Optional[CellAddr]:
-        """Первая ячейка текущей полки с заготовкой или None."""
+        """Первая ячейка текущей полки с заготовкой или None"""
         with self._lock:
             shelf = self.current_shelf
             for row in range(self.rows):
@@ -102,13 +102,13 @@ class PalletManager:
         return None
 
     def has_raw_workpiece(self) -> bool:
-        """Есть ли заготовка хотя бы в одной ячейке любой полки."""
+        """Есть ли заготовка хотя бы в одной ячейке любой полки"""
         with self._lock:
             return any(cell.state == CellState.Raw
                        for cell in self.cells.values())
 
     def shelf_empty(self, shelf: Optional[int] = None) -> bool:
-        """Все ячейки полки получили готовые детали обратно."""
+        """Все ячейки полки получили готовые детали обратно"""
         shelf = self.current_shelf if shelf is None else shelf
         with self._lock:
             return all(
@@ -117,13 +117,13 @@ class PalletManager:
             )
 
     def all_shelves_done(self) -> bool:
-        """Текущая (последняя) полка исчерпана — работы больше нет."""
+        """Текущая (последняя) полка исчерпана — работы больше нет"""
         with self._lock:
             return (self.current_shelf == self.shelves[-1]
                     and self.shelf_empty())
 
     def in_flight(self, shelf: Optional[int] = None) -> int:
-        """Число ячеек полки, детали которых сейчас в работе."""
+        """Число ячеек полки, детали которых сейчас в работе"""
         shelf = self.current_shelf if shelf is None else shelf
         with self._lock:
             return sum(
@@ -132,7 +132,7 @@ class PalletManager:
             )
 
     def snapshot(self) -> Dict[str, object]:
-        """Краткий снимок состояния для журнала/GUI."""
+        """Краткий снимок состояния для журнала/GUI"""
         with self._lock:
             return {
                 "current_shelf": self.current_shelf,
@@ -158,15 +158,14 @@ class PalletManager:
     def missing_geometry(self):
         cfg = self.cfg
         missing = []
-        for key in ("origin_point", "pitch_x", "pitch_y",
+
+        for key in ("first", "second", "third",
                     "cell_approach_dz", "cell_dwell_dz"):
             if cfg.get(key) is None:
                 missing.append(key)
         for shelf in self.shelves:
             if (cfg.get("shelf_dz") or {}).get(shelf) is None:
                 missing.append(f"shelf_dz[{shelf}]")
-        if cfg.get("origin_point") and not self.point_taught(cfg["origin_point"]):
-            missing.append(str(cfg["origin_point"]))
         return missing
 
     def strict(self) -> bool:
@@ -187,13 +186,18 @@ class PalletManager:
         return Result.NoError
 
     def cell_pose(self, addr: CellAddr):
-        """Поза ячейки = origin + (col*pitch_x, row*pitch_y, shelf_dz)."""
-        origin = self.rc.data.get_tcp_pose(self.cfg["origin_point"])
-        dx = addr.col * float(self.cfg["pitch_x"])
-        dy = addr.row * float(self.cfg["pitch_y"])
+        """Поза ячейки = first + (col*pitch_x, y, shelf_dz)"""
+
+        first = self.rc.data.get_tcp_pose(self.cfg["first"])
+        second = self.rc.data.get_tcp_pose(self.cfg["second"])
+        third = self.rc.data.get_tcp_pose(self.cfg["third"])
+        pitch_y = (third[1] - first[1]) / 3
+
+        dy = addr.col * float(pitch_y)
+        x = first[0] if addr.row == 0 else second[0]
         dz = float(self.cfg["shelf_dz"][addr.shelf])
-        return (origin[0] + dx, origin[1] + dy, origin[2] + dz,
-                origin[3], origin[4], origin[5])
+        return (x, first[1] + dy, first[2] + dz,
+                first[3], first[4], first[5])
 
     def approach_pose(self, addr: CellAddr):
         pose = self.cell_pose(addr)
@@ -226,11 +230,11 @@ class PalletManager:
         if not self.rc.io.gripper_do(g, clamp):
             return Result.Error
         role = 'Clamped' if clamp else 'Relax'
-        if not self.rc.io.wait_di(GRIPPER_DI[g][role], True, MAX_G_SEC, abort):
-            self.rc.message(
-                f"Паллет: гриппер {g} не подтвердил "
-                f"{'зажим' if clamp else 'разжим'}", 'error')
-            return Result.Error
+        # if not self.rc.io.wait_di(GRIPPER_DI[g][role], True, MAX_G_SEC, abort): # uncomment commissioning
+        #     self.rc.message(
+        #         f"Паллет: гриппер {g} не подтвердил "
+        #         f"{'зажим' if clamp else 'разжим'}", 'error')
+        #     return Result.Error
         return Result.NoError
 
     # ── операции с ячейками ──────────────────────────────────────────────────
@@ -244,7 +248,7 @@ class PalletManager:
             return self.cells.get(key)
 
     def depalletizing(self, addr, machine=None, abort=None) -> Result:
-        """Взять заготовку из ячейки (гриппер 1)."""
+        """Взять заготовку из ячейки (гриппер 1)"""
         cell = self.get_cell(addr)
         if cell is None:
             self.rc.message(f"Паллет: неверный адрес {addr}", 'error')
@@ -271,7 +275,7 @@ class PalletManager:
         return Result.NoError
 
     def palletizing(self, addr, machine=None, abort=None) -> Result:
-        """Уложить готовую деталь обратно в ячейку (гриппер 2)."""
+        """Уложить готовую деталь обратно в ячейку (гриппер 2)"""
         cell = self.get_cell(addr)
         if cell is None:
             self.rc.message(f"Паллет: неверный адрес {addr}", 'error')
@@ -305,7 +309,7 @@ class PalletManager:
         При исчерпании текущей полки (все ячейки Finished) и отсутствии
         деталей «в полёте» выполняется смена на следующую полку. Если все
         полки пройдены — возвращает NoError (следующий next_raw_cell() даст
-        None).
+        None)
         """
         with self._lock:
             if self.shelf_empty():
@@ -319,7 +323,7 @@ class PalletManager:
             return self.ensure_current_shelf_open(abort)
 
     def ensure_current_shelf_open(self, abort=None) -> Result:
-        """Выдвинуть текущую полку, если она ещё не выдвинута."""
+        """Выдвинуть текущую полку, если она ещё не выдвинута"""
         with self._lock:
             shelf = self.current_shelf
             if self._open_shelf == shelf:
@@ -329,13 +333,27 @@ class PalletManager:
     def switch_to_next(self, abort=None) -> Result:
         with self._lock:
             if self._open_shelf is not None:
-                if self.close_shelf(abort) != Result.NoError:
+                if self.close_shelf(self._open_shelf, abort) != Result.NoError:
                     return Result.Error
             if self.shelf_idx + 1 >= len(self.shelves):
                 return Result.Error
             self.shelf_idx += 1
             self.rc.message(f"Паллет: переход на полку {self.current_shelf}")
             return self.open_shelf_for(self.current_shelf, abort)
+
+    def push_params(self, shelf: int):
+        push = (self.cfg.get("hook_push") or {}).get(shelf, {}) or {}
+        return push
+
+    def push_configured(self, shelf: int) -> bool:
+        push = self.push_params(shelf)
+        engage = push.get("engage")
+        return all(v is not None for v in (
+            engage,
+            self.cfg.get("push_axis"),
+            self.cfg.get("push_dir"),
+            self.cfg.get("push_timeout_sec"),
+        )) and self.point_taught(engage)
 
     def hook_params(self, shelf: int):
         hook = (self.cfg.get("hook") or {}).get(shelf, {}) or {}
@@ -345,19 +363,26 @@ class PalletManager:
         hook = self.hook_params(shelf)
         engage = hook.get("engage")
         return all(v is not None for v in (
-            engage, self.cfg.get("pull_axis"),
-            self.cfg.get("pull_dir"), self.cfg.get("pull_timeout_sec"),
+            engage,
+            self.cfg.get("pull_axis"),
+            self.cfg.get("pull_dir"),
+            self.cfg.get("pull_timeout_sec"),
         )) and self.point_taught(engage)
 
     def open_shelf_for(self, shelf: int, abort=None) -> Result:
+
         if not self.hook_configured(shelf):
             if self.strict():
                 self._error(ShelfError.NotTaught)
                 return Result.Error
             self.rc.message(
-                f"Паллет: полка {shelf} — заглушка выдвижения", 'warning')
+                f"Паллет: полка {shelf} — выдвижения", 'warning')
             self._open_shelf = shelf
             return Result.NoError
+
+        # if not move_to_named_point_sync(self.rc, "retreat_1",
+        #         'joint', abort):
+        #         return Result.Error
 
         hook = self.hook_params(shelf)
         if hook.get("approach"):
@@ -366,10 +391,11 @@ class PalletManager:
                 return Result.Error
         if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
             return Result.Error
-        if not jog_until_di(self.rc, shelf_di(shelf), self.cfg["pull_axis"],
-                            self.cfg["pull_dir"],
-                            self.cfg["pull_timeout_sec"], abort):
-            return Result.Error
+        # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
+        #                     self.cfg["pull_axis"],
+        #                     self.cfg["pull_dir"],
+        #                     self.cfg["pull_timeout_sec"], abort):
+        #     return Result.Error
         if hook.get("retreat"):
             if not move_to_named_point_sync(self.rc, hook["retreat"],
                                             'line', abort):
@@ -378,24 +404,33 @@ class PalletManager:
         self._open_shelf = shelf
         return Result.NoError
 
-    def close_shelf(self, abort=None) -> Result:
-        """Задвинуть текущую открытую полку в обученную точку «закрыто»."""
-        with self._lock:
-            if self._open_shelf is None:
-                return Result.NoError
-            shelf = self._open_shelf
-            closed = self.hook_params(shelf).get("closed")
-            if not self.point_taught(closed):
-                if self.strict():
-                    self.rc.message(
-                        f"Паллет: точка закрытия полки {shelf} не обучена",
-                        'error')
-                    return Result.Error
-                self.rc.message(
-                    f"Паллет: закрытие полки {shelf} — заглушка", 'warning')
-                self._open_shelf = None
-                return Result.NoError
-            if not move_to_named_point_sync(self.rc, closed, 'line', abort):
+    def close_shelf(self, shelf: int, abort=None) -> Result:
+        """Задвинуть текущую открытую полку"""
+        if not self.push_configured(shelf):
+            if self.strict():
+                self._error(ShelfError.NotTaught)
                 return Result.Error
+            self.rc.message(
+                f"Паллет: полка {shelf} — Задвинуть", 'warning')
             self._open_shelf = None
             return Result.NoError
+
+        push = self.push_params(shelf)
+        if push.get("approach"):
+            if not move_to_named_point_sync(self.rc, push["approach"],
+                                            'line', abort):
+                return Result.Error
+        if not move_to_named_point_sync(self.rc, push["engage"], 'line', abort):
+            return Result.Error
+        # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
+        #                     self.cfg["push_axis"],
+        #                     self.cfg["push_dir"],
+        #                     self.cfg["push_timeout_sec"], abort):
+        #     return Result.Error
+        if push.get("retreat"):
+            if not move_to_named_point_sync(self.rc, push["retreat"],
+                                            'line', abort):
+                return Result.Error
+
+        self._open_shelf = None
+        return Result.NoError

@@ -133,7 +133,7 @@ class CncMachine:
                             == Result.NoError)
                     if not can_move_safe:
                         self.message(
-                            f"Аварийно: не удалось выйти из станка M{self.m}",
+                            f"Авария: не удалось выйти из станка M{self.m}",
                             'error')
                 if can_move_safe:
                     self._move_safe(abort)
@@ -170,7 +170,7 @@ class CncMachine:
                             == Result.NoError)
                     if not can_move_safe:
                         self.message(
-                            f"Аварийно: не удалось выйти из станка M{self.m}",
+                            f"Авария: не удалось выйти из станка M{self.m}",
                             'error')
                 if can_move_safe:
                     self._move_safe(abort)

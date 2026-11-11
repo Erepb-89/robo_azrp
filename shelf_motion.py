@@ -51,7 +51,12 @@ def move_to_named_point_sync(rc, point_name, motion='line',
 
 def jog_until_di(rc, di, axis, direction, timeout, abort_event=None) -> bool:
     """Выдвижение крючком: джог вдоль оси axis до срабатывания концевика di.
-
+            jog_axis (JogAxis): Ось перемещения. Допустимые значения:
+                - 'X', 'Y', 'Z' — линейные перемещения;
+                - 'Rx', 'Ry', 'Rz' — угловые повороты.
+            jog_direction (JogDirection): Направление движения:
+                - '+' — в положительном направлении оси;
+                - '-' — в отрицательном направлении оси.
     Returns:
         True — концевик сработал (полка выдвинута);
         False — таймаут/СТОП/ошибка.

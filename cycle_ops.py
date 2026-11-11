@@ -15,7 +15,9 @@ from io_map import DO
 from machine import CncMachine
 from pallet_manager import CellAddr, PalletManager
 from states_modes_errors import MachineState, Result
-
+from shelf_motion import (
+    move_to_named_point_sync,
+)
 
 @dataclass
 class CycleFlags:
@@ -148,7 +150,7 @@ class CycleOps:
             if self.machines[m].check_machine_state() != Result.NoError:
                 if self.exit_machine(1, m, f"EG1M{m}P0{i}", abort) != Result.NoError:
                     self.rc.message(
-                        f"Аварийно: не удалось выйти из станка M{m}", 'error')
+                        f"Авария: не удалось выйти из станка M{m}", 'error')
                 return Result.Error
         return Result.NoError
 
@@ -165,7 +167,7 @@ class CycleOps:
             if self.machines[m].check_machine_state() != Result.NoError:
                 if self.exit_machine(2, m, f"EG2M{m}P0{i}", abort) != Result.NoError:
                     self.rc.message(
-                        f"Аварийно: не удалось выйти из станка M{m}", 'error')
+                        f"Авария: не удалось выйти из станка M{m}", 'error')
                 return Result.Error
         return Result.NoError
 
@@ -213,8 +215,16 @@ class CycleOps:
         if not flags.g1_is_empty:
             # Деталь уже в гриппере (например, после СТОПа между pick и load)
             return Result.NoError
+        if not move_to_named_point_sync(
+                self.rc, "BG1IntP010",
+                'joint', abort):
+                return Result.Error
         if self.pallet.prepare_for_pick(abort) != Result.NoError:
             return Result.Error
+        if not move_to_named_point_sync(
+                self.rc, "BG1IntP010",
+                'joint', abort):
+                return Result.Error
         addr = self.pallet.next_raw_cell()
         if addr is None:
             if not self.pallet.has_raw_workpiece():
@@ -292,8 +302,8 @@ class CycleOps:
             return Result.Error
         if self.machines[m].wait_for_door_open(abort) != Result.NoError:
             return Result.Error
-        if self.chuck_air_blast(m, abort) != Result.NoError: # После обдува можно не возвращаться на исходную, а сразу забрать деталь?
-            return Result.Error
+        # if self.chuck_air_blast(m, abort) != Result.NoError: # После обдува можно не возвращаться на исходную, а сразу забрать деталь?
+        #     return Result.Error
         if not self.move_to_safe(m, abort):
             return Result.Error
         if not self.rc.execute_trajectory_sync(
@@ -304,14 +314,14 @@ class CycleOps:
         if self.machines[m].check_machine_state() != Result.NoError:
             if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
                 self.rc.message(
-                    f"Аварийно: не удалось выйти из станка M{m}", 'error')
+                    f"Авария: не удалось выйти из станка M{m}", 'error')
             return Result.Error
 
         # Захват детали гриппером 2
         # if self.grippers[2].clamp(abort) != Result.NoError: # commissioning
         #     if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
         #         self.rc.message(
-        #             f"Аварийно: не удалось выйти из станка M{m}", 'error')
+        #             f"Авария: не удалось выйти из станка M{m}", 'error')
         if self.machines[m].wait_for_chuck_relax(2, True, abort) != Result.NoError:
             return Result.Error
         if self.exit_machine(2, m, f"EG2M{m}P020", abort) != Result.NoError:
@@ -325,8 +335,8 @@ class CycleOps:
         flags.machine_addr[m] = None
         if not self.move_to_safe(m, abort):
             return Result.Error
-        if self.chuck_air_blast(m, abort) != Result.NoError:
-            return Result.Error
+        # if self.chuck_air_blast(m, abort) != Result.NoError:
+        #     return Result.Error
         return Result.NoError
 
     def error_reset(self, m: int, flags: CycleFlags, abort=None) -> None:
