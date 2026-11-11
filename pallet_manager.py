@@ -80,7 +80,8 @@ class PalletManager:
     # ── состояние ────────────────────────────────────────────────────────────
 
     def _error(self, err: ShelfError, level: str = 'error') -> None:
-        self.rc.message(SHELF_ERROR_RU.get(err, str(err)), level)
+        self.rc.message(SHELF_ERROR_RU.get(err, str(err)), level,
+                        source='gui.pallet')
 
     @property
     def current_shelf(self) -> int:
@@ -180,14 +181,12 @@ class PalletManager:
         if self.strict():
             self.rc.message(
                 "Паллет: не обучены параметры: " + ", ".join(missing[:6]),
-                'error')
+                'error', source='gui.pallet')
             return Result.Error
-        self.rc.message("Паллет: режим заглушки (нет параметров)", 'warning')
         return Result.NoError
 
     def cell_pose(self, addr: CellAddr):
         """Поза ячейки = first + (col*pitch_x, y, shelf_dz)"""
-
         first = self.rc.data.get_tcp_pose(self.cfg["first"])
         second = self.rc.data.get_tcp_pose(self.cfg["second"])
         third = self.rc.data.get_tcp_pose(self.cfg["third"])
@@ -233,7 +232,8 @@ class PalletManager:
         # if not self.rc.io.wait_di(GRIPPER_DI[g][role], True, MAX_G_SEC, abort): # uncomment commissioning
         #     self.rc.message(
         #         f"Паллет: гриппер {g} не подтвердил "
-        #         f"{'зажим' if clamp else 'разжим'}", 'error')
+        #         f"{'зажим' if clamp else 'разжим'}", 'error',
+        #         source='gui.pallet')
         #     return Result.Error
         return Result.NoError
 
@@ -251,10 +251,13 @@ class PalletManager:
         """Взять заготовку из ячейки (гриппер 1)"""
         cell = self.get_cell(addr)
         if cell is None:
-            self.rc.message(f"Паллет: неверный адрес {addr}", 'error')
+            self.rc.message(f"Паллет: неверный адрес {addr}", 'error',
+                            source='gui.pallet')
             return Result.Error
         if cell.state != CellState.Raw:
-            self.rc.message(f"Паллет: ячейка {addr} без заготовки", 'warning')
+            self.rc.message(f"Паллет: ячейка {addr} без заготовки"
+                            f"(состояние {cell.state.name})",
+                            'warning', source='gui.pallet')
             return Result.Error
 
         if not self.geometry_ready():
@@ -271,17 +274,23 @@ class PalletManager:
         with self._lock:
             cell.state = CellState.InProcess
             cell.machine = machine
-        self.log.info("Паллет: снята заготовка %s (станок %s)", addr, machine)
+        self.rc.message(
+            f"Паллет: снята заготовка {addr} (станок {machine})",
+            source='gui.pallet')
         return Result.NoError
 
     def palletizing(self, addr, machine=None, abort=None) -> Result:
         """Уложить готовую деталь обратно в ячейку (гриппер 2)"""
         cell = self.get_cell(addr)
         if cell is None:
-            self.rc.message(f"Паллет: неверный адрес {addr}", 'error')
+            self.rc.message(f"Паллет: неверный адрес {addr}", 'error',
+                            source='gui.pallet')
             return Result.Error
         if cell.state != CellState.InProcess:
-            self.rc.message(f"Паллет: ячейка {addr} не в работе", 'warning')
+            self.rc.message(
+                f"Паллет: ячейка {addr} не в работе "
+                f"(состояние {cell.state.name})",
+                'warning', source='gui.pallet')
             return Result.Error
 
         if not self.geometry_ready():
@@ -298,7 +307,9 @@ class PalletManager:
         with self._lock:
             cell.state = CellState.Finished
             cell.machine = None
-        self.log.info("Паллет: уложена деталь %s (станок %s)", addr, machine)
+        self.rc.message(
+            f"Паллет: уложена деталь {addr} (станок {machine})",
+            source='gui.pallet')
         return Result.NoError
 
     # ── полки: выдвижение/задвигание/смена ───────────────────────────────────
@@ -338,7 +349,8 @@ class PalletManager:
             if self.shelf_idx + 1 >= len(self.shelves):
                 return Result.Error
             self.shelf_idx += 1
-            self.rc.message(f"Паллет: переход на полку {self.current_shelf}")
+            self.rc.message(f"Паллет: переход на полку {self.current_shelf}",
+                            source='gui.pallet')
             return self.open_shelf_for(self.current_shelf, abort)
 
     def push_params(self, shelf: int):
@@ -376,7 +388,8 @@ class PalletManager:
                 self._error(ShelfError.NotTaught)
                 return Result.Error
             self.rc.message(
-                f"Паллет: полка {shelf} — выдвижения", 'warning')
+                f"Паллет: параметры зацепа для выдвижения полки не сконфигурированы",
+                'error', source='gui.pallet')
             self._open_shelf = shelf
             return Result.NoError
 
@@ -388,9 +401,13 @@ class PalletManager:
         if hook.get("approach"):
             if not move_to_named_point_sync(self.rc, hook["approach"],
                                             'line', abort):
+                self.rc.message(
+                    f"Паллет: точка подхода к полке {shelf} не обучена",
+                    'error', source='gui.pallet')
                 return Result.Error
         if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
             return Result.Error
+        # commissioning
         # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
         #                     self.cfg["pull_axis"],
         #                     self.cfg["pull_dir"],
@@ -399,6 +416,9 @@ class PalletManager:
         if hook.get("retreat"):
             if not move_to_named_point_sync(self.rc, hook["retreat"],
                                             'line', abort):
+                self.rc.message(
+                    f"Паллет: точка отхода от полки {shelf} не обучена",
+                    'error', source='gui.pallet')
                 return Result.Error
 
         self._open_shelf = shelf
@@ -411,7 +431,8 @@ class PalletManager:
                 self._error(ShelfError.NotTaught)
                 return Result.Error
             self.rc.message(
-                f"Паллет: полка {shelf} — Задвинуть", 'warning')
+                f"Паллет: параметры зацепа для закрытия полки не сконфигурированы",
+                'error', source='gui.pallet')
             self._open_shelf = None
             return Result.NoError
 
@@ -419,9 +440,16 @@ class PalletManager:
         if push.get("approach"):
             if not move_to_named_point_sync(self.rc, push["approach"],
                                             'line', abort):
+                self.rc.message(
+                    f"Паллет: точка приближения к полке {shelf} не обучена",
+                    'error', source='gui.pallet')
                 return Result.Error
         if not move_to_named_point_sync(self.rc, push["engage"], 'line', abort):
+            self.rc.message(
+                f"Паллет: точка зацепа полки {shelf} не обучена",
+                'error', source='gui.pallet')
             return Result.Error
+        # commissioning
         # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
         #                     self.cfg["push_axis"],
         #                     self.cfg["push_dir"],
@@ -430,6 +458,9 @@ class PalletManager:
         if push.get("retreat"):
             if not move_to_named_point_sync(self.rc, push["retreat"],
                                             'line', abort):
+                self.rc.message(
+                    f"Паллет: точка отхода от полки {shelf} не обучена",
+                    'error', source='gui.pallet')
                 return Result.Error
 
         self._open_shelf = None

@@ -12,7 +12,7 @@ POINTS_PATH = BASE_DIR / "points.json"
 TRAJ_PATH = BASE_DIR / "trajectories.json"
 
 # Параметры подключения
-ROBOT_IP = "127.0.0.1" # "192.168.0.222" # "127.0.0.1"
+ROBOT_IP = "127.0.0.1" # "192.168.0.222"
 
 # Команды
 EXEC_TRAJ = "EXECUTE_TRAJECTORY"

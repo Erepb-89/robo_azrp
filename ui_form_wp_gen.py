@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5 import QtCore, QtWidgets
 from typing import Dict
 
@@ -370,8 +372,29 @@ class MainWindow(QMainWindow):
         try:
             if self._cmd_log_queue is not None:
                 while not self._cmd_log_queue.empty():
-                    msg = self._cmd_log_queue.get_nowait()
-                    self._add_log_entry(f"[ЦИКЛ]  {msg}", "•", LOG_COLOR_CMD)
+                    item = self._cmd_log_queue.get_nowait()
+                    if isinstance(item, tuple) and len(item) >= 3:
+                        levelno, name, msg = item[0], item[1], item[2]
+                    elif isinstance(item, tuple) and len(item) == 2:
+                        levelno, msg = item
+                        name = ""
+                    else:
+                        levelno, name, msg = logging.INFO, "", str(item)
+
+                    if levelno >= logging.ERROR:
+                        icon, color = "✗", LOG_COLOR_ERROR
+                    elif levelno >= logging.WARNING:
+                        icon, color = "!", LOG_COLOR_STOP
+                    else:
+                        icon, color = "•", LOG_COLOR_CMD
+
+                    if str(name).startswith("robopro.gui.pallet"):
+                        prefix = "[ПАЛЛЕТ]"
+                    elif str(name).startswith("robopro.gui"):
+                        prefix = "[ЦИКЛ]"
+                    else:
+                        prefix = "[СИСТЕМА]"
+                    self._add_log_entry(f"{prefix}  {msg}", icon, color)
         except Exception:
             pass
 
