@@ -12,7 +12,7 @@ POINTS_PATH = BASE_DIR / "points.json"
 TRAJ_PATH = BASE_DIR / "trajectories.json"
 
 # Параметры подключения
-ROBOT_IP = "127.0.0.1" # "192.168.0.222"
+ROBOT_IP = "127.0.0.1"  # "192.168.0.222"
 
 # Команды
 EXEC_TRAJ = "EXECUTE_TRAJECTORY"
@@ -22,24 +22,24 @@ GRIPPER_2_CMD = "GRIPPER_2_CMD"
 
 # IO и прочее
 NUM_DIGITAL_IO = 24
-GRIPPER_1_DO_INDEX = int(DO.G1_Clamp)   # 14
-GRIPPER_2_DO_INDEX = int(DO.G2_Clamp)   # 15
-START_STOP_DI = int(DI.START_STOP)      # 6
-PAUSE_DI_INDEX = None                    # DI1 теперь M1_DoorOpenSQ — пауза с этого входа снята
+GRIPPER_1_DO_INDEX = int(DO.G1_Clamp)  # 14
+GRIPPER_2_DO_INDEX = int(DO.G2_Clamp)  # 15
+START_STOP_DI = int(DI.START_STOP)  # 6
+PAUSE_DI_INDEX = None  # DI1 теперь M1_DoorOpenSQ — пауза с этого входа снята
 LOG_PATH = BASE_DIR / "robopro.log"
 
 # ── Тайм-ауты и задержки авто-цикла ──────────────────────────────────────────
-MAX_D_SEC = 30.0      # counter > max_d  — ожидание двери
-MAX_C_SEC = 20.0      # counter > max_c  — ожидание патрона
-MAX_M_SEC = 60.0      # counter > max_m  — ожидание запуска станка
-MAX_G_SEC = 5.0       # подтверждение гриппера
-IO_POLL_SEC = 0.05    # период опроса DI/DO (как CHECK_FREQUENCY_SEC в API)
-DOOR_OPEN_DELAY_SEC = 1.0     # Wait_ms(1000) в WaitForDoorOpen
-DOOR_CLOSE_DELAY_SEC = 2.0    # Wait_ms(2000) в WaitForDoorClose
-CHUCK_PULSE_ON_SEC = 0.5      # DO_Write(SwitchChuck, true) → Delay 500
-CHUCK_PULSE_OFF_SEC = 1.0     # DO_Write(SwitchChuck, false) → Delay 1000
-CNC_START_PULSE_SEC = 0.5     # StartProcess true → Wait_ms(500)
-CNC_START_SETTLE_SEC = 1.0    # StartProcess false → Wait_ms(1000)
+MAX_D_SEC = 30.0  # counter > max_d  — ожидание двери
+MAX_C_SEC = 20.0  # counter > max_c  — ожидание патрона
+MAX_M_SEC = 60.0  # counter > max_m  — ожидание запуска станка
+MAX_G_SEC = 5.0  # подтверждение гриппера
+IO_POLL_SEC = 0.05  # период опроса DI/DO (как CHECK_FREQUENCY_SEC в API)
+DOOR_OPEN_DELAY_SEC = 1.0  # Wait_ms(1000) в WaitForDoorOpen
+DOOR_CLOSE_DELAY_SEC = 2.0  # Wait_ms(2000) в WaitForDoorClose
+CHUCK_PULSE_ON_SEC = 0.5  # DO_Write(SwitchChuck, true) → Delay 500
+CHUCK_PULSE_OFF_SEC = 1.0  # DO_Write(SwitchChuck, false) → Delay 1000
+CNC_START_PULSE_SEC = 0.5  # StartProcess true → Wait_ms(500)
+CNC_START_SETTLE_SEC = 1.0  # StartProcess false → Wait_ms(1000)
 
 # SIM-режим (кусок 10): ROBOPRO_SIM=1 → SimRobotApi вместо железа
 USE_SIM = os.getenv("ROBOPRO_SIM", "0") == "1"
@@ -197,3 +197,10 @@ MAP_STATUS_OK = "padding:1px 4px; color:#1b5e20; background:#c8e6c9;"
 MAP_STATUS_WARN = "padding:1px 4px; color:#e65100; background:#fff3e0;"
 MAP_STATUS_ALM = "padding:1px 4px; color:#b71c1c; background:#ffcdd2;"
 MAP_STATUS_OFF = "padding:1px 4px; color:#9e9e9e; background:#f5f5f5;"
+
+# Modbus
+# Настройка параметров подключения
+SERVER_HOST = '192.168.0.5'
+SERVER_PORT = 502
+POLL_INTERVAL = 2.0  # цикл опроса в секундах
+RETRIES = 3

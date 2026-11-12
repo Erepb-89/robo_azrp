@@ -151,12 +151,9 @@ class AutoCycle(threading.Thread):
         # Проверка авто-режима дверей
         door_auto = {1: self.rc.io.machine_di(1, 'DoorAuto'),
                      2: self.rc.io.machine_di(2, 'DoorAuto')}
-        print("DoorAuto_1", self.rc.io.machine_di(1, 'DoorAuto'))
-        print("DoorAuto_2", self.rc.io.machine_di(2, 'DoorAuto'))
-        # for m in (1, 2):
-        for m in (1, 1):
+        for m in (1, 2):
             self.rc.io.machine_do(m, 'LampAuto', door_auto[m])
-        if not door_auto[1]: # if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
+        if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
             self.rc.message("Двери не в автоматическом режиме", 'error')
             self.rc.io.set_do(DO.M_LampRun, False)
             return
@@ -198,14 +195,14 @@ class AutoCycle(threading.Thread):
                     "Автоцикл: остановлен, состояние сохранено для продолжения")
             self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
-                self.rc.message("Автоцикл: завершён")
+                self.rc.message("Автоцикл: завершён", "warning")
             self.sync_state()
 
     def cycle_inner(self, ops: CycleOps, flags: CycleFlags) -> None:
         while not self.abort.is_set() and not self.stop.is_set():
             # Физический СТОП: сигнал START/STOP сброшен
             if not self.rc.io.get_di(DI.START_STOP):
-                self.rc.message("Автоцикл: СТОП по кнопке", 'warning')
+                self.rc.message("Автоцикл: СТОП по кнопке", "warning")
                 self.abort.set()
                 break
 

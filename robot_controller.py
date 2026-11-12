@@ -216,7 +216,7 @@ class MotionController:
     def wait_motion_stopped(self,
                             linear_deadband: float = 0.01,
                             angular_deadband: float = 0.02,
-                            hold_time: float = 0.3,
+                            hold_time: float = 0.5,
                             await_sec: float = -1,
                             abort_event: Optional[threading.Event] = None,
                             require_motion_start: bool = True,
@@ -850,7 +850,7 @@ class RobotController:
             'commands': self.data.actions[action.name].commands,
             'step': 0,
         }
-        self.advance_action_step()
+        # self.advance_action_step()
 
     # ---------- Грипперы ----------
     def execute_gripper_1(self, clamp: bool) -> None:
@@ -1051,64 +1051,10 @@ class RobotController:
             return
         if cmd.payload.get('ok'):
             self.state.update(trajectory_state=traj.value + FINISHED)
-            self.advance_action_step()
+            # self.advance_action_step()
         else:
             self.state.update(trajectory_state=traj.value + EXCEPTION,
                               last_error=LastError.err_timeout_trajectory)
-            self.fail_active_action(LastError.err_timeout_action)
-
-    # ---------- Машина состояний action'а ----------
-
-    def advance_action_step(self) -> None:
-        """
-        Исполнять шаги action'а по порядку.
-        GRIPPER_CMD выполняется сразу; EXECUTE_TRAJECTORY передаёт
-        управление вотеру, продолжение придёт с MOTION_DONE.
-        """
-        while self.active_action is not None:
-            commands = self.active_action['commands']
-            idx = self.active_action['step']
-            if idx >= len(commands):
-                action = self.active_action['action']
-                self.active_action = None
-                self.state.update(action_state=action.value + FINISHED)
-                return
-
-            self.active_action['step'] = idx + 1
-            command = commands[idx]
-
-            if command.cmd_type == EXEC_TRAJ:
-                trajectory = getattr(RobotTrajectories, command.name, None)
-                if trajectory is None:
-                    started = False
-                else:
-                    started = self.execute_trajectory(trajectory)
-                if not started:
-                    action = self.active_action['action']
-                    self.active_action = None
-                    self.state.update(
-                        action_state=action.value + EXCEPTION,
-                        last_error=LastError.err_choose_trajectory)
-                    self.log.error(
-                        f"Action step trajectory '{command.name}' rejected")
-                    return
-                return  # продолжение — из handle_motion_done
-
-            if command.cmd_type in (GRIPPER_1_CMD, GRIPPER_2_CMD, GRIPPER_CMD):
-                value = str(command.name).lower() in ('true', '1')
-                if command.cmd_type == GRIPPER_2_CMD:
-                    self.execute_gripper_2(value)
-                else:
-                    self.execute_gripper_1(value)
-
-    def fail_active_action(self, err) -> None:
-        """Пометить активный action, как исключение, и остановить цепочку шагов."""
-        ctx = self.active_action
-        if not ctx:
-            return
-        self.active_action = None
-        self.state.update(action_state=ctx['action'].value + EXCEPTION,
-                          last_error=err)
 
     def abort_stopped_wait(self) -> None:
         """Отменить ожидание (STOP_MOVE): траектория и действие — прерваны."""
@@ -1120,7 +1066,6 @@ class RobotController:
                 trajectory_state=self.wait_traj.value + EXCEPTION,
                 last_error=LastError.err_timeout_trajectory)
             self.wait_traj = None
-        self.fail_active_action(LastError.err_timeout_action)
 
     # ---------- Главный цикл ----------
 
@@ -1148,9 +1093,6 @@ class RobotController:
                             self.find_nearest_waypoint()
                         except Exception as e:
                             self.log.exception(f"Initial nearest calc failed: {e}")
-                        finally:
-                            self._nearest_boot_done = True
-                            self.log.warning(f"_nearest_boot_done {self._nearest_boot_done}")
                     continue
 
                 # ОБРАБОТКА КОМАНД
@@ -1186,7 +1128,6 @@ class RobotController:
                     self.data.load_waypoints()
 
                 elif cmd.type == CmdType.STOP_MOVE:
-                    self.abort_stopped_wait()
                     self.manipulator_stop_drive()
 
                 elif cmd.type == CmdType.PAUSE:

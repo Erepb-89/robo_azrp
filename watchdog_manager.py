@@ -47,7 +47,7 @@ class WatchdogManager(threading.Thread):
 
         if status_line:
             self._notifier.notify(f"STATUS={status_line}")
-            self._logger.info(f"Watchdog status: {status_line}")
+            self._logger.debug(f"Watchdog status: {status_line}")
 
         # Отправляем WATCHDOG=1, только если все компоненты в порядке
         if statuses and all(statuses.values()):
