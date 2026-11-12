@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets
 
 from config import ROBOT_IP, LOG_PATH
 from command_handler import CommandHandler
+from modbus_manager import ModbusTCPManager, ModbusRTUManager
 from utils import setup_logging
 from robot_controller import RobotController
 from ui_form_wp_gen import MainWindow
@@ -21,7 +22,8 @@ class MainAppClass:
         self.logger = setup_logging(LOG_PATH, gui_queue=self.gui_log_queue)
         self.intentional_exit = False
 
-        self.heartbit = Heartbeat(names=['rc', 'handler', 'signals', 'cycle'], ttl_sec=10.0)
+        self.heartbit = Heartbeat(names=['rc', 'handler', 'signals', 'cycle',
+                                         'modbus TCP', 'modbus RTU'], ttl_sec=10.0)
 
         self.cmd_queue = Queue(maxsize=1000)
 
@@ -46,6 +48,20 @@ class MainAppClass:
         self.watchdog = WatchdogManager(self.heartbit, interval_sec=5.0,
                                         logger=self.logger)
         self.watchdog.start()
+
+        self.ModbusTCPHandler = ModbusTCPManager(logger=self.logger,
+                                                 heartbeat_cb=self.heartbit.beat)
+        self.ModbusTCPHandlerThread = threading.Thread(
+            target=self.ModbusTCPHandler.run_sync_client,
+            name="ModbusTCPHandlerThread", daemon=True)
+        self.ModbusTCPHandlerThread.start()
+
+        # self.ModbusRTUHandler = ModbusRTUManager(logger=self.logger,
+        #                                          heartbeat_cb=self.heartbit.beat)
+        # self.ModbusRTUHandlerThread = threading.Thread(
+        #     target=self.ModbusRTUHandler.run_sync_client,
+        #     name="ModbusRTUHandlerThread", daemon=True)
+        # self.ModbusRTUHandlerThread.start()
 
         self.App = QtWidgets.QApplication([])
 
