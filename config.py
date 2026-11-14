@@ -216,6 +216,8 @@ SLAVE_ID = 242
 
 PERIOD_S = 1.0
 DUTY = 0.5
+LED_RGB_BRIGHTNESS = 128  # RGB-каналы 0..255 (не путать с W 0..100)
+LED_POLL_SEC = 0.1
 
 YELLOW_LED = 'Y'
 RED_LED = 'R'

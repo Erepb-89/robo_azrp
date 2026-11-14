@@ -15,9 +15,10 @@ from io_map import (DI, DO, MACHINE_DI, MACHINE_DO, GRIPPER_DI, GRIPPER_DO,
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
-                    PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM, YELLOW_LED)
+                    PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM, LED_POLL_SEC)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
+from led_control import LedStateController
 
 sys.path.append("robot-api")
 from API.rc_api import RobotApi
@@ -52,6 +53,7 @@ class RobotState:
     mode: Optional[MotionMode] = 0
     powered: bool = False
     free_drive: bool = False
+    engineer_mode: bool = False
     last_error: Optional[LastError] = 0  # Optional[str] = None
     last_command: Optional[str] = None
     trajectory_state: int = 0
@@ -536,6 +538,11 @@ class RobotController:
         # Машина состояний выполняемого действия (шаги: траектории/грипперы)
         self.active_action = None  # {'action', 'commands', 'step'}
 
+        # Индикация WB-LED по состоянию робота
+        self.led_state = LedStateController(
+            self, self.blinker, self.log, interval=LED_POLL_SEC)
+        self.led_state.start()
+
     # ---------- Публичные методы (используемые извне) ----------
 
     def get_state_snapshot(self) -> RobotState:
@@ -593,6 +600,12 @@ class RobotController:
             self.auto_cycle.request_stop()
         self.message("Автоцикл: запрошен СТОП")
 
+    def set_engineer_mode(self, enabled: bool) -> None:
+        """Включает/выключает индикацию режима инженера."""
+        self.state.update(engineer_mode=bool(enabled))
+        self.log.info(
+            f"Engineer mode: {'enabled' if enabled else 'disabled'}")
+
     # ---------- Управление режимами ----------
 
     def manipulator_power_control(self, power_on: int) -> None:
@@ -603,12 +616,10 @@ class RobotController:
                 self.Robot.controller.state.set(str(ControllerState.off.name), await_sec=10)
                 self.state.update(powered=False, last_command="PowerOff")
                 self.log.info("Manipulator deactivated")
-                self.blinker.stop_blinking()
             elif power_on == 1:
                 self.run_controller()
                 self.state.update(powered=True, last_command="PowerOn")
                 self.log.info("Manipulator powered")
-                self.blinker.green_light()
             else:
                 self.log.warning(f"Unknown power command: {power_on}")
         except FunctionTimeOutError as e:
@@ -642,13 +653,11 @@ class RobotController:
                 self.log.info("Activating Zero Gravity Mode")
                 self.Robot.motion.free_drive()
                 self.state.update(free_drive=True, mode='hold')
-                self.blinker.blink(YELLOW_LED)
             elif free_drive == 0:
                 self.log.info("Deactivating Zero Gravity Mode")
                 # self.Robot.motion.mode.set('hold')
                 self.Robot.motion.mode.set(str(MotionMode.hold.name))
                 self.state.update(free_drive=False, mode='hold')
-                self.blinker.stop_blinking()
             else:
                 self.log.warning(f"Unknown free drive command: {free_drive}")
         except Exception as e:
@@ -1177,3 +1186,6 @@ class RobotController:
             self.signal_monitor.stop()
         if getattr(self, 'auto_cycle', None) is not None:
             self.auto_cycle.shutdown()
+        if getattr(self, 'led_state', None) is not None:
+            self.led_state.stop()
+            self.led_state.join(timeout=2.0)

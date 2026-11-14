@@ -125,6 +125,33 @@ class LastError(Enum):
     err_waypoint_not_taught: int = 32    # Точка не обучена
 
 
+HARDWARE_ERRORS = frozenset({
+    LastError.err_switching_power_state,
+    LastError.err_power_control,
+    LastError.err_switching_stop_mode,
+    LastError.err_switching_pause_mode,
+    LastError.err_switching_run_mode,
+    LastError.err_switching_zero_gravity,
+    LastError.err_timeout_action,
+    LastError.err_check_state,
+    LastError.err_sj_activation,
+    LastError.err_hatch_not_open,
+    LastError.err_gripper1_cmd,
+    LastError.err_gripper2_cmd,
+    LastError.err_io_read,
+    LastError.err_io_write,
+    LastError.err_connection_lost,
+    LastError.err_door_not_open,
+    LastError.err_door_not_close,
+    LastError.err_chuck_not_relax,
+    LastError.err_chuck_not_clamp,
+    LastError.err_cnc_not_ready,
+    LastError.err_cnc_not_started,
+    LastError.err_gripper_not_clamped,
+    LastError.err_gripper_not_relaxed,
+})
+
+
 class Result(Enum):
     """Возврат функций: Return: NoError / Error."""
     NoError = 0
