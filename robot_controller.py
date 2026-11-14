@@ -15,7 +15,7 @@ from io_map import (DI, DO, MACHINE_DI, MACHINE_DO, GRIPPER_DI, GRIPPER_DO,
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
-                    PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM)
+                    PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM, YELLOW_LED)
 from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 
@@ -486,9 +486,10 @@ class TelemetryMonitor:
 class RobotController:
     """Главный контроллер робота"""
 
-    def __init__(self, robot_ip: str, cmd_queue: Queue, logger,
+    def __init__(self, robot_ip: str, cmd_queue: Queue, logger, blinker,
                  heartbeat_cb=None):
         self.log = logger
+        self.blinker = blinker
         self.gui_log = logger.getChild("gui")
         self.cmd_queue = cmd_queue
         self.stop_event = threading.Event()
@@ -509,13 +510,13 @@ class RobotController:
         self.state = StateManager()
         self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
         # Раскомментить для отладки с манипулятором по месту Uncomment
-        # self.mc = MotionController(self.Robot, self.data, logger)
-        # self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
-        #                        pause_di_index=PAUSE_DI_INDEX)
-        # self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
-        # self.signal_monitor = SignalMonitor(self.io, self.state, logger,
-        #                                     heartbeat_cb=heartbeat_cb)
-        # self.signal_monitor.start()
+        self.mc = MotionController(self.Robot, self.data, logger)
+        self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
+                               pause_di_index=PAUSE_DI_INDEX)
+        self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
+        self.signal_monitor = SignalMonitor(self.io, self.state, logger,
+                                            heartbeat_cb=heartbeat_cb)
+        self.signal_monitor.start()
 
         # Загрузка
         self.data.load_waypoints()
@@ -579,7 +580,7 @@ class RobotController:
         """Запуск автоцикла (отдельный поток)."""
         if getattr(self, 'auto_cycle', None) is None:
             from auto_cycle import AutoCycle
-            self.auto_cycle = AutoCycle(self, self.log,
+            self.auto_cycle = AutoCycle(self, self.log, self.blinker,
                                         heartbeat_cb=self._heartbeat_cb)
         if not self.auto_cycle.is_alive():
             self.auto_cycle.start()
@@ -602,10 +603,12 @@ class RobotController:
                 self.Robot.controller.state.set(str(ControllerState.off.name), await_sec=10)
                 self.state.update(powered=False, last_command="PowerOff")
                 self.log.info("Manipulator deactivated")
+                self.blinker.stop_blinking()
             elif power_on == 1:
                 self.run_controller()
                 self.state.update(powered=True, last_command="PowerOn")
                 self.log.info("Manipulator powered")
+                self.blinker.green_light()
             else:
                 self.log.warning(f"Unknown power command: {power_on}")
         except FunctionTimeOutError as e:
@@ -639,11 +642,13 @@ class RobotController:
                 self.log.info("Activating Zero Gravity Mode")
                 self.Robot.motion.free_drive()
                 self.state.update(free_drive=True, mode='hold')
+                self.blinker.blink(YELLOW_LED)
             elif free_drive == 0:
                 self.log.info("Deactivating Zero Gravity Mode")
                 # self.Robot.motion.mode.set('hold')
                 self.Robot.motion.mode.set(str(MotionMode.hold.name))
                 self.state.update(free_drive=False, mode='hold')
+                self.blinker.stop_blinking()
             else:
                 self.log.warning(f"Unknown free drive command: {free_drive}")
         except Exception as e:

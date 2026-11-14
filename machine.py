@@ -16,11 +16,12 @@ from states_modes_errors import Result, LastError
 class CncMachine:
     """Станок M: двери, патрон, сигналы готовности, пуск обработки."""
 
-    def __init__(self, m: int, rc, logger):
+    def __init__(self, m: int, rc, logger, blinker):
         self.m = m
         self.rc = rc
         self.io = rc.io
         self.log = logger
+        self.blinker = blinker
         self.ops = None  # CycleOps, привязывается через bind_ops()
 
     def bind_ops(self, ops) -> None:
@@ -38,6 +39,7 @@ class CncMachine:
         return self.ops.move_to_safe(self.m, abort)
 
     def lamp_alarm(self, on: bool) -> bool:
+        self.blinker.blink("Y")
         return self.io.machine_do(self.m, 'LampAlarm', on)
 
     def lamp_auto(self, on: bool) -> bool:

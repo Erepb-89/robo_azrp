@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets
 
 from config import ROBOT_IP, LOG_PATH
 from command_handler import CommandHandler
-from modbus_manager import ModbusTCPManager, ModbusRTUManager
+from modbus_manager import ModbusTCPManager, ModbusRTUManager, Blinker
 from utils import setup_logging
 from robot_controller import RobotController
 from ui_form_wp_gen import MainWindow
@@ -27,9 +27,19 @@ class MainAppClass:
 
         self.cmd_queue = Queue(maxsize=1000)
 
+        self.ModbusRTUHandler = ModbusRTUManager(logger=self.logger,
+                                                 heartbeat_cb=self.heartbit.beat)
+        self.ModbusRTUHandlerThread = threading.Thread(
+            target=self.ModbusRTUHandler.run_sync_client,
+            name="ModbusRTUHandlerThread", daemon=True)
+        self.ModbusRTUHandlerThread.start()
+
+        self.blinker = Blinker(self.ModbusRTUHandler.client)
+
         self.RobotController = RobotController(ROBOT_IP,
                                                self.cmd_queue,
                                                self.logger,
+                                               self.blinker,
                                                heartbeat_cb=self.heartbit.beat)
         self.ControllerThread = threading.Thread(
             target=self.RobotController.run,
@@ -55,13 +65,6 @@ class MainAppClass:
             target=self.ModbusTCPHandler.run_sync_client,
             name="ModbusTCPHandlerThread", daemon=True)
         self.ModbusTCPHandlerThread.start()
-
-        # self.ModbusRTUHandler = ModbusRTUManager(logger=self.logger,
-        #                                          heartbeat_cb=self.heartbit.beat)
-        # self.ModbusRTUHandlerThread = threading.Thread(
-        #     target=self.ModbusRTUHandler.run_sync_client,
-        #     name="ModbusRTUHandlerThread", daemon=True)
-        # self.ModbusRTUHandlerThread.start()
 
         self.App = QtWidgets.QApplication([])
 
@@ -92,6 +95,8 @@ class MainAppClass:
             print(e)
         self.CommandHandler.stop()
         self.RobotController.stop()
+        self.ModbusRTUHandler.stop()
+        self.ModbusTCPHandler.stop()
 
         event.accept()
 

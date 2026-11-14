@@ -61,12 +61,12 @@ class CycleFlags:
 class CycleOps:
     """Операции цикла поверх RobotController (синхронные)."""
 
-    def __init__(self, rc, logger, pallet=None):
+    def __init__(self, rc, logger, blinker, pallet=None):
         self.rc = rc
         self.log = logger
         self.gui = logger.getChild("gui.ops")
-        self.machines = {1: CncMachine(1, rc, logger),
-                         2: CncMachine(2, rc, logger)}
+        self.machines = {1: CncMachine(1, rc, logger, blinker),
+                         2: CncMachine(2, rc, logger, blinker)}
         self.grippers = {1: Gripper(1, rc, logger),
                          2: Gripper(2, rc, logger)}
         self.pallet = pallet or PalletManager(rc, logger)

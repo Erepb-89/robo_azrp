@@ -1,3 +1,4 @@
+import threading
 import time
 from logging import Logger
 
@@ -5,7 +6,8 @@ from pymodbus import FramerType
 from pymodbus.client import ModbusTcpClient, ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 
-from config import RETRIES, SERVER_HOST, SERVER_PORT, POLL_INTERVAL
+from config import RETRIES, SERVER_HOST, SERVER_PORT, POLL_INTERVAL, PORT, SLAVE_ID, RED_HOLDING, GREEN_HOLDING, \
+    PERIOD_S, DUTY
 
 
 class ModbusTCPManager:
@@ -13,6 +15,7 @@ class ModbusTCPManager:
         self.logger = None
         self.logger = logger
         self.heartbeat_cb = heartbeat_cb
+        self.stop_event = threading.Event()
 
     def run_sync_client(self):
         # Создаем объект клиента
@@ -50,81 +53,108 @@ class ModbusTCPManager:
             sleep_time = max(0.0, POLL_INTERVAL - elapsed)
             time.sleep(sleep_time)
 
+    def stop(self) -> None:
+        self.stop_event.set()
 
 class ModbusRTUManager:
-    def __init__(self):  # , logger, heartbeat_cb=None):
+    def __init__(self, logger, heartbeat_cb=None):
         self.logger = None
-        # self.logger = logger
-        # self.heartbeat_cb = heartbeat_cb
+        self.logger = logger
+        self.heartbeat_cb = heartbeat_cb
+        self.stop_event = threading.Event()
+        # Создаем объект клиента
+        self.client = ModbusSerialClient(framer=FramerType.RTU,
+                                         port='/dev/ttyUSB0',
+                                         baudrate=9600,
+                                         parity='N',
+                                         bytesize=8,
+                                         stopbits=2,
+                                         retries=RETRIES,
+                                         timeout=0.5)
 
     def run_sync_client(self):
-        # Создаем объект клиента
-        client = ModbusSerialClient(framer=FramerType.RTU,
-                                    port='/dev/ttyUSB0',
-                                    baudrate=9600,
-                                    parity='N',
-                                    bytesize=8,
-                                    stopbits=1,
-                                    retries=RETRIES,
-                                    timeout=0.5)
+        with self.client:
+            try:
+                self.client.connect()
+                print("Соединение открыто")
+
+            except ModbusException as e:
+                # self.logger.error(f"Error in Modbus RTU handler loop: {e}")
+                print(f"Произошла ошибка Modbus: {e}")
+            except Exception as e:
+                # self.logger.error(f"Error in Modbus RTU handler: {e}")
+                print(f"Произошла другая ошибка: {e}")
+            finally:
+                self.client.close()
+                print("Соединение закрыто")
+
+            if self.heartbeat_cb:
+                try:
+                    self.heartbeat_cb('modbus RTU')
+                except Exception:
+                    pass
+
+    def stop(self) -> None:
+        self.stop_event.set()
+
+class Blinker:
+    def __init__(self, client):
+        self.client = client
+        self.blinking = True
+
+    def write_coils(self, address, values):
+        return self.client.write_coils(address, values, device_id=SLAVE_ID)
+
+    def write_holdings(self, address, values):
+        return self.client.write_registers(address, values, device_id=SLAVE_ID)
+
+    def stop_blinking(self):
+        self.blinking = False
+        self.write_coils(9, [0])
+        self.write_holdings(RED_HOLDING, [0, 0, 0])
+
+    def green_light(self):
+        self.write_coils(9, [1])
+        self.write_holdings(GREEN_HOLDING, [128])
+
+    def start_blinking(self, state, color):
+        val = [128] if state else [0]
+        holding_color = GREEN_HOLDING
+        if color == 'G':
+            holding_color = GREEN_HOLDING
+        elif color == 'Y' and state == False:
+            holding_color = RED_HOLDING
+            val = [0, 0]
+        elif color == 'Y' and state == True:
+            holding_color = RED_HOLDING
+            val = [128, 128]
+        elif color == 'R':
+            holding_color = RED_HOLDING
+
+        self.write_holdings(holding_color, val)
+
+    def blink(self, color):
+        state = True
+        self.write_coils(9, [1])
 
         try:
-            client.connect()
-            print("Соединение открыто")
+            while self.blinking:
+                try:
+                    self.start_blinking(state, color)
+                except (ModbusException, OSError) as exc:
+                    print(f"Ошибка обмена: {exc}")
 
-            address = 100
-
-            # read
-            rr = client.read_holding_registers(address, count=4, device_id=2)
-
-            if rr.isError():
-                print(f"Ошибка чтения: {rr.exception_code}")
-            else:
-                print(f"Успешно прочитано: {rr.registers}")
-                print(f"Значение первого регистра: {rr.registers[0]}")
-                float_values = client.convert_from_registers(rr.registers,
-                                                             data_type=ModbusSerialClient.DATATYPE.FLOAT32,
-                                                             word_order='little',
-                                                             string_encoding=list[float])
-                print(float_values)
-
-            # write
-            # write_result = client.write_register(1, value=123, device_id=2)  # Записать 123 в регистр 10
-            # if write_result.isError():
-            #     print(f"Ошибка записи: {write_result.exception_code}")
-            # else:
-            #     print("Значение записано")
-
-            # write float
-            # float_for_write = 6.784
-            # float_to_regs = client.convert_to_registers(float_values,
-            #                                             data_type=ModbusSerialClient.DATATYPE.FLOAT32,
-            #                                             word_order='little')
-            #
-            # write_result = client.write_registers(3, values=float_to_regs, device_id=2)  # Записать 123 в регис
-
-            # coils
-            coils = client.read_coils(0, count=4, device_id=2)
-            if coils.isError():
-                print(f"Ошибка чтения: {coils.exception_code}")
-            else:
-                print(f"Успешно прочитано: {coils.bits}")
-
-        except ModbusException as e:
-            # self.logger.error(f"Error in Modbus RTU handler loop: {e}")
-            print(f"Произошла ошибка Modbus: {e}")
-        except Exception as e:
-            # self.logger.error(f"Error in Modbus RTU handler: {e}")
-            print(f"Произошла другая ошибка: {e}")
+                time.sleep(PERIOD_S * (DUTY if state else 1 - DUTY))
+                state = not state
+        except KeyboardInterrupt:
+            pass
         finally:
-            client.close()
-            print("Соединение закрыто")
-
-        # if self.heartbeat_cb:
-        #     try:
-        #         self.heartbeat_cb('modbus RTU')
-        #     except Exception:
-        #         pass
+            try:
+                self.stop_blinking()
+            except (ModbusException, OSError):
+                pass
+            self.client.close()
+            print("\nВыходы выключены, соединение закрыто")
 
 # if __name__ == "__main__":
 # tcp_manager = ModbusTCPManager()
