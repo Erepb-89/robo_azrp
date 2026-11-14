@@ -198,9 +198,29 @@ MAP_STATUS_WARN = "padding:1px 4px; color:#e65100; background:#fff3e0;"
 MAP_STATUS_ALM = "padding:1px 4px; color:#b71c1c; background:#ffcdd2;"
 MAP_STATUS_OFF = "padding:1px 4px; color:#9e9e9e; background:#f5f5f5;"
 
-# Modbus
+# Modbus TCP
 # Настройка параметров подключения
 SERVER_HOST = '192.168.0.5'
 SERVER_PORT = 502
 POLL_INTERVAL = 2.0  # цикл опроса в секундах
 RETRIES = 3
+
+# Modbus RTU
+PORT = "/dev/ttyUSB0"
+# PORT = "COM8"
+BAUDRATE = 9600
+BYTESIZE = 8
+PARITY = "N"
+STOPBITS = 2
+SLAVE_ID = 242
+
+PERIOD_S = 1.0
+DUTY = 0.5
+
+YELLOW_LED = 'Y'
+RED_LED = 'R'
+GREEN_LED = 'G'
+
+RED_HOLDING = 2011
+GREEN_HOLDING = 2012
+BLUE_HOLDING = 2013

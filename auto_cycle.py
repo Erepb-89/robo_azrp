@@ -18,10 +18,11 @@ from states_modes_errors import MachineState, Result, LastError
 class AutoCycle(threading.Thread):
     """Поток главного цикла авто-режима."""
 
-    def __init__(self, rc, logger, heartbeat_cb=None):
+    def __init__(self, rc, logger, blinker, heartbeat_cb=None):
         super().__init__(daemon=True, name="AutoCycleThread")
         self.rc = rc
         self.log = logger
+        self.blinker = blinker
         self.gui = logger.getChild("gui.cycle")
         self.heartbeat = heartbeat_cb
         self.stop = threading.Event()
@@ -30,7 +31,7 @@ class AutoCycle(threading.Thread):
         self.running = False
         self.resume_pending = False
         self.cycle_state = 'idle'
-        self.ops = CycleOps(rc, logger)
+        self.ops = CycleOps(rc, logger, blinker)
         self.flags = CycleFlags()
 
     # ── управление ───────────────────────────────────────────────────────────
