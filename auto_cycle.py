@@ -37,6 +37,9 @@ class AutoCycle(threading.Thread):
     # ── управление ───────────────────────────────────────────────────────────
 
     def request_start(self) -> None:
+        if not self.running:
+            self.set_cycle_state(
+                'waiting_resume' if self.resume_pending else 'waiting_start')
         self.start_request.set()
 
     def request_stop(self) -> None:
@@ -102,16 +105,25 @@ class AutoCycle(threading.Thread):
                 continue
             self.start_request.clear()
             self.abort.clear()
-            self.running = True
-            self.set_cycle_state('running')
+            self.running = False
+            self.set_cycle_state(
+                'waiting_resume' if self.resume_pending
+                else 'waiting_start')
             try:
                 self.execute_cycle()
             except Exception as e:
                 self.log.exception(f"AutoCycle error: {e}")
                 self.rc.message(f"Автоцикл: ошибка {e}", 'error')
             finally:
+                if self.abort.is_set() and not self.stop.is_set():
+                    if self.running:
+                        self.resume_pending = not self.all_complete(
+                            self.flags)
+                elif not self.abort.is_set():
+                    self.resume_pending = False
                 self.running = False
-                self.set_cycle_state('idle')
+                self.set_cycle_state(
+                    'waiting_resume' if self.resume_pending else 'idle')
         self.log.info("AutoCycle thread stopped")
 
     # ── главный цикл (авто) ─────────────────────────────────────────────
@@ -132,6 +144,8 @@ class AutoCycle(threading.Thread):
             self.rc.message("Автоцикл: СТАРТ не подтверждён", 'warning')
             return
 
+        self.running = True
+        self.set_cycle_state('running')
         self.rc.io.set_do(DO.M_LampRun, True)
 
         # Не начинаем движение, пока не подтверждён выход из станка

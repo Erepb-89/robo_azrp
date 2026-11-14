@@ -34,12 +34,12 @@ class MainAppClass:
             name="ModbusRTUHandlerThread", daemon=True)
         self.ModbusRTUHandlerThread.start()
 
-        self.blinker = Blinker(self.ModbusRTUHandler.client)
+        self.Blinker = Blinker(self.ModbusRTUHandler.client, self.logger)
 
         self.RobotController = RobotController(ROBOT_IP,
                                                self.cmd_queue,
                                                self.logger,
-                                               self.blinker,
+                                               self.Blinker,
                                                heartbeat_cb=self.heartbit.beat)
         self.ControllerThread = threading.Thread(
             target=self.RobotController.run,
@@ -95,6 +95,7 @@ class MainAppClass:
             print(e)
         self.CommandHandler.stop()
         self.RobotController.stop()
+        self.Blinker.close()
         self.ModbusRTUHandler.stop()
         self.ModbusTCPHandler.stop()
 
