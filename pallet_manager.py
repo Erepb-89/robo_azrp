@@ -148,6 +148,19 @@ class PalletManager:
                 ],
             }
 
+    def reset_memory(self) -> None:
+        """Сбросить память о заготовках/деталях, не двигая полки."""
+        with self._lock:
+            for cell in self.cells.values():
+                cell.state = CellState.Raw
+                cell.machine = None
+            if self._open_shelf in self.shelves:
+                self.shelf_idx = self.shelves.index(self._open_shelf)
+            else:
+                self.shelf_idx = 0
+        self.rc.message("Паллет: память ячеек сброшена",
+                        source='gui.pallet')
+
     # ── геометрия ────────────────────────────────────────────────────────────
 
     def point_taught(self, name) -> bool:

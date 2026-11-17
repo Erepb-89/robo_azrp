@@ -3,8 +3,8 @@
 
 Состояния: M_state (NotActive/LoadWorkpiece/Complete/Error), флаги
 G1IsEmptyFlag, isMachineLoad[1,2], LastWorkpiece[1,2]. NotActive также
-означает ожидание заготовки/смены полки. СТОП — немедленный hold и флаг
-abort, состояние сохраняется; повторный СТАРТ продолжает с места.
+означает ожидание заготовки/смены полки. ПАУЗА — немедленный hold с
+сохранением состояния; СТОП — hold и полный сброс памяти цикла.
 """
 import threading
 import time
@@ -34,27 +34,70 @@ class AutoCycle(threading.Thread):
         self.ops = CycleOps(rc, logger, blinker)
         self.flags = CycleFlags()
 
+        self._lock = threading.RLock()
+        self._wake = threading.Event()
+        self._control = None  # 'pause' | 'stop'
+        self._busy = False    # поток внутри execute_cycle
+
     # ── управление ───────────────────────────────────────────────────────────
 
     def request_start(self) -> None:
-        if not self.running:
-            self.set_cycle_state(
-                'waiting_resume' if self.resume_pending else 'waiting_start')
-        self.start_request.set()
+        with self._lock:
+            if not self.running and self._control is None:
+                self.set_cycle_state(
+                    'waiting_resume' if self.resume_pending
+                    else 'waiting_start')
+            self.start_request.set()
+            self._wake.set()
+
+    def request_pause(self) -> None:
+        """ПАУЗА: немедленный hold, состояние сохраняется."""
+        with self._lock:
+            if self._control != 'stop':
+                self._control = 'pause'
+            self.abort.set()
+            self.start_request.clear()
+            self._wake.set()
+        self._hold()
 
     def request_stop(self) -> None:
-        """СТОП: немедленный hold, состояние сохраняется."""
-        self.abort.set()
+        """СТОП: немедленный hold и полный сброс памяти цикла."""
+        with self._lock:
+            self._control = 'stop'
+            self.abort.set()
+            self.start_request.clear()
+            self.resume_pending = False
+            self._wake.set()
+        self._hold()
+
+    def _hold(self) -> None:
         try:
             self.rc.manipulator_stop_drive()
         except Exception as err:
             self.rc.state.update(last_error=LastError.err_cycle_aborted)
             print(err)
 
+    def _apply_reset(self) -> None:
+        """Сброс логической памяти цикла. Вызывать под self._lock."""
+        self.flags.reset()
+        self.ops.reset_memory()
+        self.resume_pending = False
+        self.running = False
+        self._control = None
+        self.set_cycle_state('idle')
+        self.gui.info("Автоцикл: память сброшена")
+
+    def is_active(self) -> bool:
+        """Есть ли запрошенный/выполняющийся цикл."""
+        with self._lock:
+            return bool(self._busy or self._control is not None
+                        or self.cycle_state != 'idle')
+
     def shutdown(self) -> None:
         self.stop.set()
         self.abort.set()
         self.start_request.set()
+        self._wake.set()
 
     # ── состояние для GUI ────────────────────────────────────────────────────
 
@@ -101,29 +144,50 @@ class AutoCycle(threading.Thread):
                          daemon=True).start()
 
         while not self.stop.is_set():
-            if not self.start_request.wait(timeout=0.5):
+            if not self._wake.wait(timeout=0.5):
                 continue
-            self.start_request.clear()
-            self.abort.clear()
-            self.running = False
-            self.set_cycle_state(
-                'waiting_resume' if self.resume_pending
-                else 'waiting_start')
+            self._wake.clear()
+
+            with self._lock:
+                if self._control == 'stop':
+                    self._apply_reset()
+                elif self._control == 'pause':
+                    self._control = None
+                    if not self._busy and self.cycle_state == 'waiting_start':
+                        self.set_cycle_state('idle')
+
+                if not self.start_request.is_set() or self.stop.is_set():
+                    continue
+
+                self.start_request.clear()
+                self._busy = True
+                self.abort.clear()
+                self.running = False
+                self.set_cycle_state(
+                    'waiting_resume' if self.resume_pending
+                    else 'waiting_start')
+
             try:
                 self.execute_cycle()
             except Exception as e:
                 self.log.exception(f"AutoCycle error: {e}")
                 self.rc.message(f"Автоцикл: ошибка {e}", 'error')
             finally:
-                if self.abort.is_set() and not self.stop.is_set():
-                    if self.running:
-                        self.resume_pending = not self.all_complete(
-                            self.flags)
-                elif not self.abort.is_set():
-                    self.resume_pending = False
-                self.running = False
-                self.set_cycle_state(
-                    'waiting_resume' if self.resume_pending else 'idle')
+                with self._lock:
+                    if self._control == 'stop':
+                        self._apply_reset()
+                    else:
+                        if self.abort.is_set() and not self.stop.is_set():
+                            if self.running:
+                                self.resume_pending = not self.all_complete(
+                                    self.flags)
+                        elif not self.abort.is_set():
+                            self.resume_pending = False
+                        self.running = False
+                        self.set_cycle_state(
+                            'waiting_resume' if self.resume_pending
+                            else 'idle')
+                    self._busy = False
         self.log.info("AutoCycle thread stopped")
 
     # ── главный цикл (авто) ─────────────────────────────────────────────
@@ -142,6 +206,8 @@ class AutoCycle(threading.Thread):
                              timeout=3600,
                              abort_event=self.abort):
             self.rc.message("Автоцикл: СТАРТ не подтверждён", 'warning')
+            return
+        if self.abort.is_set():
             return
 
         self.running = True
@@ -193,7 +259,7 @@ class AutoCycle(threading.Thread):
             return
 
         if resume:
-            self.gui.info("Автоцикл: продолжение после СТОПа")
+            self.gui.info("Автоцикл: продолжение после ПАУЗЫ")
         else:
             self.gui.info("Автоцикл: новый цикл")
 
@@ -201,13 +267,15 @@ class AutoCycle(threading.Thread):
         try:
             self.cycle_inner(self.ops, self.flags)
         finally:
+            stop_requested = self._control == 'stop'
             self.resume_pending = (
-                self.abort.is_set()
+                not stop_requested
+                and self.abort.is_set()
                 and not self.stop.is_set()
                 and not self.all_complete(self.flags))
             if self.resume_pending:
                 self.gui.info(
-                    "Автоцикл: остановлен, состояние сохранено для продолжения")
+                    "Автоцикл: приостановлен, состояние сохранено для продолжения")
             self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
                 self.rc.message("Автоцикл: завершён", "warning")
@@ -215,9 +283,9 @@ class AutoCycle(threading.Thread):
 
     def cycle_inner(self, ops: CycleOps, flags: CycleFlags) -> None:
         while not self.abort.is_set() and not self.stop.is_set():
-            # Физический СТОП: сигнал START/STOP сброшен
+            # Физический СТОП: сигнал START/STOP сброшен (пауза с сохранением)
             if not self.rc.io.get_di(DI.START_STOP):
-                self.rc.message("Автоцикл: СТОП по кнопке", "warning")
+                self.rc.message("Автоцикл: ПАУЗА по кнопке", "warning")
                 self.abort.set()
                 break
 
@@ -229,7 +297,7 @@ class AutoCycle(threading.Thread):
                         self.rc.message(
                             f"Автоцикл: ошибка укладки M{pending_place}, "
                             "движение остановлено", 'error')
-                        self.request_stop()
+                        self.request_pause()
                     break
                 if self.abort.is_set():
                     break
@@ -243,7 +311,7 @@ class AutoCycle(threading.Thread):
                     self.rc.message(
                         f"Автоцикл: ошибка M{m}, движение остановлено",
                         'error')
-                    self.request_stop()
+                    self.request_pause()
                     break
                 if self.abort.is_set():
                     break
@@ -258,13 +326,12 @@ class AutoCycle(threading.Thread):
 
     def set_complete(self, m: int, flags: CycleFlags) -> None:
         flags.m_state[m] = MachineState.Complete
-        self.gui.info("M%d: обработка завершена", m)
+        self.gui.info(f"M{m}: обработка завершена")
 
     def _flush_pending_place(self, m: int, ops: CycleOps,
                              flags: CycleFlags) -> bool:
         addr = flags.place_addr[m]
-        self.gui.info("M%d: отложенная укладка %s (%s)",
-                      m, addr, ops.cell_state_name(addr))
+        self.gui.info(f"M{m}: отложенная укладка {addr} {(ops.cell_state_name(addr))})")
         if ops.place_part_on_table(m, flags, self.abort) != Result.NoError:
             self.set_error(m, flags)
             return False
@@ -330,7 +397,7 @@ class AutoCycle(threading.Thread):
                     flags.m_state[m] = MachineState.LoadWorkpiece
                     return
             else:
-                # Новая заготовка уже в гриппере 1 (продолжение после СТОПа)
+                # Новая заготовка уже в гриппере 1 (продолжение после ПАУЗЫ)
                 if flags.pick_addr[m] is None:
                     self.set_error(m, flags)
                     return
@@ -360,7 +427,7 @@ class AutoCycle(threading.Thread):
             self.set_complete(m, flags)
             return
         if not flags.g1_is_empty:
-            # Деталь уже взята для этого станка (продолжение после СТОПа)
+            # Деталь уже взята для этого станка (продолжение после ПАУЗЫ)
             if flags.pick_addr[m] is None:
                 self.set_error(m, flags)
                 return

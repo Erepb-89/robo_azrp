@@ -19,8 +19,8 @@ class CmdType(Enum):
     START_SIMPLE_JOYSTICK = auto()
     MOTION_DONE = auto()  # физ. остановка движения {'ok': bool, 'gen': int}
     AUTO_START = auto()   # запуск автоцикла
-    AUTO_STOP = auto()    # стоп автоцикла (hold, состояние сохраняется)
-    AUTO_PAUSE = auto()   # пауза движения
+    AUTO_STOP = auto()    # стоп автоцикла (hold + сброс памяти)
+    AUTO_PAUSE = auto()   # пауза автоцикла (состояние сохраняется)
 
 
 @dataclass
