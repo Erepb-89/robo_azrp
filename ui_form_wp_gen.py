@@ -435,15 +435,15 @@ class MainWindow(QMainWindow):
         btn_start.setStyleSheet(GREEN_BTN_STYLE)
         btn_start.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.AUTO_START, {}, source="GUI")))
-        btn_stop = QtWidgets.QPushButton("■ СТОП цикла")
-        btn_stop.setStyleSheet(STOP_BTN_STYLE)
-        btn_stop.clicked.connect(lambda: self.cmd_queue.put(
-            Command(CmdType.AUTO_STOP, {}, source="GUI")))
-        btn_pause = QtWidgets.QPushButton("|| ПАУЗА")
+        btn_pause = QtWidgets.QPushButton("|| ПАУЗА цикла")
         btn_pause.setStyleSheet(POWER_OFF_BTN_STYLE)
         btn_pause.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.AUTO_PAUSE, {}, source="GUI")))
-        for b in (btn_start, btn_stop, btn_pause):
+        btn_stop = QtWidgets.QPushButton("■ СТОП цикла (сброс)")
+        btn_stop.setStyleSheet(STOP_BTN_STYLE)
+        btn_stop.clicked.connect(lambda: self.cmd_queue.put(
+            Command(CmdType.AUTO_STOP, {}, source="GUI")))
+        for b in (btn_start, btn_pause, btn_stop):
             row.addWidget(b)
         root.addLayout(row)
 
@@ -571,7 +571,7 @@ class MainWindow(QMainWindow):
             """Обрабатывает переход состояния в терминальную зону. Возвращает True если переход был."""
             if prev < 200 and 200 <= current < 300:  # EXECUTION → FINISHED
                 self._add_log_entry(label, "✓", LOG_COLOR_SUCCESS)
-                QtWidgets.QMessageBox.information(self, "Выполнено", f"✓  {label}")
+                # QtWidgets.QMessageBox.information(self, "Выполнено", f"✓  {label}")
                 self._pending_cmd = ""
                 return True
             elif prev < 300 and 300 <= current < 400:  # EXECUTION → EXCEPTION

@@ -11,6 +11,7 @@ from utils import setup_logging
 from robot_controller import RobotController
 from ui_form_wp_gen import MainWindow
 from commands import Command, CmdType
+from ui.main_window import MainOperWindow
 
 from heartbeat import Heartbeat
 from watchdog_manager import WatchdogManager
@@ -77,6 +78,16 @@ class MainAppClass:
         )
         self.Form.closeEvent = self.on_close
         self.Form.show()
+
+        self.OperForm = MainOperWindow(
+            self.RobotController,
+            self.cmd_queue,
+            self.CommandHandler,
+            heartbeat=self.heartbit,
+            cmd_log_queue=self.gui_log_queue
+        )
+        self.OperForm.closeEvent = self.on_close
+        self.OperForm.show()
 
         self.watchdog.set_ready()
         self.logger.info("READY=1 sent")

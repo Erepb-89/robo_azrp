@@ -88,6 +88,10 @@ class CycleOps:
     def inside_any(self) -> bool:
         return any(self.inside_machine.values())
 
+    def reset_memory(self) -> None:
+        """Сброс памяти о заготовках/деталях. inside_machine — safety."""
+        self.pallet.reset_memory()
+
     def require_outside(self) -> bool:
         if self.inside_any():
             self.rc.message(

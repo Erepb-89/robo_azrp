@@ -595,10 +595,20 @@ class RobotController:
         self.message("Автоцикл: запрошен СТАРТ")
 
     def stop_auto_cycle(self) -> None:
-        """Стоп автоцикла: немедленный hold, состояние сохраняется."""
+        """Стоп автоцикла: hold и полный сброс памяти цикла."""
         if getattr(self, 'auto_cycle', None) is not None:
             self.auto_cycle.request_stop()
-        self.message("Автоцикл: запрошен СТОП")
+        self.message("Автоцикл: запрошен СТОП со сбросом")
+
+    def pause_auto_cycle(self) -> None:
+        """Пауза автоцикла с сохранением состояния (вне цикла — пауза движения)."""
+        auto_cycle = getattr(self, 'auto_cycle', None)
+        if auto_cycle is not None and auto_cycle.is_active():
+            auto_cycle.request_pause()
+            self.message("Автоцикл: пауза")
+        else:
+            self.manipulator_pause_drive()
+            self.message("Движение: пауза")
 
     def set_engineer_mode(self, enabled: bool) -> None:
         """Включает/выключает индикацию режима инженера."""
@@ -1163,7 +1173,7 @@ class RobotController:
                     self.stop_auto_cycle()
 
                 elif cmd.type == CmdType.AUTO_PAUSE:
-                    self.manipulator_pause_drive()
+                    self.pause_auto_cycle()
 
                 elif cmd.type == CmdType.SHUTDOWN:
                     self.log.info("Shutdown command received")
