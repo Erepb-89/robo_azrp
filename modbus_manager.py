@@ -18,6 +18,7 @@ class ModbusTCPManager:
         self.logger = logger
         self.heartbeat_cb = heartbeat_cb
         self.stop_event = threading.Event()
+        self.reg_result = []
 
     def run_sync_client(self):
         # Создаем объект клиента
@@ -35,11 +36,12 @@ class ModbusTCPManager:
             start_time = time.monotonic()
             try:
                 # 1. Чтение Discrete Inputs — адрес 0, количество 16
-                reg_result = client.read_discrete_inputs(address=0, count=16, device_id=1)
-                if not reg_result.isError():
-                    print(f"Значения регистров TCP: {reg_result.bits}")
+                self.reg_result = client.read_discrete_inputs(address=0, count=16, device_id=1)
+                if not self.reg_result.isError():
+                    # print(f"Значения регистров TCP: {self.reg_result.bits}")
+                    pass
                 else:
-                    print(f"Ошибка чтения регистров TCP: {reg_result}")
+                    self.logger.error(f"Ошибка чтения регистров TCP: {self.reg_result}")
 
             except ModbusException as e:
                 print(f"Error in Modbus TCP handler loop: {e}")
@@ -123,7 +125,7 @@ class Blinker:
 
     def _write_coils(self, address, values):
         with self._io_lock:
-            return self.client._write_coils(
+            return self.client.write_coils(
                 address, values, device_id=SLAVE_ID)
 
     def _write_holdings(self, address, values):
@@ -165,6 +167,13 @@ class Blinker:
         """Ровный зелёный."""
         self._set_mode(GREEN_LED, False, True)
 
+    def solid(self, color: str) -> None:
+        """Включить GREEN_LED/YELLOW_LED/RED_LED без блокировки."""
+        color = str(color).upper()
+        if color not in (GREEN_LED, YELLOW_LED, RED_LED):
+            raise ValueError(f"Неизвестный цвет WB-LED: {color!r}")
+        self._set_mode(color, False, True)
+
     def blink(self, color: str) -> None:
         """Включить мигание GREEN_LED/YELLOW_LED/RED_LED без блокировки."""
         color = str(color).upper()
@@ -177,7 +186,12 @@ class Blinker:
         if pattern is LedPattern.OFF:
             self.stop_blinking()
         elif pattern is LedPattern.GREEN_SOLID:
+            # self.solid(GREEN_LED)
             self.green_light()
+        elif pattern is LedPattern.YELLOW_SOLID:
+            self.solid(YELLOW_LED)
+        elif pattern is LedPattern.RED_SOLID:
+            self.solid(RED_LED)
         elif pattern is LedPattern.GREEN_BLINK:
             self.blink(GREEN_LED)
         elif pattern is LedPattern.YELLOW_BLINK:
@@ -194,6 +208,7 @@ class Blinker:
     def _worker(self) -> None:
         phase_on = True
         last_mode = None
+        time.sleep(2)
         try:
             while not self._stop.is_set():
                 with self._state_lock:

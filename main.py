@@ -37,10 +37,18 @@ class MainAppClass:
 
         self.Blinker = Blinker(self.ModbusRTUHandler.client, self.logger)
 
+        self.ModbusTCPHandler = ModbusTCPManager(logger=self.logger,
+                                                 heartbeat_cb=self.heartbit.beat)
+        self.ModbusTCPHandlerThread = threading.Thread(
+            target=self.ModbusTCPHandler.run_sync_client,
+            name="ModbusTCPHandlerThread", daemon=True)
+        self.ModbusTCPHandlerThread.start()
+
         self.RobotController = RobotController(ROBOT_IP,
                                                self.cmd_queue,
                                                self.logger,
                                                self.Blinker,
+                                               self.ModbusTCPHandler,
                                                heartbeat_cb=self.heartbit.beat)
         self.ControllerThread = threading.Thread(
             target=self.RobotController.run,
@@ -59,13 +67,6 @@ class MainAppClass:
         self.watchdog = WatchdogManager(self.heartbit, interval_sec=5.0,
                                         logger=self.logger)
         self.watchdog.start()
-
-        self.ModbusTCPHandler = ModbusTCPManager(logger=self.logger,
-                                                 heartbeat_cb=self.heartbit.beat)
-        self.ModbusTCPHandlerThread = threading.Thread(
-            target=self.ModbusTCPHandler.run_sync_client,
-            name="ModbusTCPHandlerThread", daemon=True)
-        self.ModbusTCPHandlerThread.start()
 
         self.App = QtWidgets.QApplication([])
 

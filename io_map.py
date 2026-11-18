@@ -118,22 +118,22 @@ DI_DESC: Dict[DI, str] = {
 # Modbus signals
 class DIModbus(IntEnum):
     """Порты ввода Modbus модуля Reallab."""
-    START_STOP = 1  # Старт/стоп работы робота («START/STOP»)
-    M1_DoorAuto = 2  # Станок 1. Дверь в автоматическом режиме
-    M2_DoorAuto = 3  # Станок 2. Дверь в автоматическом режиме
-    G1_Switch = 4  # Переключение гриппера 1
-    G2_Switch = 5  # Переключение гриппера 2
-    Pause_Resume = 6  # Пауза/Продолжить
-    C1_PneumoSensorOpened = 7  # Сигнал с концевика Поршень 1 открыт
-    C1_PneumoSensorClosed = 8  # Сигнал с концевика Поршень 1 закрыт
-    C2_PneumoSensorOpened = 9  # Сигнал с концевика Поршень 2 открыт
-    C2_PneumoSensorClosed = 10  # Сигнал с концевика Поршень 2 закрыт
-    C_Sensor = 11  # Тележка установлена
-    M1_DoorOpen = 12  # Станок 1. Открыть дверь
-    M1_DoorClose = 13  # Станок 1. Закрыть дверь
-    M2_DoorOpen = 14  # Станок 2. Открыть дверь
-    M2_DoorClose = 15  # Станок 2. Закрыть дверь
-    C_Fix = 16  # Зафиксировать тележку
+    START_STOP = 0  # Старт/стоп работы робота («START/STOP»)
+    M1_DoorAuto = 1  # Станок 1. Дверь в автоматическом режиме
+    M2_DoorAuto = 2  # Станок 2. Дверь в автоматическом режиме
+    G1_Switch = 3  # Переключение гриппера 1
+    G2_Switch = 4  # Переключение гриппера 2
+    Pause_Resume = 5  # Пауза/Продолжить
+    C1_PneumoSensorOpened = 6  # Сигнал с концевика Поршень 1 открыт
+    C1_PneumoSensorClosed = 7  # Сигнал с концевика Поршень 1 закрыт
+    C2_PneumoSensorOpened = 8  # Сигнал с концевика Поршень 2 открыт
+    C2_PneumoSensorClosed = 9  # Сигнал с концевика Поршень 2 закрыт
+    C_Sensor = 10  # Тележка установлена
+    M1_DoorOpen = 11  # Станок 1. Открыть дверь
+    M1_DoorClose = 12  # Станок 1. Закрыть дверь
+    M2_DoorOpen = 13  # Станок 2. Открыть дверь
+    M2_DoorClose = 14  # Станок 2. Закрыть дверь
+    C_Fix = 15  # Зафиксировать тележку
 
 
 DI_MODBUS_DESC: Dict[DIModbus, str] = {
@@ -263,6 +263,7 @@ GRIPPER_DO: Dict[int, DO] = {1: DO.G1_Clamp, 2: DO.G2_Clamp}
 
 # Инверсные датчики (заполняется после прозвонки, логика не правится).
 DI_INVERT: frozenset = frozenset()
+DI_MB_INVERT: frozenset = frozenset() # reallab
 
 IO_COUNT = 24
 
@@ -286,3 +287,8 @@ def gripper_do(g: int) -> int:
 def di_active(di: DI, raw: bool) -> bool:
     """Учёт полярности датчика в одном месте."""
     return (not raw) if di in DI_INVERT else raw
+
+
+def di_mb_active(di: DIModbus, raw: bool) -> bool:
+    """Учёт полярности датчика в одном месте."""
+    return (not raw) if di in DI_MB_INVERT else raw

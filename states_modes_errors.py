@@ -123,6 +123,7 @@ class LastError(Enum):
     err_gripper_not_relaxed: int = 30    # Гриппер не разжался
     err_cycle_aborted: int = 31          # Автоцикл прерван (СТОП)
     err_waypoint_not_taught: int = 32    # Точка не обучена
+    err_modbus_tcp_reading: int = 33     # Error Modbus TCP reading
 
 
 HARDWARE_ERRORS = frozenset({
