@@ -11,7 +11,7 @@ import time
 
 from config import IO_POLL_SEC
 from cycle_ops import CycleFlags, CycleOps
-from io_map import DI, DO
+from io_map import DIModbus
 from states_modes_errors import MachineState, Result, LastError
 
 
@@ -195,16 +195,11 @@ class AutoCycle(threading.Thread):
     def execute_cycle(self) -> None:
         resume = self.resume_pending
 
-        # Сброс аварийных ламп
-        self.rc.io.machine_do(1, 'LampAlarm', False) # uncomment on commissioning
-        self.rc.io.machine_do(2, 'LampAlarm', False) # uncomment on commissioning
-        print("lamps are on")
-
         # Ожидание физической кнопки СТАРТ
-        if not self.rc.io.wait_di(DI.START_STOP,
-                             True,
-                             timeout=3600,
-                             abort_event=self.abort):
+        if not self.rc.wait_mb_di(DIModbus.START_STOP,
+                                  True,
+                                  timeout=3600,
+                                  abort_event=self.abort):
             self.rc.message("Автоцикл: СТАРТ не подтверждён", 'warning')
             return
         if self.abort.is_set():
@@ -212,13 +207,11 @@ class AutoCycle(threading.Thread):
 
         self.running = True
         self.set_cycle_state('running')
-        self.rc.io.set_do(DO.M_LampRun, True)
 
         # Не начинаем движение, пока не подтверждён выход из станка
         if self.ops.inside_any():
             self.rc.message(
                 "Автоцикл: не подтверждён выход из станка", 'error')
-            self.rc.io.set_do(DO.M_LampRun, False)
             return
 
         # Сброс ошибок (по станкам)
@@ -226,23 +219,19 @@ class AutoCycle(threading.Thread):
         self.ops.error_reset(2, self.flags, self.abort)
         if any(self.flags.m_state[m] == MachineState.Error for m in (1, 2)):
             self.rc.message("Автоцикл: ошибка станка не сброшена", 'error')
-            self.rc.io.set_do(DO.M_LampRun, False)
             return
 
-        # Проверка авто-режима дверей
-        door_auto = {1: self.rc.io.machine_di(1, 'DoorAuto'),
-                     2: self.rc.io.machine_di(2, 'DoorAuto')}
-        for m in (1, 2):
-            self.rc.io.machine_do(m, 'LampAuto', door_auto[m])
+        # Проверка авто-режима дверей (Reallab Modbus)
+        door_auto = {1: self.rc.machine_mb_di(1, 'DoorAuto'),
+                     2: self.rc.machine_mb_di(2, 'DoorAuto')}
         if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
             self.rc.message("Двери не в автоматическом режиме", 'error')
-            self.rc.io.set_do(DO.M_LampRun, False)
             return
 
         # Перезагрузка грипперов 1, 2
-        if self.rc.io.gripper_di(1, 'Switch'):
+        if self.rc.gripper_mb_di(1, 'Switch'):
             self.ops.grippers[1].reset(self.abort)
-        if self.rc.io.gripper_di(2, 'Switch'):
+        if self.rc.gripper_mb_di(2, 'Switch'):
             self.ops.grippers[2].reset(self.abort)
 
         if not resume:
@@ -250,12 +239,10 @@ class AutoCycle(threading.Thread):
 
         # Инициализация движения
         if not self.ops.init_move(self.abort):
-            self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
                 self.rc.message("Автоцикл: InitMove не выполнен", 'error')
             return
         if self.abort.is_set():
-            self.rc.io.set_do(DO.M_LampRun, False)
             return
 
         if resume:
@@ -276,7 +263,6 @@ class AutoCycle(threading.Thread):
             if self.resume_pending:
                 self.gui.info(
                     "Автоцикл: приостановлен, состояние сохранено для продолжения")
-            self.rc.io.set_do(DO.M_LampRun, False)
             if not self.abort.is_set():
                 self.rc.message("Автоцикл: завершён", "warning")
             self.sync_state()
@@ -284,7 +270,7 @@ class AutoCycle(threading.Thread):
     def cycle_inner(self, ops: CycleOps, flags: CycleFlags) -> None:
         while not self.abort.is_set() and not self.stop.is_set():
             # Физический СТОП: сигнал START/STOP сброшен (пауза с сохранением)
-            if not self.rc.io.get_di(DI.START_STOP):
+            if not self.rc.get_modbus_di(DIModbus.START_STOP):
                 self.rc.message("Автоцикл: ПАУЗА по кнопке", "warning")
                 self.abort.set()
                 break
@@ -305,6 +291,12 @@ class AutoCycle(threading.Thread):
             for m in (1, 2): # надо ли в цикле или лучше по отдельности???
                 self.sync_state()
                 if not self.machine_ready(m):
+                    if flags.m_state[m] == MachineState.Error:
+                        self.rc.message(
+                            f"Автоцикл: авария M{m}, движение остановлено",
+                            'error')
+                        self.request_pause()
+                        break
                     continue
                 self.process_machine(m, ops, flags)
                 if flags.m_state[m] == MachineState.Error:
@@ -340,7 +332,16 @@ class AutoCycle(threading.Thread):
     def machine_ready(self, m: int) -> bool:
         if self.flags.m_state[m] in (MachineState.Error, MachineState.Complete):
             return False
-        if not self.rc.io.machine_di(m, 'DoorAuto'):
+        machine = self.ops.machines[m]
+        if machine.alarm_active():
+            self.rc.state.update(
+                last_error=(LastError.err_cnc1_alarm if m == 1
+                            else LastError.err_cnc2_alarm))
+            machine.lamp_alarm(True)
+            self.rc.message(f"M{m}: авария станка", 'error')
+            self.set_error(m, self.flags)
+            return False
+        if not self.rc.machine_mb_di(m, 'DoorAuto'):
             return False
         if not self.rc.io.machine_di(m, 'Ready'):
             return False

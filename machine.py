@@ -39,19 +39,35 @@ class CncMachine:
         return self.ops.move_to_safe(self.m, abort)
 
     def lamp_alarm(self, on: bool) -> bool:
-        self.blinker.blink("Y")
-        return self.io.machine_do(self.m, 'LampAlarm', on)
-
-    def lamp_auto(self, on: bool) -> bool:
-        return self.io.machine_do(self.m, 'LampAuto', on)
+        """Аварийная индикация на WB-LED (красное мигание)."""
+        if on:
+            self.blinker.blink("R")
+        return True
 
     def _di(self, role: str):
         return MACHINE_DI[self.m][role]
+
+    def _alarm_error(self) -> LastError:
+        return (LastError.err_cnc1_alarm if self.m == 1
+                else LastError.err_cnc2_alarm)
+
+    def alarm_active(self) -> bool:
+        return self.io.machine_di(self.m, 'Alarm')
+
+    def _check_alarm(self) -> Result:
+        if not self.alarm_active():
+            return Result.NoError
+        self.rc.state.update(last_error=self._alarm_error())
+        self.message(f"M{self.m}: авария станка", 'error')
+        self.lamp_alarm(True)
+        return Result.Error
 
     # ── проверки состояния ───────────────────────────────────────────────────
 
     def check_machine_state(self) -> Result:
         """Готов ли станок М к работе и открыта ли у него дверь."""
+        if self._check_alarm() != Result.NoError:
+            return Result.Error
         if not self.io.machine_di(self.m, 'Ready'):
             self.rc.state.update(last_error=LastError.err_cnc_not_ready)
             self.message("CNC Not Ready", 'error')
@@ -81,6 +97,8 @@ class CncMachine:
         self.io.machine_do(self.m, 'DoorOpenCMD', False)
 
     def wait_for_door_open(self, abort=None) -> Result:
+        if self._check_alarm() != Result.NoError:
+            return Result.Error
         if not self.io.machine_di(self.m, 'Ready'):
             self.rc.state.update(last_error=LastError.err_door_not_open)
             self.message("CNC Not Ready", 'error')
@@ -96,6 +114,8 @@ class CncMachine:
         return Result.NoError
 
     def wait_for_door_close(self, abort=None) -> Result:
+        if self._check_alarm() != Result.NoError:
+            return Result.Error
         self.close_door()
         if not self.io.wait_di(self._di('DoorCloseSQ'), True, MAX_D_SEC, abort):
             self.rc.state.update(last_error=LastError.err_door_not_close)
@@ -106,6 +126,12 @@ class CncMachine:
         return Result.NoError
 
     # ── патрон ───────────────────────────────────────────────────────────────
+
+    def _pulse_chuck(self, role: str) -> None:
+        self.io.machine_do(self.m, role, True)
+        time.sleep(CHUCK_PULSE_ON_SEC)
+        self.io.machine_do(self.m, role, False)
+        time.sleep(CHUCK_PULSE_OFF_SEC)
 
     def wait_for_chuck_relax(self, g: int, pick: bool, abort=None) -> Result:
         """Ожидание открытия патрона. При ошибке и pick==true — выход из станка,
@@ -140,10 +166,7 @@ class CncMachine:
                 if can_move_safe:
                     self._move_safe(abort)
                 return Result.Error
-            self.io.machine_do(self.m, 'SwitchChuck', True)
-            time.sleep(CHUCK_PULSE_ON_SEC)
-            self.io.machine_do(self.m, 'SwitchChuck', False)
-            time.sleep(CHUCK_PULSE_OFF_SEC)
+            self._pulse_chuck('ChuckOpen')
 
     def wait_for_chuck_clamp(self, g: int, abort=None,
                              exit_on_error: bool = False) -> Result:
@@ -177,15 +200,14 @@ class CncMachine:
                 if can_move_safe:
                     self._move_safe(abort)
                 return Result.Error
-            self.io.machine_do(self.m, 'SwitchChuck', True)
-            time.sleep(CHUCK_PULSE_ON_SEC)
-            self.io.machine_do(self.m, 'SwitchChuck', False)
-            time.sleep(CHUCK_PULSE_OFF_SEC)
+            self._pulse_chuck('ChuckClose')
 
     # ── пуск станка ──────────────────────────────────────────────────────────
 
     def start_cnc(self, abort=None) -> Result:
         """Импульс StartProcess, затем ожидание Ready."""
+        if self._check_alarm() != Result.NoError:
+            return Result.Error
         self.io.machine_do(self.m, 'StartProcess', True)
         time.sleep(CNC_START_PULSE_SEC)
         self.io.machine_do(self.m, 'StartProcess', False)

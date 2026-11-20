@@ -84,7 +84,7 @@ def _manipulator_error(state) -> bool:
 
 
 def _machine_manual(state) -> bool:
-    signals = getattr(state, 'signals', None) or {}
+    signals = getattr(state, 'mb_signals', None) or {}
     return any(
         key in signals and not signals[key]
         for key in ('M1_DoorAuto', 'M2_DoorAuto')

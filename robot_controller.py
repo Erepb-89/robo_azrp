@@ -11,7 +11,8 @@ from queue import Queue, Empty
 
 from API.source.ap_interface.io import IO
 from actions import actions
-from io_map import (DI, DO, MACHINE_DI, MACHINE_DO, GRIPPER_DI, GRIPPER_DO,
+from io_map import (DI, DO, MACHINE_DI, MACHINE_MB_DI, MACHINE_DO,
+                    GRIPPER_DI, GRIPPER_MB_DI, GRIPPER_DO,
                     di_active, DIModbus, di_mb_active)
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
@@ -620,6 +621,26 @@ class RobotController:
         for mb_di in DIModbus:
             snap[mb_di.name] = self.get_modbus_di(mb_di)
         return snap
+
+    def machine_mb_di(self, m: int, role: str) -> bool:
+        return self.get_modbus_di(MACHINE_MB_DI[m][role])
+
+    def gripper_mb_di(self, g: int, role: str) -> bool:
+        return self.get_modbus_di(GRIPPER_MB_DI[g][role])
+
+    def wait_mb_di(self, mb_di: DIModbus, value: bool, timeout: float,
+                   abort_event: Optional[threading.Event] = None) -> bool:
+        """Прерываемое ожидание Modbus-входа с тайм-аутом."""
+        deadline = time.monotonic() + timeout
+        while True:
+            if abort_event is not None and abort_event.is_set():
+                self.log.info(f"wait_mb_di {mb_di.name}: aborted")
+                return False
+            if self.get_modbus_di(mb_di) == bool(value):
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(IO_POLL_SEC)
 
     def message(self, text: str, level: str = 'info',
                 source: str = 'gui') -> None:
