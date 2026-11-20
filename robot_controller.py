@@ -71,6 +71,8 @@ class RobotState:
     last_message: Optional[str] = None
     cycle_state: str = 'idle'
     m_state: Dict[int, int] = field(default_factory=dict)
+    active_machines: Dict[int, bool] = field(
+        default_factory=lambda: {1: True, 2: True})
     flags: Dict[str, object] = field(default_factory=dict)
     mb_signals: Dict[str, bool] = field(default_factory=dict)
 
@@ -544,6 +546,8 @@ class RobotController:
 
         # Компоненты
         self.state = StateManager()
+        self._active_machines = {1: True, 2: True}
+        self._active_machines_lock = threading.Lock()
         self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
         # Раскомментить для отладки с манипулятором по месту Uncomment
         self.mc = MotionController(self.Robot, self.data, logger)
@@ -584,6 +588,43 @@ class RobotController:
 
     def get_state_snapshot(self) -> RobotState:
         return self.state.get_snapshot()
+
+    def get_active_machines(self) -> Dict[int, bool]:
+        with self._active_machines_lock:
+            return dict(self._active_machines)
+
+    def is_machine_active(self, m: int) -> bool:
+        with self._active_machines_lock:
+            return bool(self._active_machines.get(int(m), True))
+
+    def _machine_has_work(self, m: int) -> bool:
+        auto_cycle = getattr(self, 'auto_cycle', None)
+        flags = getattr(auto_cycle, 'flags', None)
+        if flags is not None:
+            is_load = bool(flags.is_machine_load.get(m))
+            machine_addr = flags.machine_addr.get(m)
+            place_addr = flags.place_addr.get(m)
+        else:
+            state_flags = self.state.get_field('flags') or {}
+            is_load = bool((state_flags.get('is_machine_load') or {}).get(m))
+            machine_addr = (state_flags.get('machine_addr') or {}).get(m)
+            place_addr = (state_flags.get('place_addr') or {}).get(m)
+        return is_load or machine_addr is not None or place_addr is not None
+
+    def set_machine_active(self, m: int, active: bool) -> bool:
+        m = int(m)
+        if m not in (1, 2):
+            return False
+        with self._active_machines_lock:
+            auto_cycle = getattr(self, 'auto_cycle', None)
+            if auto_cycle is not None and auto_cycle.is_active():
+                return False
+            if not active and self._machine_has_work(m):
+                return False
+            self._active_machines[m] = bool(active)
+            snapshot = dict(self._active_machines)
+        self.state.update(active_machines=snapshot)
+        return True
 
     def get_waypoints_snapshot(self) -> dict:
         return dict(self.data.waypoints)
@@ -658,6 +699,11 @@ class RobotController:
 
     def start_auto_cycle(self) -> None:
         """Запуск автоцикла (отдельный поток)."""
+        active = self.get_active_machines()
+        if not any(active.values()):
+            self.message(
+                "Автоцикл: оба станка отключены — запуск запрещён", 'error')
+            return
         if getattr(self, 'auto_cycle', None) is None:
             from auto_cycle import AutoCycle
             self.auto_cycle = AutoCycle(self, self.log, self.blinker,

@@ -64,10 +64,19 @@ def _last_error_is_hardware(value) -> bool:
     return False
 
 
+def _active_machines(state) -> dict:
+    """Активные станки; при отсутствии поля считаем активными оба."""
+    active = getattr(state, 'active_machines', None)
+    if not isinstance(active, dict):
+        return {1: True, 2: True}
+    return {1: bool(active.get(1, True)), 2: bool(active.get(2, True))}
+
+
 def _machine_error(state) -> bool:
     m_state = getattr(state, 'm_state', None) or {}
+    active = _active_machines(state)
     return any(
-        _matches(m_state.get(m), {MachineState.Error})
+        active[m] and _matches(m_state.get(m), {MachineState.Error})
         for m in (1, 2)
     )
 
@@ -86,9 +95,11 @@ def _manipulator_error(state) -> bool:
 
 def _machine_manual(state) -> bool:
     signals = getattr(state, 'mb_signals', None) or {}
+    active = _active_machines(state)
     return any(
-        key in signals and not signals[key]
-        for key in ('M1_DoorAuto', 'M2_DoorAuto')
+        active[m] and f'M{m}_DoorAuto' in signals
+        and not signals[f'M{m}_DoorAuto']
+        for m in (1, 2)
     )
 
 

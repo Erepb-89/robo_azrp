@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QLabel, QFrame, \
-    QListWidget, QListWidgetItem
+    QListWidget, QListWidgetItem, QCheckBox
 from PyQt5.QtGui import QColor
 from datetime import datetime
 
@@ -451,6 +451,25 @@ class MainWindow(QMainWindow):
             row.addWidget(b)
         root.addLayout(row)
 
+        # ── Активные станки ──
+        active_row = QtWidgets.QHBoxLayout()
+        self._cyc_m1_active = QCheckBox("М1 доступен")
+        self._cyc_m2_active = QCheckBox("М2 доступен")
+        try:
+            active = self.RobotController.get_active_machines()
+        except Exception:
+            active = {1: True, 2: True}
+        self._cyc_m1_active.setChecked(bool(active.get(1, True)))
+        self._cyc_m2_active.setChecked(bool(active.get(2, True)))
+        self._cyc_m1_active.toggled.connect(
+            lambda checked: self._on_machine_active_toggled(1, checked))
+        self._cyc_m2_active.toggled.connect(
+            lambda checked: self._on_machine_active_toggled(2, checked))
+        active_row.addWidget(self._cyc_m1_active)
+        active_row.addWidget(self._cyc_m2_active)
+        active_row.addStretch(1)
+        root.addLayout(active_row)
+
         # ── Состояние цикла и станков ──
         self._cyc_state = QLabel("Цикл: —")
         self._cyc_state.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -479,6 +498,29 @@ class MainWindow(QMainWindow):
 
         self.ui.tabWidget.addTab(tab, "Автоцикл")
 
+    def _on_machine_active_toggled(self, m: int, checked: bool) -> None:
+        """Переключение активности станка до запуска цикла."""
+        box = self._cyc_m1_active if m == 1 else self._cyc_m2_active
+        try:
+            accepted = self.RobotController.set_machine_active(m, checked)
+        except Exception as exc:
+            accepted = False
+            self.RobotController.log.error(
+                f"set_machine_active M{m}: {exc}")
+        if accepted:
+            return
+        box.blockSignals(True)
+        try:
+            box.setChecked(not checked)
+        finally:
+            box.blockSignals(False)
+        try:
+            self.RobotController.message(
+                f"М{m}: переключение недоступно "
+                "(цикл запущен или станок занят)", 'warning')
+        except Exception:
+            pass
+
     def _update_cycle_panel(self) -> None:
         """Обновляет состояние автоцикла и монитор сигналов."""
         try:
@@ -491,9 +533,29 @@ class MainWindow(QMainWindow):
         cs = getattr(state, 'cycle_state', 'idle')
         self._cyc_state.setText(f"Цикл: {cs}")
 
+        active = getattr(state, 'active_machines', None)
+        if not isinstance(active, dict):
+            try:
+                active = self.RobotController.get_active_machines()
+            except Exception:
+                active = {1: True, 2: True}
+        for m, box in ((1, self._cyc_m1_active), (2, self._cyc_m2_active)):
+            value = bool(active.get(m, True))
+            if box.isChecked() != value:
+                box.blockSignals(True)
+                try:
+                    box.setChecked(value)
+                finally:
+                    box.blockSignals(False)
+            box.setEnabled(cs == 'idle')
+
         m_state = getattr(state, 'm_state', {}) or {}
-        self._cyc_m1.setText(f"М1: {names.get(m_state.get(1, 0), '—')}")
-        self._cyc_m2.setText(f"М2: {names.get(m_state.get(2, 0), '—')}")
+        self._cyc_m1.setText(
+            "М1: Отключён" if not active.get(1, True)
+            else f"М1: {names.get(m_state.get(1, 0), '—')}")
+        self._cyc_m2.setText(
+            "М2: Отключён" if not active.get(2, True)
+            else f"М2: {names.get(m_state.get(2, 0), '—')}")
 
         fl = getattr(state, 'flags', {}) or {}
         il = fl.get('is_machine_load', {}) or {}
