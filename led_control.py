@@ -21,6 +21,8 @@ class LedPattern(Enum):
     GREEN_BLINK = auto()
     YELLOW_BLINK = auto()
     RED_BLINK = auto()
+    YELLOW_SOLID = auto()
+    RED_SOLID = auto()
 
 
 RED_CONTROLLER_STATES = {
@@ -82,7 +84,7 @@ def _manipulator_error(state) -> bool:
 
 
 def _machine_manual(state) -> bool:
-    signals = getattr(state, 'signals', None) or {}
+    signals = getattr(state, 'mb_signals', None) or {}
     return any(
         key in signals and not signals[key]
         for key in ('M1_DoorAuto', 'M2_DoorAuto')
@@ -126,7 +128,8 @@ class LedStateController(threading.Thread):
         self._last_pattern: Optional[LedPattern] = None
 
     def run(self) -> None:
-        while not self._stop_event.is_set():
+        eng_mode = self.rc.get_state_snapshot().engineer_mode
+        while not self._stop_event.is_set() and not eng_mode:
             try:
                 state = self.rc.get_state_snapshot()
                 pattern = select_pattern(state)
@@ -139,3 +142,6 @@ class LedStateController(threading.Thread):
 
     def stop(self) -> None:
         self._stop_event.set()
+
+    def set_pattern(self, pattern: LedPattern) -> None:
+        self.led.set_pattern(pattern)

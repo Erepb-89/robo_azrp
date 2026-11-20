@@ -123,6 +123,9 @@ class LastError(Enum):
     err_gripper_not_relaxed: int = 30    # Гриппер не разжался
     err_cycle_aborted: int = 31          # Автоцикл прерван (СТОП)
     err_waypoint_not_taught: int = 32    # Точка не обучена
+    err_modbus_tcp_reading: int = 33     # Error Modbus TCP reading
+    err_cnc1_alarm: int = 34             # Станок 1. Сигнал об ошибке
+    err_cnc2_alarm: int = 35             # Станок 2. Сигнал об ошибке
 
 
 HARDWARE_ERRORS = frozenset({
@@ -149,6 +152,8 @@ HARDWARE_ERRORS = frozenset({
     LastError.err_cnc_not_started,
     LastError.err_gripper_not_clamped,
     LastError.err_gripper_not_relaxed,
+    LastError.err_cnc1_alarm,
+    LastError.err_cnc2_alarm,
 })
 
 
@@ -230,4 +235,6 @@ LAST_ERROR_RU = {
     LastError.err_gripper_not_relaxed:   ("Гриппер не разжался",                "background:#ffcdd2"),
     LastError.err_cycle_aborted:         ("Автоцикл прерван",                   "background:#ffcdd2"),
     LastError.err_waypoint_not_taught:   ("Точка не обучена",                   "background:#ffcdd2"),
+    LastError.err_cnc1_alarm:            ("Станок 1: авария",                   "background:#ffcdd2"),
+    LastError.err_cnc2_alarm:            ("Станок 2: авария",                   "background:#ffcdd2"),
 }

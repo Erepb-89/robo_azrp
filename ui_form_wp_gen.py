@@ -25,7 +25,7 @@ from ui_form import Ui_Form
 from utils import atomic_write_json
 from trajectory_map_widget import TrajectoryMapWidget
 from available_points import available_points as AVAIL_PTS
-from io_map import DI, DO, DI_DESC, DO_DESC
+from io_map import DI, DO, DI_DESC, DO_DESC, DIModbus, DI_MODBUS_DESC
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, \
     LastError, CONTROLLER_STATE_RU, \
     SAFETY_STATUS_RU, MOTION_MODE_RU, LAST_ERROR_RU
@@ -186,25 +186,25 @@ class MainWindow(QMainWindow):
         power_off_btn.clicked.connect(self.power_off)
         toolbar.addWidget(power_off_btn)
 
-        move_to_nearest_btn = QtWidgets.QPushButton(">Ближ. точка")
-        font = move_to_nearest_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        move_to_nearest_btn.setFont(font)
-        move_to_nearest_btn.setMinimumHeight(48)
-        move_to_nearest_btn.setMinimumWidth(160)
-        move_to_nearest_btn.setStyleSheet(MOVE_BTN_STYLE)
-        move_to_nearest_btn.clicked.connect(self.move_to_nearest)
-        toolbar.addWidget(move_to_nearest_btn)
+        # move_to_nearest_btn = QtWidgets.QPushButton(">Ближ. точка")
+        # font = move_to_nearest_btn.font()
+        # font.setPointSize(14)
+        # font.setBold(True)
+        # move_to_nearest_btn.setFont(font)
+        # move_to_nearest_btn.setMinimumHeight(48)
+        # move_to_nearest_btn.setMinimumWidth(160)
+        # move_to_nearest_btn.setStyleSheet(MOVE_BTN_STYLE)
+        # move_to_nearest_btn.clicked.connect(self.move_to_nearest)
+        # toolbar.addWidget(move_to_nearest_btn)
 
-        self.exact_dist = QtWidgets.QLineEdit('0.1')
-        self.exact_dist.setMinimumSize(QtCore.QSize(28, 28))
-        self.exact_dist.setMaximumWidth(60)
+        self.speed = QtWidgets.QLineEdit('100')
+        self.speed.setMinimumSize(QtCore.QSize(28, 28))
+        self.speed.setMaximumWidth(60)
         font.setPointSize(14)
         font.setBold(True)
-        self.exact_dist.setFont(font)
-        self.exact_dist.setObjectName("exactDistance")
-        toolbar.addWidget(self.exact_dist)
+        self.speed.setFont(font)
+        self.speed.setObjectName("exactDistance")
+        toolbar.addWidget(self.speed)
 
         move_to_btn = QtWidgets.QPushButton(">К точке")
         font = move_to_btn.font()
@@ -298,9 +298,13 @@ class MainWindow(QMainWindow):
             self._last_nearest_wp = nearest_wp
             self.trajectory_map.set_current_position(self._last_nearest_wp)
 
+    def _set_actual_speed(self):
+        self.RobotController.set_actual_speed(int(self.speed.text()))
+
     def _update_status(self) -> None:
         """Обновляет метки статуса на основе текущего состояния робота."""
         self._update_conn_indicators()
+        self._set_actual_speed()
         try:
             state = self.RobotController.get_state_snapshot()
 
@@ -464,7 +468,7 @@ class MainWindow(QMainWindow):
         root.addLayout(grid)
 
         # ── Монитор DI/DO ──
-        hdr = QLabel("Монитор сигналов (DI слева, DO справа)")
+        hdr = QLabel("Монитор сигналов (DI слева, DO mid, Modbus DI справа)")
         hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
         root.addWidget(hdr)
         self._io_text = QtWidgets.QPlainTextEdit()
@@ -501,22 +505,31 @@ class MainWindow(QMainWindow):
 
         signals = getattr(state, 'signals', {}) or {}
         outputs = getattr(state, 'outputs', {}) or {}
+        mb_signals = getattr(state, 'mb_signals', {}) or {}
         di_list = list(DI)
+        di_mb_list = list(DIModbus)
         do_list = list(DO)
         n = max(len(di_list), len(do_list))
         lines = []
         for i in range(n):
             left = ""
             if i < len(di_list):
-                di = di_list[i]
-                mark = "●" if signals.get(di.name) else "○"
-                left = f"{DI_DESC.get(di, di.name):32s} {mark}"
-            right = ""
+                mb_di = di_list[i]
+                mark = "●" if signals.get(mb_di.name) else "○"
+                left = f"{DI_DESC.get(mb_di, mb_di.name):32s} {mark}"
+            mid = ""
             if i < len(do_list):
                 do = do_list[i]
                 mark = "●" if outputs.get(do.name) else "○"
-                right = f"{DO_DESC.get(do, do.name):32s} {mark}"
-            lines.append(f"{left:42s}  {right}")
+                mid = f"{DO_DESC.get(do, do.name):32s} {mark}"
+            right = ""
+            if i < len(di_mb_list):
+                mb_di = di_mb_list[i]
+                mark = "●" if mb_signals.get(mb_di.name) else "○"
+                right = f"{DI_MODBUS_DESC.get(mb_di, mb_di.name):40s} {mark}"
+
+            lines.append(f"{left:42s}  {mid:42s} {right}")
+
         self._io_text.setPlainText("\n".join(lines))
 
     def _add_log_entry(self, command: str, icon: str, fg: str) -> None:
@@ -571,7 +584,6 @@ class MainWindow(QMainWindow):
             """Обрабатывает переход состояния в терминальную зону. Возвращает True если переход был."""
             if prev < 200 and 200 <= current < 300:  # EXECUTION → FINISHED
                 self._add_log_entry(label, "✓", LOG_COLOR_SUCCESS)
-                # QtWidgets.QMessageBox.information(self, "Выполнено", f"✓  {label}")
                 self._pending_cmd = ""
                 return True
             elif prev < 300 and 300 <= current < 400:  # EXECUTION → EXCEPTION
@@ -646,28 +658,28 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'trajectory_map'):
                 self.trajectory_map.reset_highlight()
 
-    def move_to_nearest(self):
-        self.nearest_info = self.RobotController.get_nearest_info()
-        self.RobotController.log.info(
-            f"Nearest waypoint: {self.nearest_info.get('waypoint')}; "
-            f"distance={self.nearest_info.get('distance'):.3f}; "
-            f"trajectories={self.nearest_info.get('trajectories')}"
-        )
-
-        motion = "line" if self.ui.chkLineMotion.isChecked() else "joint"
-        # print("_last_nearest_wp", self._last_nearest_wp)
-
-        if float(self.nearest_info.get('distance')) < float(self.exact_dist.text()):
-            self.manipulator_command(
-                Command(CmdType.MOVE_TO_POINT,
-                        {'name': self._last_nearest_wp, 'motion': motion},
-                        source="GUI"))
-        else:
-            print('Distance too long')
-            self.RobotController.log.info(
-                f"Distance to nearest waypoint: {self.nearest_info.get('waypoint')} "
-                f"={self.nearest_info.get('distance'):.2f} too long"
-            )
+    # def move_to_nearest(self):
+    #     self.nearest_info = self.RobotController.get_nearest_info()
+    #     self.RobotController.log.info(
+    #         f"Nearest waypoint: {self.nearest_info.get('waypoint')}; "
+    #         f"distance={self.nearest_info.get('distance'):.3f}; "
+    #         f"trajectories={self.nearest_info.get('trajectories')}"
+    #     )
+    #
+    #     motion = "line" if self.ui.chkLineMotion.isChecked() else "joint"
+    #     # print("_last_nearest_wp", self._last_nearest_wp)
+    #
+    #     if float(self.nearest_info.get('distance')) < float(self.exact_dist.text()):
+    #         self.manipulator_command(
+    #             Command(CmdType.MOVE_TO_POINT,
+    #                     {'name': self._last_nearest_wp, 'motion': motion},
+    #                     source="GUI"))
+    #     else:
+    #         print('Distance too long')
+    #         self.RobotController.log.info(
+    #             f"Distance to nearest waypoint: {self.nearest_info.get('waypoint')} "
+    #             f"={self.nearest_info.get('distance'):.2f} too long"
+    #         )
 
     def update_power_button_state(self) -> None:
         is_running = (self.RobotController.get_controller_state() == 'run')

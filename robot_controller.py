@@ -9,9 +9,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from queue import Queue, Empty
 
+from API.source.ap_interface.io import IO
 from actions import actions
-from io_map import (DI, DO, MACHINE_DI, MACHINE_DO, GRIPPER_DI, GRIPPER_DO,
-                    di_active)
+from io_map import (DI, DO, MACHINE_DI, MACHINE_MB_DI, MACHINE_DO,
+                    GRIPPER_DI, GRIPPER_MB_DI, GRIPPER_DO,
+                    di_active, DIModbus, di_mb_active)
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
@@ -70,6 +72,7 @@ class RobotState:
     cycle_state: str = 'idle'
     m_state: Dict[int, int] = field(default_factory=dict)
     flags: Dict[str, object] = field(default_factory=dict)
+    mb_signals: Dict[str, bool] = field(default_factory=dict)
 
 
 # state_manager.py
@@ -300,6 +303,9 @@ class IOController:
         self.robot = robot_api
         self.log = logger
         self.num_ios = num_ios
+        self.idx, self.current = self.robot.io.analog.get_input(2)
+        print(f"{self.idx}, {self.current:.1f} mA")
+
         if pause_di_index is not None:
             self.robot.io.digital.set_input_function(pause_di_index, 'pause')
 
@@ -388,6 +394,7 @@ class IOController:
         snap = {}
         for di in DI:
             snap[di.name] = self.get_di(di)
+        # print(f"{self.idx}, {self.current:.1f} mA")
         return snap
 
     def snapshot_outputs(self) -> Dict[str, bool]:
@@ -401,15 +408,19 @@ class IOController:
 class SignalMonitor:
     """Поток чтения сигналов: кэш DI/DO для GUI."""
 
-    def __init__(self, io_controller, state_manager, logger,
-                 heartbeat_cb=None, interval: float = 0.1):
+    def __init__(self, rc, io_controller, state_manager, logger,
+                 heartbeat_cb=None, interval: float = 0.1,
+                 mb_interval: float = 0.2):
+        self.rc = rc
         self.io = io_controller
         self.state = state_manager
         self.log = logger
         self._hb = heartbeat_cb
         self._interval = interval
+        self._mb_interval = mb_interval
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
+        self._mb_thread: Optional[threading.Thread] = None
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -419,6 +430,11 @@ class SignalMonitor:
                                         name="SignalMonitorThread",
                                         daemon=True)
         self._thread.start()
+
+        self._mb_thread = threading.Thread(target=self._mb_loop,
+                                           name="MBSignalMonitorThread",
+                                           daemon=True)
+        self._mb_thread.start()
 
     def stop(self) -> None:
         self._stop.set()
@@ -439,6 +455,22 @@ class SignalMonitor:
                 except Exception:
                     pass
             time.sleep(self._interval)
+
+    def _mb_loop(self) -> None:
+        while not self._stop.is_set():
+            # modbus TCP
+            try:
+                self.state.update(
+                    mb_signals=self.rc.snapshot_mb_inputs(),
+                )
+            except Exception as e:
+                self.log.debug(f"Modbus TCP signals read error: {e}")
+            if self._hb:
+                try:
+                    self._hb('modbus TCP')
+                except Exception:
+                    pass
+            time.sleep(self._mb_interval)
 
 
 # telemetry_monitor.py
@@ -489,9 +521,11 @@ class RobotController:
     """Главный контроллер робота"""
 
     def __init__(self, robot_ip: str, cmd_queue: Queue, logger, blinker,
-                 heartbeat_cb=None):
+                 mb_tcp_handler, heartbeat_cb=None):
+        self.koeff = 1  # speed coefficient
         self.log = logger
         self.blinker = blinker
+        self.reallab_handler = mb_tcp_handler
         self.gui_log = logger.getChild("gui")
         self.cmd_queue = cmd_queue
         self.stop_event = threading.Event()
@@ -516,7 +550,7 @@ class RobotController:
         self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
                                pause_di_index=PAUSE_DI_INDEX)
         self.telemetry = TelemetryMonitor(self.Robot, self.state, logger)
-        self.signal_monitor = SignalMonitor(self.io, self.state, logger,
+        self.signal_monitor = SignalMonitor(self, self.io, self.state, logger,
                                             heartbeat_cb=heartbeat_cb)
         self.signal_monitor.start()
 
@@ -545,6 +579,9 @@ class RobotController:
 
     # ---------- Публичные методы (используемые извне) ----------
 
+    def set_actual_speed(self, speed):
+        self.koeff = float(speed / 100)
+
     def get_state_snapshot(self) -> RobotState:
         return self.state.get_snapshot()
 
@@ -568,6 +605,42 @@ class RobotController:
 
     def get_nearest_info(self):
         return self._nearest_info or None
+
+    def get_modbus_di(self, mb_di: DIModbus) -> bool:
+        """Прочитать вход по имени из io_map с учётом полярности DI_INVERT."""
+        try:
+            raw = self.reallab_handler.reg_result.bits[int(mb_di)]
+            return di_mb_active(mb_di, raw)
+        except Exception as e:
+            self.state.update(last_error=LastError.err_modbus_tcp_reading)
+            # self.log.error(f"get_modbus_di {mb_di.name}: {e}")
+            return False
+
+    def snapshot_mb_inputs(self) -> Dict[str, bool]:
+        snap = {}
+        for mb_di in DIModbus:
+            snap[mb_di.name] = self.get_modbus_di(mb_di)
+        return snap
+
+    def machine_mb_di(self, m: int, role: str) -> bool:
+        return self.get_modbus_di(MACHINE_MB_DI[m][role])
+
+    def gripper_mb_di(self, g: int, role: str) -> bool:
+        return self.get_modbus_di(GRIPPER_MB_DI[g][role])
+
+    def wait_mb_di(self, mb_di: DIModbus, value: bool, timeout: float,
+                   abort_event: Optional[threading.Event] = None) -> bool:
+        """Прерываемое ожидание Modbus-входа с тайм-аутом."""
+        deadline = time.monotonic() + timeout
+        while True:
+            if abort_event is not None and abort_event.is_set():
+                self.log.info(f"wait_mb_di {mb_di.name}: aborted")
+                return False
+            if self.get_modbus_di(mb_di) == bool(value):
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(IO_POLL_SEC)
 
     def message(self, text: str, level: str = 'info',
                 source: str = 'gui') -> None:
@@ -701,14 +774,14 @@ class RobotController:
         if motion == 'joint':
             self.mc.add_waypoint_joint(
                 joint_pose,
-                params['speed'],
+                params['speed'] * self.koeff,
                 params['accel'],
                 params['blend']
             )
         else:
             self.mc.add_waypoint_line(
                 tcp_pose,
-                params['speed'] / 100,
+                params['speed'] / 100 * self.koeff,
                 params['accel'] / 100,
                 params['blend'] / 100
             )

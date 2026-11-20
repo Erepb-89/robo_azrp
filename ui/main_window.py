@@ -8,6 +8,7 @@ from .engineer_window import EngineerWindow
 from .login_dialog import LoginDialog
 from commands import Command, CmdType
 
+
 SYSTEM_STATUS_CONFIG = {
     "ready":   ("Готов", "#4CAF50"),
     "running": ("Работа", "#4CAF50"),
@@ -148,8 +149,17 @@ class MainOperWindow(QtWidgets.QMainWindow):
 
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             if self.engineer_window is None:
-                self.engineer_window = EngineerWindow(self)
+                self.engineer_window = EngineerWindow(self.RobotController, self)
 
             self.engineer_window.show()
             self.engineer_window.raise_()
             self.engineer_window.activateWindow()
+            self.engineer_window.closeEvent = self.on_close
+            self.RobotController.set_engineer_mode(True)
+            eng_mode = self.RobotController.get_state_snapshot().engineer_mode
+            print("engineer_mode", eng_mode)
+
+    def on_close(self, event):
+        self.RobotController.set_engineer_mode(False)
+        eng_mode = self.RobotController.get_state_snapshot().engineer_mode
+        print("engineer_mode", eng_mode)
