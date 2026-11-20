@@ -33,6 +33,7 @@ class AutoCycle(threading.Thread):
         self.cycle_state = 'idle'
         self.ops = CycleOps(rc, logger, blinker)
         self.flags = CycleFlags()
+        self._cycle_machines = {1: True, 2: True}
 
         self._lock = threading.RLock()
         self._wake = threading.Event()
@@ -42,13 +43,24 @@ class AutoCycle(threading.Thread):
     # ── управление ───────────────────────────────────────────────────────────
 
     def request_start(self) -> None:
+        machines = self.rc.get_active_machines()
         with self._lock:
+            self._cycle_machines = dict(machines)
+            if not any(self._cycle_machines.values()):
+                self.start_request.clear()
+                return
             if not self.running and self._control is None:
                 self.set_cycle_state(
                     'waiting_resume' if self.resume_pending
                     else 'waiting_start')
             self.start_request.set()
             self._wake.set()
+
+    def _active_machine_ids(self) -> list:
+        return [m for m in (1, 2) if bool(self._cycle_machines.get(m, True))]
+
+    def _is_machine_active(self, m: int) -> bool:
+        return bool(self._cycle_machines.get(m, True))
 
     def request_pause(self) -> None:
         """ПАУЗА: немедленный hold, состояние сохраняется."""
@@ -194,6 +206,11 @@ class AutoCycle(threading.Thread):
 
     def execute_cycle(self) -> None:
         resume = self.resume_pending
+        active = self._active_machine_ids()
+        if not active:
+            self.rc.message(
+                "Автоцикл: нет активных станков — запуск отменён", 'error')
+            return
 
         # Ожидание физической кнопки СТАРТ
         if not self.rc.wait_mb_di(DIModbus.START_STOP,
@@ -214,17 +231,16 @@ class AutoCycle(threading.Thread):
                 "Автоцикл: не подтверждён выход из станка", 'error')
             return
 
-        # Сброс ошибок (по станкам)
-        self.ops.error_reset(1, self.flags, self.abort)
-        self.ops.error_reset(2, self.flags, self.abort)
-        if any(self.flags.m_state[m] == MachineState.Error for m in (1, 2)):
+        # Сброс ошибок (только по активным станкам)
+        for m in active:
+            self.ops.error_reset(m, self.flags, self.abort)
+        if any(self.flags.m_state[m] == MachineState.Error for m in active):
             self.rc.message("Автоцикл: ошибка станка не сброшена", 'error')
             return
 
-        # Проверка авто-режима дверей (Reallab Modbus)
-        door_auto = {1: self.rc.machine_mb_di(1, 'DoorAuto'),
-                     2: self.rc.machine_mb_di(2, 'DoorAuto')}
-        if not (door_auto[1] and door_auto[2]): # может лучше проверять отдельно???
+        # Проверка авто-режима дверей (Reallab Modbus, только активные)
+        door_auto = {m: self.rc.machine_mb_di(m, 'DoorAuto') for m in active}
+        if not all(door_auto.values()):
             self.rc.message("Двери не в автоматическом режиме", 'error')
             return
 
@@ -268,6 +284,9 @@ class AutoCycle(threading.Thread):
             self.sync_state()
 
     def cycle_inner(self, ops: CycleOps, flags: CycleFlags) -> None:
+        active = self._active_machine_ids()
+        if not active:
+            return
         while not self.abort.is_set() and not self.stop.is_set():
             # Физический СТОП: сигнал START/STOP сброшен (пауза с сохранением)
             if not self.rc.get_modbus_di(DIModbus.START_STOP):
@@ -276,7 +295,7 @@ class AutoCycle(threading.Thread):
                 break
 
             pending_place = next(
-                (m for m in (1, 2) if flags.place_addr[m] is not None), None)
+                (m for m in active if flags.place_addr[m] is not None), None)
             if pending_place is not None:
                 if not self._flush_pending_place(pending_place, ops, flags):
                     if flags.m_state[pending_place] == MachineState.Error:
@@ -288,7 +307,7 @@ class AutoCycle(threading.Thread):
                 if self.abort.is_set():
                     break
 
-            for m in (1, 2): # надо ли в цикле или лучше по отдельности???
+            for m in active:
                 self.sync_state()
                 if not self.machine_ready(m):
                     if flags.m_state[m] == MachineState.Error:
@@ -330,6 +349,8 @@ class AutoCycle(threading.Thread):
         return True
 
     def machine_ready(self, m: int) -> bool:
+        if not self._is_machine_active(m):
+            return False
         if self.flags.m_state[m] in (MachineState.Error, MachineState.Complete):
             return False
         machine = self.ops.machines[m]
@@ -348,6 +369,8 @@ class AutoCycle(threading.Thread):
         return True
 
     def process_machine(self, m: int, ops: CycleOps, flags: CycleFlags) -> None:
+        if not self._is_machine_active(m):
+            return
         if flags.is_machine_load[m]:
             # Станок уже был в работе
             if flags.machine_addr[m] is None:
@@ -452,7 +475,9 @@ class AutoCycle(threading.Thread):
         else:
             self.set_error(m, flags)
 
-    @staticmethod
-    def all_complete(flags: CycleFlags) -> bool:
+    def all_complete(self, flags: CycleFlags) -> bool:
+        active = self._active_machine_ids()
+        if not active:
+            return False
         return all(flags.m_state[m] == MachineState.Complete
-                   for m in (1, 2))
+                   for m in active)
