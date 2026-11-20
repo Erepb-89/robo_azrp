@@ -8,7 +8,7 @@ from pymodbus.exceptions import ModbusException
 
 from config import (RETRIES, SERVER_HOST, SERVER_PORT, POLL_INTERVAL, PORT,
                     SLAVE_ID, RED_HOLDING, PERIOD_S, DUTY,
-                    LED_RGB_BRIGHTNESS, GREEN_LED, YELLOW_LED, RED_LED)
+                    LED_RGB_BRIGHTNESS, GREEN_LED, YELLOW_LED, RED_LED, ALL_LED)
 from led_control import LedPattern
 
 
@@ -147,6 +147,8 @@ class Blinker:
             rgb = (LED_RGB_BRIGHTNESS, LED_RGB_BRIGHTNESS, 0)
         elif color == RED_LED:
             rgb = (LED_RGB_BRIGHTNESS, 0, 0)
+        elif color == ALL_LED:
+            rgb = (LED_RGB_BRIGHTNESS, LED_RGB_BRIGHTNESS, LED_RGB_BRIGHTNESS)
         else:
             raise ValueError(f"Неизвестный цвет WB-LED: {color!r}")
 
@@ -170,7 +172,7 @@ class Blinker:
     def solid(self, color: str) -> None:
         """Включить GREEN_LED/YELLOW_LED/RED_LED без блокировки."""
         color = str(color).upper()
-        if color not in (GREEN_LED, YELLOW_LED, RED_LED):
+        if color not in (GREEN_LED, YELLOW_LED, RED_LED, ALL_LED):
             raise ValueError(f"Неизвестный цвет WB-LED: {color!r}")
         self._set_mode(color, False, True)
 
@@ -198,6 +200,8 @@ class Blinker:
             self.blink(YELLOW_LED)
         elif pattern is LedPattern.RED_BLINK:
             self.blink(RED_LED)
+        elif pattern is LedPattern.ALL_COLORS:
+            self.solid(ALL_LED)
         else:
             raise ValueError(f"Неизвестный паттерн WB-LED: {pattern!r}")
 
