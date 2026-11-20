@@ -23,6 +23,7 @@ class LedPattern(Enum):
     RED_BLINK = auto()
     YELLOW_SOLID = auto()
     RED_SOLID = auto()
+    ALL_COLORS = auto()
 
 
 RED_CONTROLLER_STATES = {
