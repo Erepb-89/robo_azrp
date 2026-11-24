@@ -305,8 +305,8 @@ class IOController:
         self.robot = robot_api
         self.log = logger
         self.num_ios = num_ios
-        self.idx, self.current = self.robot.io.analog.get_input(2)
-        print(f"{self.idx}, {self.current:.1f} mA")
+        # self.idx, self.current = self.robot.io.analog.get_input(2)
+        # print(f"{self.idx}, {self.current:.1f} mA")
 
         if pause_di_index is not None:
             self.robot.io.digital.set_input_function(pause_di_index, 'pause')

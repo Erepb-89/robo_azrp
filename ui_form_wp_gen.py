@@ -117,10 +117,10 @@ class MainWindow(QMainWindow):
 
         self.buttons_logging()
 
-        self._init_op_log_tab()
-        self._init_auto_cycle_tab()
+        self._bind_op_log_tab()
+        self._bind_auto_cycle_tab()
         self._init_status_bar()
-        self._init_top_toolbar()
+        self._bind_top_toolbar()
         self.ui.waypointsComboBox.currentTextChanged.connect(self.waypoint_selected)
         self.ui.availableWaypointsComboBox.currentTextChanged.connect(self.available_waypoint_selected)
         try:
@@ -148,96 +148,122 @@ class MainWindow(QMainWindow):
             lambda on: self._add_log_entry(
                 f"Смещение захвата: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
 
-    def _init_top_toolbar(self) -> None:
-        """Постоянная верхняя панель с кнопкой СТОП, видимой на всех вкладках."""
-        toolbar = self.addToolBar("Аварийная остановка")
-        toolbar.setMovable(False)
-        toolbar.setFloatable(False)
+    def _bind_top_toolbar(self):
+        for button in (self.ui.btnGripper1, self.ui.btnGripper2,
+                  self.ui.btnPowerOffTop, self.ui.btnMoveTo,
+                  self.ui.btnPause, self.ui.btnStopTop):
+            f = button.font()
+            f.setPointSize(14)
+            f.setBold(True)
+            button.setFont(f)
+        # self.ui.btnGripper1.setStyleSheet(GRIPPER_BTN_STYLE)
+        ...
+        self.ui.btnGripper1.toggled.connect(self.manipulator_gripper1_control)
+        self.ui.btnGripper2.toggled.connect(self.manipulator_gripper2_control)
+        self.ui.btnPowerOffTop.triggered.connect(self.power_off)
+        self.ui.btnMoveTo.triggered.connect(self.move_to_selected_point)
+        self.ui.btnPause.triggered.connect(self.pause_drive)
+        self.ui.btnStopTop.triggered.connect(self.stop_drive)
+        self.speed = self.ui.speedEdit  # чтобы не ломать _set_actual_speed
 
-        gripper1_btn = QtWidgets.QPushButton("Грип 1")
-        gripper1_btn.setCheckable(True)
-        font = gripper1_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        gripper1_btn.setFont(font)
-        gripper1_btn.setMinimumHeight(48)
-        gripper1_btn.setMinimumWidth(160)
-        gripper1_btn.setStyleSheet(GRIPPER_BTN_STYLE)
-        gripper1_btn.toggled.connect(self.manipulator_gripper1_control)
-        toolbar.addWidget(gripper1_btn)
+        self.ui.mainToolBar.setStyleSheet("""
+            QToolButton { font: bold 14pt "Segoe UI"; min-height: 48px; padding: 4px 10px; }
+            QToolButton[objectName="actGripper1"] { background: #3a7bd5; color: white; }
+            QToolButton[objectName="actStop"]     { background: #d32f2f; color: white; }
+            QToolButton[objectName="actPowerOff"] { background: #f57c00; color: white; }
+        """)
 
-        gripper2_btn = QtWidgets.QPushButton("Грип 2")
-        gripper2_btn.setCheckable(True)
-        font = gripper2_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        gripper2_btn.setFont(font)
-        gripper2_btn.setMinimumHeight(48)
-        gripper2_btn.setMinimumWidth(160)
-        gripper2_btn.setStyleSheet(GRIPPER_BTN_STYLE)
-        gripper2_btn.toggled.connect(self.manipulator_gripper2_control)
-        toolbar.addWidget(gripper2_btn)
 
-        power_off_btn = QtWidgets.QPushButton("⏻ Питание ВЫКЛ")
-        power_off_btn.setFont(font)
-        power_off_btn.setMinimumHeight(48)
-        power_off_btn.setMinimumWidth(180)
-        power_off_btn.setStyleSheet(POWER_OFF_BTN_STYLE)
-        power_off_btn.clicked.connect(self.power_off)
-        toolbar.addWidget(power_off_btn)
-
-        # move_to_nearest_btn = QtWidgets.QPushButton(">Ближ. точка")
-        # font = move_to_nearest_btn.font()
-        # font.setPointSize(14)
-        # font.setBold(True)
-        # move_to_nearest_btn.setFont(font)
-        # move_to_nearest_btn.setMinimumHeight(48)
-        # move_to_nearest_btn.setMinimumWidth(160)
-        # move_to_nearest_btn.setStyleSheet(MOVE_BTN_STYLE)
-        # move_to_nearest_btn.clicked.connect(self.move_to_nearest)
-        # toolbar.addWidget(move_to_nearest_btn)
-
-        self.speed = QtWidgets.QLineEdit('100')
-        self.speed.setMinimumSize(QtCore.QSize(28, 28))
-        self.speed.setMaximumWidth(60)
-        font.setPointSize(14)
-        font.setBold(True)
-        self.speed.setFont(font)
-        self.speed.setObjectName("exactDistance")
-        toolbar.addWidget(self.speed)
-
-        move_to_btn = QtWidgets.QPushButton(">К точке")
-        font = move_to_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        move_to_btn.setFont(font)
-        move_to_btn.setMinimumHeight(48)
-        move_to_btn.setMinimumWidth(160)
-        move_to_btn.setStyleSheet(MOVE_BTN_STYLE)
-        move_to_btn.clicked.connect(self.move_to_selected_point) # move_by_selected_trajectory
-        toolbar.addWidget(move_to_btn)
-
-        pause_btn = QtWidgets.QPushButton("|| ПАУЗА")
-        font = pause_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        pause_btn.setFont(font)
-        pause_btn.setMinimumHeight(48)
-        pause_btn.setMinimumWidth(160)
-        pause_btn.setStyleSheet(POWER_OFF_BTN_STYLE)
-        pause_btn.clicked.connect(self.pause_drive)
-        toolbar.addWidget(pause_btn)
-
-        stop_btn = QtWidgets.QPushButton("■ СТОП")
-        font = stop_btn.font()
-        font.setPointSize(14)
-        font.setBold(True)
-        stop_btn.setFont(font)
-        stop_btn.setMinimumHeight(48)
-        stop_btn.setMinimumWidth(160)
-        stop_btn.setStyleSheet(STOP_BTN_STYLE)
-        stop_btn.clicked.connect(self.stop_drive)
-        toolbar.addWidget(stop_btn)
+    # def _init_top_toolbar(self) -> None:
+    #     """Постоянная верхняя панель с кнопкой СТОП, видимой на всех вкладках."""
+    #     toolbar = self.addToolBar("Аварийная остановка")
+    #     toolbar.setMovable(False)
+    #     toolbar.setFloatable(False)
+    #
+    #     gripper1_btn = QtWidgets.QPushButton("Грип 1")
+    #     gripper1_btn.setCheckable(True)
+    #     font = gripper1_btn.font()
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     gripper1_btn.setFont(font)
+    #     gripper1_btn.setMinimumHeight(48)
+    #     gripper1_btn.setMinimumWidth(160)
+    #     gripper1_btn.setStyleSheet(GRIPPER_BTN_STYLE)
+    #     gripper1_btn.toggled.connect(self.manipulator_gripper1_control)
+    #     toolbar.addWidget(gripper1_btn)
+    #
+    #     gripper2_btn = QtWidgets.QPushButton("Грип 2")
+    #     gripper2_btn.setCheckable(True)
+    #     font = gripper2_btn.font()
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     gripper2_btn.setFont(font)
+    #     gripper2_btn.setMinimumHeight(48)
+    #     gripper2_btn.setMinimumWidth(160)
+    #     gripper2_btn.setStyleSheet(GRIPPER_BTN_STYLE)
+    #     gripper2_btn.toggled.connect(self.manipulator_gripper2_control)
+    #     toolbar.addWidget(gripper2_btn)
+    #
+    #     power_off_btn = QtWidgets.QPushButton("⏻ Питание ВЫКЛ")
+    #     power_off_btn.setFont(font)
+    #     power_off_btn.setMinimumHeight(48)
+    #     power_off_btn.setMinimumWidth(180)
+    #     power_off_btn.setStyleSheet(POWER_OFF_BTN_STYLE)
+    #     power_off_btn.clicked.connect(self.power_off)
+    #     toolbar.addWidget(power_off_btn)
+    #
+    #     # move_to_nearest_btn = QtWidgets.QPushButton(">Ближ. точка")
+    #     # font = move_to_nearest_btn.font()
+    #     # font.setPointSize(14)
+    #     # font.setBold(True)
+    #     # move_to_nearest_btn.setFont(font)
+    #     # move_to_nearest_btn.setMinimumHeight(48)
+    #     # move_to_nearest_btn.setMinimumWidth(160)
+    #     # move_to_nearest_btn.setStyleSheet(MOVE_BTN_STYLE)
+    #     # move_to_nearest_btn.clicked.connect(self.move_to_nearest)
+    #     # toolbar.addWidget(move_to_nearest_btn)
+    #
+    #     self.speed = QtWidgets.QLineEdit('100')
+    #     self.speed.setMinimumSize(QtCore.QSize(28, 28))
+    #     self.speed.setMaximumWidth(60)
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     self.speed.setFont(font)
+    #     self.speed.setObjectName("exactDistance")
+    #     toolbar.addWidget(self.speed)
+    #
+    #     move_to_btn = QtWidgets.QPushButton(">К точке")
+    #     font = move_to_btn.font()
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     move_to_btn.setFont(font)
+    #     move_to_btn.setMinimumHeight(48)
+    #     move_to_btn.setMinimumWidth(160)
+    #     move_to_btn.setStyleSheet(MOVE_BTN_STYLE)
+    #     move_to_btn.clicked.connect(self.move_to_selected_point) # move_by_selected_trajectory
+    #     toolbar.addWidget(move_to_btn)
+    #
+    #     pause_btn = QtWidgets.QPushButton("|| ПАУЗА")
+    #     font = pause_btn.font()
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     pause_btn.setFont(font)
+    #     pause_btn.setMinimumHeight(48)
+    #     pause_btn.setMinimumWidth(160)
+    #     pause_btn.setStyleSheet(POWER_OFF_BTN_STYLE)
+    #     pause_btn.clicked.connect(self.pause_drive)
+    #     toolbar.addWidget(pause_btn)
+    #
+    #     stop_btn = QtWidgets.QPushButton("■ СТОП")
+    #     font = stop_btn.font()
+    #     font.setPointSize(14)
+    #     font.setBold(True)
+    #     stop_btn.setFont(font)
+    #     stop_btn.setMinimumHeight(48)
+    #     stop_btn.setMinimumWidth(160)
+    #     stop_btn.setStyleSheet(STOP_BTN_STYLE)
+    #     stop_btn.clicked.connect(self.stop_drive)
+    #     toolbar.addWidget(stop_btn)
 
     def _init_status_bar(self) -> None:
         """Создаёт постоянную панель статуса робота в нижней строке окна."""
@@ -408,95 +434,123 @@ class MainWindow(QMainWindow):
             pass
 
     # ── Журнал операций ───────────────────────────────────────
-    def _init_op_log_tab(self) -> None:
-        """Добавляет 4 вкладку 'Журнал' с QListWidget последних операций."""
-        tab = QtWidgets.QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(4)
+    # def _init_op_log_tab(self) -> None:
+    #     """Добавляет 4 вкладку 'Журнал' с QListWidget последних операций."""
+    #     tab = QtWidgets.QWidget()
+    #     layout = QVBoxLayout(tab)
+    #     layout.setContentsMargins(6, 6, 6, 6)
+    #     layout.setSpacing(4)
+    #
+    #     hdr = QLabel(f"Журнал операций (последние {JOURNAL_COUNT})")
+    #     hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
+    #     layout.addWidget(hdr)
+    #
+    #     self._op_log = QListWidget()
+    #     self._op_log.setSpacing(1)
+    #     self._op_log.setStyleSheet(LOG_STYLESHEET)
+    #     layout.addWidget(self._op_log)
+    #
+    #     self.ui.tabWidget.addTab(tab, "Журнал")
 
-        hdr = QLabel(f"Журнал операций (последние {JOURNAL_COUNT})")
-        hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        layout.addWidget(hdr)
-
-        self._op_log = QListWidget()
-        self._op_log.setSpacing(1)
+    def _bind_op_log_tab(self):
+        self._op_log = self.ui.opLog
         self._op_log.setStyleSheet(LOG_STYLESHEET)
-        layout.addWidget(self._op_log)
+        self.ui.lblJournalHeader.setText(f"Журнал операций (последние {JOURNAL_COUNT})")
 
-        self.ui.tabWidget.addTab(tab, "Журнал")
+    # def _init_auto_cycle_tab(self) -> None:
+    #     """Вкладка «Автоцикл»: кнопки, состояние станков, монитор DI/DO."""
+    #     tab = QtWidgets.QWidget()
+    #     root = QVBoxLayout(tab)
+    #     root.setContentsMargins(6, 6, 6, 6)
+    #     root.setSpacing(4)
+    #
+    #     # ── Кнопки ──
+    #     row = QtWidgets.QHBoxLayout()
+    #     btn_start = QtWidgets.QPushButton("▶ СТАРТ цикла")
+    #     btn_start.setStyleSheet(GREEN_BTN_STYLE)
+    #     btn_start.clicked.connect(lambda: self.cmd_queue.put(
+    #         Command(CmdType.AUTO_START, {}, source="GUI")))
+    #     btn_pause = QtWidgets.QPushButton("|| ПАУЗА цикла")
+    #     btn_pause.setStyleSheet(POWER_OFF_BTN_STYLE)
+    #     btn_pause.clicked.connect(lambda: self.cmd_queue.put(
+    #         Command(CmdType.AUTO_PAUSE, {}, source="GUI")))
+    #     btn_stop = QtWidgets.QPushButton("■ СТОП цикла (сброс)")
+    #     btn_stop.setStyleSheet(STOP_BTN_STYLE)
+    #     btn_stop.clicked.connect(lambda: self.cmd_queue.put(
+    #         Command(CmdType.AUTO_STOP, {}, source="GUI")))
+    #     for b in (btn_start, btn_pause, btn_stop):
+    #         row.addWidget(b)
+    #     root.addLayout(row)
+    #
+    #     # ── Активные станки ──
+    #     active_row = QtWidgets.QHBoxLayout()
+    #     self._cyc_m1_active = QCheckBox("М1 доступен")
+    #     self._cyc_m2_active = QCheckBox("М2 доступен")
+    #     try:
+    #         active = self.RobotController.get_active_machines()
+    #     except Exception:
+    #         active = {1: True, 2: True}
+    #     self._cyc_m1_active.setChecked(bool(active.get(1, True)))
+    #     self._cyc_m2_active.setChecked(bool(active.get(2, True)))
+    #     self._cyc_m1_active.toggled.connect(
+    #         lambda checked: self._on_machine_active_toggled(1, checked))
+    #     self._cyc_m2_active.toggled.connect(
+    #         lambda checked: self._on_machine_active_toggled(2, checked))
+    #     active_row.addWidget(self._cyc_m1_active)
+    #     active_row.addWidget(self._cyc_m2_active)
+    #     active_row.addStretch(1)
+    #     root.addLayout(active_row)
+    #
+    #     # ── Состояние цикла и станков ──
+    #     self._cyc_state = QLabel("Цикл: —")
+    #     self._cyc_state.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+    #     root.addWidget(self._cyc_state)
+    #
+    #     grid = QtWidgets.QGridLayout()
+    #     self._cyc_m1 = QLabel("М1: —")
+    #     self._cyc_m2 = QLabel("М2: —")
+    #     self._cyc_flags = QLabel("")
+    #     for lbl in (self._cyc_m1, self._cyc_m2, self._cyc_flags):
+    #         lbl.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+    #     grid.addWidget(self._cyc_m1, 0, 0)
+    #     grid.addWidget(self._cyc_m2, 0, 1)
+    #     grid.addWidget(self._cyc_flags, 1, 0, 1, 2)
+    #     root.addLayout(grid)
+    #
+    #     # ── Монитор DI/DO ──
+    #     hdr = QLabel("Монитор сигналов (DI слева, DO mid, Modbus DI справа)")
+    #     hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
+    #     root.addWidget(hdr)
+    #     self._io_text = QtWidgets.QPlainTextEdit()
+    #     self._io_text.setReadOnly(True)
+    #     self._io_text.setStyleSheet(
+    #         "font-family: Consolas, monospace; font-size: 16px;")
+    #     root.addWidget(self._io_text)
+    #
+    #     self.ui.tabWidget.addTab(tab, "Автоцикл")
 
-    def _init_auto_cycle_tab(self) -> None:
-        """Вкладка «Автоцикл»: кнопки, состояние станков, монитор DI/DO."""
-        tab = QtWidgets.QWidget()
-        root = QVBoxLayout(tab)
-        root.setContentsMargins(6, 6, 6, 6)
-        root.setSpacing(4)
-
-        # ── Кнопки ──
-        row = QtWidgets.QHBoxLayout()
-        btn_start = QtWidgets.QPushButton("▶ СТАРТ цикла")
-        btn_start.setStyleSheet(GREEN_BTN_STYLE)
-        btn_start.clicked.connect(lambda: self.cmd_queue.put(
+    def _bind_auto_cycle_tab(self):
+        self._cyc_state = self.ui.lblCycleState
+        self._cyc_m1 = self.ui.lblM1State
+        self._cyc_m2 = self.ui.lblM2State
+        self._cyc_flags = self.ui.lblCycleFlags
+        self._cyc_m1_active = self.ui.chkM1Active
+        self._cyc_m2_active = self.ui.chkM2Active
+        self._io_text = self.ui.ioText
+        self._io_text.setStyleSheet("font-family: Consolas, monospace; font-size: 16px;")
+        self.ui.btnCycleStart.setStyleSheet(GREEN_BTN_STYLE)
+        self.ui.btnCyclePause.setStyleSheet(POWER_OFF_BTN_STYLE)
+        self.ui.btnCycleStop.setStyleSheet(STOP_BTN_STYLE)
+        self.ui.btnCycleStart.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.AUTO_START, {}, source="GUI")))
-        btn_pause = QtWidgets.QPushButton("|| ПАУЗА цикла")
-        btn_pause.setStyleSheet(POWER_OFF_BTN_STYLE)
-        btn_pause.clicked.connect(lambda: self.cmd_queue.put(
+        self.ui.btnCyclePause.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.AUTO_PAUSE, {}, source="GUI")))
-        btn_stop = QtWidgets.QPushButton("■ СТОП цикла (сброс)")
-        btn_stop.setStyleSheet(STOP_BTN_STYLE)
-        btn_stop.clicked.connect(lambda: self.cmd_queue.put(
+        self.ui.btnCycleStop.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.AUTO_STOP, {}, source="GUI")))
-        for b in (btn_start, btn_pause, btn_stop):
-            row.addWidget(b)
-        root.addLayout(row)
-
-        # ── Активные станки ──
-        active_row = QtWidgets.QHBoxLayout()
-        self._cyc_m1_active = QCheckBox("М1 доступен")
-        self._cyc_m2_active = QCheckBox("М2 доступен")
-        try:
-            active = self.RobotController.get_active_machines()
-        except Exception:
-            active = {1: True, 2: True}
-        self._cyc_m1_active.setChecked(bool(active.get(1, True)))
-        self._cyc_m2_active.setChecked(bool(active.get(2, True)))
-        self._cyc_m1_active.toggled.connect(
-            lambda checked: self._on_machine_active_toggled(1, checked))
-        self._cyc_m2_active.toggled.connect(
-            lambda checked: self._on_machine_active_toggled(2, checked))
-        active_row.addWidget(self._cyc_m1_active)
-        active_row.addWidget(self._cyc_m2_active)
-        active_row.addStretch(1)
-        root.addLayout(active_row)
-
-        # ── Состояние цикла и станков ──
-        self._cyc_state = QLabel("Цикл: —")
-        self._cyc_state.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        root.addWidget(self._cyc_state)
-
-        grid = QtWidgets.QGridLayout()
-        self._cyc_m1 = QLabel("М1: —")
-        self._cyc_m2 = QLabel("М2: —")
-        self._cyc_flags = QLabel("")
-        for lbl in (self._cyc_m1, self._cyc_m2, self._cyc_flags):
-            lbl.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        grid.addWidget(self._cyc_m1, 0, 0)
-        grid.addWidget(self._cyc_m2, 0, 1)
-        grid.addWidget(self._cyc_flags, 1, 0, 1, 2)
-        root.addLayout(grid)
-
-        # ── Монитор DI/DO ──
-        hdr = QLabel("Монитор сигналов (DI слева, DO mid, Modbus DI справа)")
-        hdr.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        root.addWidget(hdr)
-        self._io_text = QtWidgets.QPlainTextEdit()
-        self._io_text.setReadOnly(True)
-        self._io_text.setStyleSheet(
-            "font-family: Consolas, monospace; font-size: 16px;")
-        root.addWidget(self._io_text)
-
-        self.ui.tabWidget.addTab(tab, "Автоцикл")
+        self.ui.chkM1Active.toggled.connect(
+            lambda c: self._on_machine_active_toggled(1, c))
+        self.ui.chkM2Active.toggled.connect(
+            lambda c: self._on_machine_active_toggled(2, c))
 
     def _on_machine_active_toggled(self, m: int, checked: bool) -> None:
         """Переключение активности станка до запуска цикла."""
@@ -865,7 +919,7 @@ class MainWindow(QMainWindow):
     def manipulator_gripper1_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
-                Command(CmdType.GRIPPER_CMD, {'index': 14, 'value': clamp}, source="GUI"))
+                Command(CmdType.GRIPPER_CMD, {'index': 13, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO0: {e}")
@@ -874,7 +928,7 @@ class MainWindow(QMainWindow):
     def manipulator_gripper2_control(self, clamp: bool) -> None:
         try:
             self.manipulator_command(
-                Command(CmdType.GRIPPER_CMD, {'index': 15, 'value': clamp}, source="GUI"))
+                Command(CmdType.GRIPPER_CMD, {'index': 14, 'value': clamp}, source="GUI"))
         except Exception as e:
             QtWidgets.QMessageBox.critical(None, "I/O error",
                                            f"Не удалось изменить состояние DO1: {e}")
