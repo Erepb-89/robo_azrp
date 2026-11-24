@@ -1,0 +1,1047 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ui version="4.0">
+ <class>VirtualKeyboard</class>
+ <widget class="QWidget" name="VirtualKeyboard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1150</width>
+    <height>440</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1150</width>
+    <height>440</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1150</width>
+    <height>440</height>
+   </size>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::NoFocus</enum>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">Экранная клавиатура</string>
+  </property>
+  <layout class="QVBoxLayout" name="windowLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="virtualKeyboardSurface">
+     <layout class="QVBoxLayout" name="keyboardLayout" stretch="1,1,1,1,1">
+      <property name="leftMargin">
+       <number>18</number>
+      </property>
+      <property name="topMargin">
+       <number>18</number>
+      </property>
+      <property name="rightMargin">
+       <number>18</number>
+      </property>
+      <property name="bottomMargin">
+       <number>18</number>
+      </property>
+      <property name="spacing">
+       <number>9</number>
+      </property>
+      <item>
+       <layout class="QHBoxLayout" name="digitRow" stretch="1,1,1,1,1,1,1,1,1,1">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="digit1">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">1</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">2</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">3</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit4">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">4</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit5">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">5</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit6">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">6</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit7">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">7</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit8">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">8</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit9">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">9</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="digit0">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">0</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="topLetterRow" stretch="1,1,1,1,1,1,1,1,1,1">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="letterQ">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Q</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterW">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">W</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterE">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">E</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterR">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">R</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterT">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">T</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterY">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Y</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterU">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">U</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterI">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">I</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterO">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">O</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterP">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">P</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="middleLetterRow" stretch="1,1,1,1,1,1,1,1,1">
+        <property name="leftMargin">
+         <number>56</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>56</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="letterA">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">A</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterS">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">S</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterD">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">D</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterF">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">F</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterG">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">G</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterH">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">H</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterJ">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">J</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterK">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">K</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterL">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">L</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="bottomLetterRow" stretch="14,10,10,10,10,10,10,10,17">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="shiftButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Shift</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">modifier</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterZ">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Z</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterX">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">X</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterC">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">C</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterV">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">V</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterB">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">B</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterN">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">N</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="letterM">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">M</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">character</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="backspaceButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Backspace</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">modifier</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="actionRow" stretch="5,1">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="spaceButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Space</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">modifier</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="doneButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string notr="true">Done</string>
+          </property>
+          <property name="keyboardKey" stdset="0">
+           <string notr="true">done</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

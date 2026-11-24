@@ -1,0 +1,384 @@
+/* ==========================================================
+   ROBO UI — Главное окно (PyQt5 / Qt 5)
+   Крупный шрифт, индикаторы и сенсорные элементы для Full HD.
+   Все правила ограничены объектом QMainWindow#MainWindow:
+   LoginDialog и EngineerWindow не изменяются.
+
+   В Qt Designer для этих виджетов не следует задавать
+   minimumSize / maximumSize / fixedSize: размеры — здесь.
+   Layout, sizePolicy и stretch остаются в .ui.
+   ========================================================== */
+
+/* 1. Общий фон и карточки */
+QMainWindow#MainWindow,
+QMainWindow#MainWindow QWidget#centralwidget {
+    background-color: #eef2f7;
+}
+
+/* Основные панели главного окна.
+   mainFrame        — шапка с названием/временем;
+   systemFrame      — состояние системы (лампочка + статус);
+   manipulatorFrame — данные манипулятора;
+   остальные панели — по их objectName из Qt Designer. */
+QMainWindow#MainWindow QFrame#mainFrame,
+QMainWindow#MainWindow QFrame#systemFrame,
+QMainWindow#MainWindow QFrame#manipulatorFrame,
+QMainWindow#MainWindow QFrame#tableFrame,
+QMainWindow#MainWindow QFrame#cnc1Frame,
+QMainWindow#MainWindow QFrame#cnc2Frame,
+QMainWindow#MainWindow QFrame#buttonFrame {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+}
+
+QMainWindow#MainWindow QFrame#speedFrame,
+QMainWindow#MainWindow QFrame#shelfFrame,
+QMainWindow#MainWindow QFrame#partFrame {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+/* 2. Текст — размеры определяются только в QSS */
+QMainWindow#MainWindow QLabel {
+    font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+    font-size: 22px;
+    font-weight: normal;
+    color: #334155;
+}
+
+/* Заголовки секций */
+QMainWindow#MainWindow QLabel#tableLable,
+QMainWindow#MainWindow QLabel#manipulatorLable {
+    font-size: 30px;
+    font-weight: bold;
+    color: #203955;
+}
+
+QMainWindow#MainWindow QLabel#cnc1Lable,
+QMainWindow#MainWindow QLabel#cnc2Lable {
+    font-size: 29px;
+    font-weight: bold;
+    color: #203955;
+}
+
+QMainWindow#MainWindow QLabel#shelfLabel,
+QMainWindow#MainWindow QLabel#partLabel,
+QMainWindow#MainWindow QLabel#speedLabel,
+QMainWindow#MainWindow QLabel#systemStateLable {
+    font-size: 28px;
+    font-weight: bold;
+    color: #334b65;
+}
+
+/* Текущий этап работы — самый крупный и акцентный текст на экране */
+QMainWindow#MainWindow QLabel#operationStatusLabel {
+    font-size: 42px;
+    font-weight: bold;
+    color: #183b61;
+}
+
+/* Шапка окна: название программы и часы */
+QMainWindow#MainWindow QLabel#mainLabel {
+    font-size: 29px;
+    font-weight: bold;
+    color: #203955;
+}
+
+QMainWindow#MainWindow QLabel#timeLabel {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1b3755;
+    qproperty-alignment: 'AlignRight | AlignVCenter';
+}
+
+QMainWindow#MainWindow QLabel#dateLabel {
+    font-size: 18px;
+    font-weight: normal;
+    color: #64748b;
+    qproperty-alignment: 'AlignRight | AlignVCenter';
+}
+
+/* Главный статус — самый заметный */
+QMainWindow#MainWindow QLabel#systemStatusLabel {
+    font-size: 34px;
+    font-weight: bold;
+    color: #152b43;
+}
+
+QMainWindow#MainWindow QLabel#cnc1StatusLabel,
+QMainWindow#MainWindow QLabel#cnc2StatusLabel {
+    font-size: 29px;
+    font-weight: normal;
+    color: #24384f;
+}
+
+QMainWindow#MainWindow QLabel#shelfNumLable,
+QMainWindow#MainWindow QLabel#partNumLable {
+    font-size: 30px;
+    font-weight: bold;
+    color: #1b3755;
+}
+
+QMainWindow#MainWindow QLabel#label_8 {
+    min-width: 90px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #1d4ed8;
+}
+
+/* 3. Световые индикаторы. Один блок задаёт размеры всех трёх.
+   Метод set_indicator() выставляет indicator=True, state=green/yellow/red/off.
+   Свечение QGraphicsDropShadowEffect остаётся в Python. */
+QMainWindow#MainWindow QLabel[indicator="true"] {
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    border-radius: 16px;
+    border: 2px solid #9ca3af;
+    background-color: qradialgradient(
+        cx: 0.35, cy: 0.35, radius: 0.65,
+        fx: 0.35, fy: 0.35,
+        stop: 0 #f3f4f6,
+        stop: 0.50 #9ca3af,
+        stop: 1 #4b5563
+    );
+}
+
+QMainWindow#MainWindow QLabel[indicator="true"][state="off"] {
+    border: 2px solid #9ca3af;
+    background-color: #bdbdbd;
+}
+
+QMainWindow#MainWindow QLabel[indicator="true"][state="green"] {
+    border: 2px solid #15803d;
+    background-color: qradialgradient(
+        cx: 0.35, cy: 0.35, radius: 0.65,
+        fx: 0.35, fy: 0.35,
+        stop: 0 #bbf7d0,
+        stop: 0.45 #22c55e,
+        stop: 1 #15803d
+    );
+}
+
+QMainWindow#MainWindow QLabel[indicator="true"][state="yellow"] {
+    border: 2px solid #b45309;
+    background-color: qradialgradient(
+        cx: 0.35, cy: 0.35, radius: 0.65,
+        fx: 0.35, fy: 0.35,
+        stop: 0 #fef08a,
+        stop: 0.45 #eab308,
+        stop: 1 #a16207
+    );
+}
+
+QMainWindow#MainWindow QLabel[indicator="true"][state="red"] {
+    border: 2px solid #b91c1c;
+    background-color: qradialgradient(
+        cx: 0.35, cy: 0.35, radius: 0.65,
+        fx: 0.35, fy: 0.35,
+        stop: 0 #fecaca,
+        stop: 0.45 #ef4444,
+        stop: 1 #991b1b
+    );
+}
+
+/* 4. CNC CheckBox — отдельный стиль, не влияет на инженерные DI/DO */
+QMainWindow#MainWindow QCheckBox#cnc1CheckBox,
+QMainWindow#MainWindow QCheckBox#cnc2CheckBox {
+    min-width: 44px;
+    min-height: 44px;
+    spacing: 0;
+    background-color: transparent;
+    border: none;
+}
+
+QMainWindow#MainWindow QCheckBox#cnc1CheckBox::indicator,
+QMainWindow#MainWindow QCheckBox#cnc2CheckBox::indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px solid #9aabc1;
+    background-color: #ffffff;
+}
+
+QMainWindow#MainWindow QCheckBox#cnc1CheckBox::indicator:checked,
+QMainWindow#MainWindow QCheckBox#cnc2CheckBox::indicator:checked {
+    background-color: #2563eb;
+    border: 2px solid #2563eb;
+    image: url(ui/check.svg);
+}
+
+QMainWindow#MainWindow QCheckBox#cnc1CheckBox::indicator:hover,
+QMainWindow#MainWindow QCheckBox#cnc2CheckBox::indicator:hover {
+    border-color: #1d4ed8;
+}
+
+/* 5. Основные кнопки */
+QMainWindow#MainWindow QPushButton#startButton,
+QMainWindow#MainWindow QPushButton#stopButton,
+QMainWindow#MainWindow QPushButton#pauseButton,
+QMainWindow#MainWindow QPushButton#engineerButton,
+QMainWindow#MainWindow QPushButton#journalButton {
+    min-width: 228px;
+    min-height: 90px;
+    padding: 0 22px;
+    border-radius: 14px;
+    font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+QMainWindow#MainWindow QPushButton#startButton {
+    background-color: #198754;
+    color: #ffffff;
+    border: 1px solid #137549;
+}
+QMainWindow#MainWindow QPushButton#startButton:hover { background-color: #157347; }
+QMainWindow#MainWindow QPushButton#startButton:pressed { background-color: #106039; }
+
+QMainWindow#MainWindow QPushButton#stopButton {
+    background-color: #dc3545;
+    color: #ffffff;
+    border: 1px solid #ba2534;
+}
+QMainWindow#MainWindow QPushButton#stopButton:hover { background-color: #c92e3e; }
+QMainWindow#MainWindow QPushButton#stopButton:pressed { background-color: #a91f30; }
+
+QMainWindow#MainWindow QPushButton#pauseButton {
+    background-color: #f6c453;
+    color: #49390c;
+    border: 1px solid #e4ad36;
+}
+QMainWindow#MainWindow QPushButton#pauseButton:hover { background-color: #efb739; }
+QMainWindow#MainWindow QPushButton#pauseButton:pressed { background-color: #d9a224; }
+
+QMainWindow#MainWindow QPushButton#engineerButton,
+QMainWindow#MainWindow QPushButton#journalButton {
+    color: #273445;
+    background-color: #ffffff;
+    border: 1px solid #a9b8cb;
+}
+QMainWindow#MainWindow QPushButton#engineerButton:hover,
+QMainWindow#MainWindow QPushButton#journalButton:hover {
+    color: #1854a3;
+    background-color: #eef5ff;
+    border: 1px solid #7da5dc;
+}
+QMainWindow#MainWindow QPushButton#engineerButton:pressed,
+QMainWindow#MainWindow QPushButton#journalButton:pressed {
+    background-color: #dceafd;
+}
+
+QMainWindow#MainWindow QPushButton#startButton:disabled,
+QMainWindow#MainWindow QPushButton#stopButton:disabled,
+QMainWindow#MainWindow QPushButton#pauseButton:disabled,
+QMainWindow#MainWindow QPushButton#engineerButton:disabled,
+QMainWindow#MainWindow QPushButton#journalButton:disabled {
+    color: #9ca3af;
+    background-color: #e5e7eb;
+    border: 1px solid #d1d5db;
+}
+
+/* 6. Кнопки +/-: сенсорное управление */
+QMainWindow#MainWindow QPushButton#shelf_minus,
+QMainWindow#MainWindow QPushButton#shelf_plus,
+QMainWindow#MainWindow QPushButton#part_minus,
+QMainWindow#MainWindow QPushButton#part_plus {
+    min-width: 104px;
+    min-height: 68px;
+    color: #1f4167;
+    background-color: #ffffff;
+    border: 1px solid #b7c7da;
+    border-radius: 10px;
+    font-size: 34px;
+    font-weight: bold;
+}
+QMainWindow#MainWindow QPushButton#shelf_minus:hover,
+QMainWindow#MainWindow QPushButton#shelf_plus:hover,
+QMainWindow#MainWindow QPushButton#part_minus:hover,
+QMainWindow#MainWindow QPushButton#part_plus:hover {
+    background-color: #eaf2fe;
+    border: 2px solid #739fd5;
+}
+QMainWindow#MainWindow QPushButton#shelf_minus:pressed,
+QMainWindow#MainWindow QPushButton#shelf_plus:pressed,
+QMainWindow#MainWindow QPushButton#part_minus:pressed,
+QMainWindow#MainWindow QPushButton#part_plus:pressed {
+    background-color: #d9eaff;
+}
+
+/* 7. Стол — 24 ячейки только для индикации. Они отключены для
+   ввода в .ui (enabled=false), но по-прежнему поддерживают setChecked()
+   и изменение цвета через динамические свойства. Отключённые кнопки
+   намеренно выглядят как обычные индикаторы (не блекнут). */
+QMainWindow#MainWindow QPushButton[uiRole="trayCell"],
+QMainWindow#MainWindow QPushButton[uiRole="trayCell"]:disabled {
+    min-height: 54px;
+    color: #203955;
+    background-color: #f8fafc;
+    border: 1px solid #b9c9d9;
+    border-radius: 8px;
+}
+QMainWindow#MainWindow QPushButton[uiRole="trayCell"]:hover:enabled {
+    background-color: #e9f2ff;
+    border: 2px solid #80a8da;
+}
+QMainWindow#MainWindow QPushButton[uiRole="trayCell"]:checked,
+QMainWindow#MainWindow QPushButton[uiRole="trayCell"]:checked:disabled {
+    color: #203955;
+    background-color: #dbeafe;
+    border: 2px solid #2563eb;
+}
+
+/* 8. СЛАЙДЕР — только узкая дорожка. Стили привязаны к objectName. */
+/* Не использовать QSlider::groove со старой широкой серой заливкой. */
+QSlider#speedSlider {
+    background-color: transparent;
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    min-height: 54px;
+}
+
+/* Дорожка по центру вертикального пространства QSlider. */
+QSlider#speedSlider::groove:horizontal {
+    height: 8px;
+    background-color: #e0e8f2;
+    border: 0px;
+    border-radius: 4px;
+}
+
+QSlider#speedSlider::sub-page:horizontal {
+    background-color: #2865df;
+    border: 0px;
+    border-radius: 4px;
+}
+
+QSlider#speedSlider::add-page:horizontal {
+    background-color: #e0e8f2;
+    border: 0px;
+    border-radius: 4px;
+}
+
+QSlider#speedSlider::handle:horizontal {
+    width: 30px;
+    margin: -13px 0px;
+    border: 3px solid #ffffff;
+    border-radius: 16px;
+    background-color: #2865df;
+}
+
+QSlider#speedSlider::handle:horizontal:hover {
+    background-color: #1d53c0;
+}
+
+QSlider#speedSlider::handle:horizontal:pressed {
+    background-color: #17449d;
+}
+
+QSlider#speedSlider::handle:horizontal:disabled {
+    background-color: #9ca3af;
+}

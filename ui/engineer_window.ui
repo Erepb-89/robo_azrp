@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1339</width>
-    <height>760</height>
+    <width>1346</width>
+    <height>1069</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -25,546 +25,1031 @@
    <string>Режим инженера</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout_5">
-    <item row="0" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="engineerLayout" stretch="0,1,0">
+    <property name="spacing">
+     <number>16</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QFrame" name="mainFrame">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>96</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>96</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <layout class="QGridLayout" name="engineerHeaderLayout" columnstretch="1,0,0">
+       <property name="leftMargin">
+        <number>20</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>20</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
+       <property name="horizontalSpacing">
+        <number>16</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="mainLabel">
+         <property name="text">
+          <string>Инженерный режим</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="engineerClockLayout">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="timeLabel">
+           <property name="text">
+            <string>00:00:00</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="dateLabel">
+           <property name="text">
+            <string>00.00.0000</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="2" alignment="Qt::AlignRight|Qt::AlignVCenter">
+        <widget class="QPushButton" name="powerOffButton">
+         <property name="minimumSize">
+          <size>
+           <width>56</width>
+           <height>56</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>56</width>
+           <height>56</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Выключение</string>
+         </property>
+         <property name="accessibleName">
+          <string>Выключение</string>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>36</width>
+           <height>36</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="engineerTabsLayout">
+      <property name="leftMargin">
+       <number>16</number>
+      </property>
+      <property name="rightMargin">
+       <number>16</number>
+      </property>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QGroupBox" name="groupBox">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-           </font>
-          </property>
-          <property name="title">
-           <string>DI - Дискретные входы</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout">
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="di_Check_Button">
-             <property name="text">
-              <string>Check_Button</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="di_M1_DoorOpen">
-             <property name="text">
-              <string>M1_DoorOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="2">
-            <widget class="QCheckBox" name="di_M1_DoorClose">
-             <property name="text">
-              <string>M1_DoorClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="3">
-            <widget class="QCheckBox" name="di_M1_Ready">
-             <property name="text">
-              <string>M1_Ready</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="di_M1_ChuckClamped">
-             <property name="text">
-              <string>M1_ChuckClamped</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="di_M1_ChuckRelax">
-             <property name="text">
-              <string>M1_ChuckRelax</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QCheckBox" name="di_M1_Alarm">
-             <property name="text">
-              <string>M1_Alarm</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="3">
-            <widget class="QCheckBox" name="di_M2_Alarm">
-             <property name="text">
-              <string>M2_Alarm</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="di_M2_DoorOpen">
-             <property name="text">
-              <string>M2_DoorOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="di_M2_DoorClose">
-             <property name="text">
-              <string>M2_DoorClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="2">
-            <widget class="QCheckBox" name="di_M2_Ready">
-             <property name="text">
-              <string>M2_Ready</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="3">
-            <widget class="QCheckBox" name="di_M2_ChuckClamped">
-             <property name="text">
-              <string>M2_ChuckClamped</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="di_M2_ChuckRelax">
-             <property name="text">
-              <string>M2_ChuckRelax</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="di_G1_Clamped">
-             <property name="text">
-              <string>G1_Clamped</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
-            <widget class="QCheckBox" name="di_G1_Relax">
-             <property name="text">
-              <string>G1_Relax</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="3">
-            <widget class="QCheckBox" name="di_G2_Clamped">
-             <property name="text">
-              <string>G2_Clamped</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="di_G2_Relax">
-             <property name="text">
-              <string>G2_Relax</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="di_Gate_Sensor">
-             <property name="text">
-              <string>Gate_Sensor</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="2">
-            <widget class="QCheckBox" name="di_S1_Open">
-             <property name="text">
-              <string>S1_Open</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="3">
-            <widget class="QCheckBox" name="di_S2_Open">
-             <property name="text">
-              <string>S2_Open</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QCheckBox" name="di_S3_Open">
-             <property name="text">
-              <string>S3_Open</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QCheckBox" name="di_S1_Close">
-             <property name="text">
-              <string>S1_Close</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2">
-            <widget class="QCheckBox" name="di_S2_Close">
-             <property name="text">
-              <string>S2_Close</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="3">
-            <widget class="QCheckBox" name="di_S3_Close">
-             <property name="text">
-              <string>S3_Close</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-           </font>
-          </property>
-          <property name="title">
-           <string>Modbus TCP</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="mbtcp_START_STOP">
-             <property name="text">
-              <string>START/STOP</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="mbtcp_M1_DoorAuto">
-             <property name="text">
-              <string>M1_DoorAuto</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="mbtcp_M2_DoorAuto">
-             <property name="text">
-              <string>M2_DoorAuto</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="mbtcp_G1_Switch">
-             <property name="text">
-              <string>G1_Switch</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="mbtcp_G2_Switch">
-             <property name="text">
-              <string>G2_Switch</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="mbtcp_Pause_Resume">
-             <property name="text">
-              <string>Pause/Resume</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="mbtcp_C1_SensorOpened">
-             <property name="text">
-              <string>C1_SensorOpened</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="mbtcp_C1_SensorClosed">
-             <property name="text">
-              <string>C1_SensorClosed</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="mbtcp_C2_SensorOpened">
-             <property name="text">
-              <string>C2_SensorOpened</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="mbtcp_C2_SensorClosed">
-             <property name="text">
-              <string>C2_SensorClosed</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QCheckBox" name="mbtcp_C_Sensor">
-             <property name="text">
-              <string>C_Sensor</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QFrame" name="frame">
-        <property name="frameShape">
-         <enum>QFrame::HLine</enum>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>0</number>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Raised</enum>
-        </property>
+        <widget class="QWidget" name="tab_2">
+         <attribute name="title">
+          <string>Сигнальные выходы</string>
+         </attribute>
+         <layout class="QHBoxLayout" name="outputSignalsLayout" stretch="3,1">
+          <property name="leftMargin">
+           <number>14</number>
+          </property>
+          <property name="topMargin">
+           <number>14</number>
+          </property>
+          <property name="rightMargin">
+           <number>14</number>
+          </property>
+          <property name="bottomMargin">
+           <number>14</number>
+          </property>
+          <property name="spacing">
+           <number>16</number>
+          </property>
+          <item>
+           <widget class="QTableWidget" name="outputSignalsTable">
+            <property name="signalTable" stdset="0">
+             <bool>true</bool>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>Порт</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Сигнал</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Назначение</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="ledModesTable">
+            <property name="signalTable" stdset="0">
+             <bool>true</bool>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>Светодиодная лента</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+         <widget class="QWidget" name="outputSignalStates">
+          <property name="visible">
+           <bool>false</bool>
+          </property>
+          <widget class="QCheckBox" name="do_M1_ChuckOpen">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_ChuckOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M1_ChuckClose">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_ChuckClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M1_StartProcess">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_StartProcess</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M1_StopProcess">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_StopProcess</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M1_DoorClose">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M1_DoorOpen">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M1_DoorOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M_AirSpray">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M_AirSpray</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_ChuckOpen">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M2_ChuckOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_ChuckClose">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M2_ChuckClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_StartProcess">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M2_StartProcess</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_StopProcess">
+           <property name="text">
+            <string>M2_StopProcess</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_DoorClose">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M2_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_M2_DoorIOpen">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>M2_DoorIOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_G1_Clamp">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>G1_Clamp</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_G2_Clamp">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>G2_Clamp</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_C_Switch">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>C_Switch</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="do_Cart_Lamp">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Cart_Lamp</string>
+           </property>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Disable">
+           <property name="text">
+            <string>Выключено</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Green">
+           <property name="text">
+            <string>Зеленый</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Green_Blink">
+           <property name="text">
+            <string>Зеленый мигающий </string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Yellow">
+           <property name="text">
+            <string>Желтый</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Yellow_Blink">
+           <property name="text">
+            <string>Желтый мигающий</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Red">
+           <property name="text">
+            <string>Красный</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+          <widget class="QRadioButton" name="mbrs_Red_Blink">
+           <property name="text">
+            <string>Красный мигающий</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string>ledModeButtonGroup</string>
+           </attribute>
+          </widget>
+         </widget>
+        </widget>
+        <widget class="QWidget" name="tab">
+         <attribute name="title">
+          <string>Сигнальные входы</string>
+         </attribute>
+         <layout class="QHBoxLayout" name="inputSignalsLayout" stretch="3,1">
+          <property name="leftMargin">
+           <number>14</number>
+          </property>
+          <property name="topMargin">
+           <number>14</number>
+          </property>
+          <property name="rightMargin">
+           <number>14</number>
+          </property>
+          <property name="bottomMargin">
+           <number>14</number>
+          </property>
+          <property name="spacing">
+           <number>16</number>
+          </property>
+          <item>
+           <widget class="QTableWidget" name="inputSignalsTable">
+            <property name="signalTable" stdset="0">
+             <bool>true</bool>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string />
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Порт</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Сигнал</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Назначение</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="inputSimulationTable">
+            <property name="signalTable" stdset="0">
+             <bool>true</bool>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>Симуляция</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+         <widget class="QWidget" name="inputSignalStates">
+          <property name="visible">
+           <bool>false</bool>
+          </property>
+          <widget class="QCheckBox" name="di_Check_Button">
+           <property name="text">
+            <string>Check_Button</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_DoorOpen">
+           <property name="text">
+            <string>M1_DoorOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_DoorClose">
+           <property name="text">
+            <string>M1_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_Ready">
+           <property name="text">
+            <string>M1_Ready</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_ChuckClamped">
+           <property name="text">
+            <string>M1_ChuckClamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_ChuckRelax">
+           <property name="text">
+            <string>M1_ChuckRelax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_Alarm">
+           <property name="text">
+            <string>M1_Alarm</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_Alarm">
+           <property name="text">
+            <string>M2_Alarm</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_DoorOpen">
+           <property name="text">
+            <string>M2_DoorOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_DoorClose">
+           <property name="text">
+            <string>M2_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_Ready">
+           <property name="text">
+            <string>M2_Ready</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_ChuckClamped">
+           <property name="text">
+            <string>M2_ChuckClamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_ChuckRelax">
+           <property name="text">
+            <string>M2_ChuckRelax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G1_Clamped">
+           <property name="text">
+            <string>G1_Clamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G1_Relax">
+           <property name="text">
+            <string>G1_Relax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G2_Clamped">
+           <property name="text">
+            <string>G2_Clamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G2_Relax">
+           <property name="text">
+            <string>G2_Relax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_Gate_Sensor">
+           <property name="text">
+            <string>Gate_Sensor</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S1_Open">
+           <property name="text">
+            <string>S1_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S2_Open">
+           <property name="text">
+            <string>S2_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S3_Open">
+           <property name="text">
+            <string>S3_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S1_Close">
+           <property name="text">
+            <string>S1_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S2_Close">
+           <property name="text">
+            <string>S2_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S3_Close">
+           <property name="text">
+            <string>S3_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_START_STOP">
+           <property name="text">
+            <string>START/STOP</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_M1_DoorAuto">
+           <property name="text">
+            <string>M1_DoorAuto</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_M2_DoorAuto">
+           <property name="text">
+            <string>M2_DoorAuto</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_G1_Switch">
+           <property name="text">
+            <string>G1_Switch</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_G2_Switch">
+           <property name="text">
+            <string>G2_Switch</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_Pause_Resume">
+           <property name="text">
+            <string>Pause/Resume</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C1_SensorOpened">
+           <property name="text">
+            <string>C1_SensorOpened</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C1_SensorClosed">
+           <property name="text">
+            <string>C1_SensorClosed</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C2_SensorOpened">
+           <property name="text">
+            <string>C2_SensorOpened</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C2_SensorClosed">
+           <property name="text">
+            <string>C2_SensorClosed</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C_Sensor">
+           <property name="text">
+            <string>C_Sensor</string>
+           </property>
+          </widget>
+         </widget>
+         <widget class="QWidget" name="inputSimulationStates">
+          <property name="visible">
+           <bool>false</bool>
+          </property>
+          <widget class="QCheckBox" name="di_Check_Button_Sim">
+           <property name="text">
+            <string>Check_Button</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_DoorOpen_Sim">
+           <property name="text">
+            <string>M1_DoorOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_DoorClose_Sim">
+           <property name="text">
+            <string>M1_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_Ready_Sim">
+           <property name="text">
+            <string>M1_Ready</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_ChuckClamped_Sim">
+           <property name="text">
+            <string>M1_ChuckClamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_ChuckRelax_Sim">
+           <property name="text">
+            <string>M1_ChuckRelax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M1_Alarm_Sim">
+           <property name="text">
+            <string>M1_Alarm</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_Alarm_Sim">
+           <property name="text">
+            <string>M2_Alarm</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_DoorOpen_Sim">
+           <property name="text">
+            <string>M2_DoorOpen</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_DoorClose_Sim">
+           <property name="text">
+            <string>M2_DoorClose</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_Ready_Sim">
+           <property name="text">
+            <string>M2_Ready</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_ChuckClamped_Sim">
+           <property name="text">
+            <string>M2_ChuckClamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_M2_ChuckRelax_Sim">
+           <property name="text">
+            <string>M2_ChuckRelax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G1_Clamped_Sim">
+           <property name="text">
+            <string>G1_Clamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G1_Relax_Sim">
+           <property name="text">
+            <string>G1_Relax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G2_Clamped_Sim">
+           <property name="text">
+            <string>G2_Clamped</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_G2_Relax_Sim">
+           <property name="text">
+            <string>G2_Relax</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_Gate_Sensor_Sim">
+           <property name="text">
+            <string>Gate_Sensor</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S1_Open_Sim">
+           <property name="text">
+            <string>S1_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S2_Open_Sim">
+           <property name="text">
+            <string>S2_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S3_Open_Sim">
+           <property name="text">
+            <string>S3_Open</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S1_Close_Sim">
+           <property name="text">
+            <string>S1_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S2_Close_Sim">
+           <property name="text">
+            <string>S2_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="di_S3_Close_Sim">
+           <property name="text">
+            <string>S3_Close</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_START_STOP_Sim">
+           <property name="text">
+            <string>START/STOP</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_M1_DoorAuto_Sim">
+           <property name="text">
+            <string>M1_DoorAuto</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_M2_DoorAuto_Sim">
+           <property name="text">
+            <string>M2_DoorAuto</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_G1_Switch_Sim">
+           <property name="text">
+            <string>G1_Switch</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_G2_Switch_Sim">
+           <property name="text">
+            <string>G2_Switch</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_Pause_Resume_Sim">
+           <property name="text">
+            <string>Pause/Resume</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C1_SensorOpened_Sim">
+           <property name="text">
+            <string>C1_SensorOpened</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C1_SensorClosed_Sim">
+           <property name="text">
+            <string>C1_SensorClosed</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C2_SensorOpened_Sim">
+           <property name="text">
+            <string>C2_SensorOpened</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C2_SensorClosed_Sim">
+           <property name="text">
+            <string>C2_SensorClosed</string>
+           </property>
+          </widget>
+          <widget class="QCheckBox" name="mbtcp_C_Sensor_Sim">
+           <property name="text">
+            <string>C_Sensor</string>
+           </property>
+          </widget>
+         </widget>
+        </widget>
+        <widget class="QWidget" name="tab_3">
+         <attribute name="title">
+          <string>Карта перемещений</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="trajectoryMapLayout">
+          <property name="leftMargin">
+           <number>14</number>
+          </property>
+          <property name="topMargin">
+           <number>14</number>
+          </property>
+          <property name="rightMargin">
+           <number>14</number>
+          </property>
+          <property name="bottomMargin">
+           <number>14</number>
+          </property>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab_4">
+         <attribute name="title">
+          <string>Симуляция ошибок</string>
+         </attribute>
+        </widget>
        </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QGroupBox" name="groupBox_4">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-           </font>
-          </property>
-          <property name="title">
-           <string>DO — дискретные выходы</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_4">
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="do_M1_ChuckOpen">
-             <property name="text">
-              <string>M1_ChuckOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="do_M1_ChuckClose">
-             <property name="text">
-              <string>M1_ChuckClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="2">
-            <widget class="QCheckBox" name="do_M1_StartProcess">
-             <property name="text">
-              <string>M1_StartProcess</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="do_M1_StopProcess">
-             <property name="text">
-              <string>M1_StopProcess</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="do_M1_DoorClose">
-             <property name="text">
-              <string>M1_DoorClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QCheckBox" name="do_M1_DoorIOpen">
-             <property name="text">
-              <string>M1_DoorIOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="do_M_AirSpray">
-             <property name="text">
-              <string>M_AirSpray</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="do_M2_ChuckOpen">
-             <property name="text">
-              <string>M2_ChuckOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="2">
-            <widget class="QCheckBox" name="do_M2_ChuckClose">
-             <property name="text">
-              <string>M2_ChuckClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="do_M2_StartProcess">
-             <property name="text">
-              <string>M2_StartProcess</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="do_M2_StopProcess">
-             <property name="text">
-              <string>M2_StopProcess</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
-            <widget class="QCheckBox" name="do_M2_DoorClose">
-             <property name="text">
-              <string>M2_DoorClose</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="do_M2_DoorIOpen">
-             <property name="text">
-              <string>M2_DoorIOpen</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="do_G1_Clamp">
-             <property name="text">
-              <string>G1_Clamp</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="2">
-            <widget class="QCheckBox" name="do_G2_Clamp">
-             <property name="text">
-              <string>G2_Clamp</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QCheckBox" name="do_C_Switch">
-             <property name="text">
-              <string>C_Switch</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QCheckBox" name="do_Cart_Lamp">
-             <property name="text">
-              <string>Cart_Lamp</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_3">
-          <property name="font">
-           <font>
-            <pointsize>15</pointsize>
-           </font>
-          </property>
-          <property name="title">
-           <string>Modbus RS485</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_3">
-           <item row="0" column="0">
-            <widget class="QRadioButton" name="mbrs_Disable">
-             <property name="text">
-              <string>Выключено</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QRadioButton" name="mbrs_Green">
-             <property name="text">
-              <string>Зеленый</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QRadioButton" name="mbrs_Green_Blink">
-             <property name="text">
-              <string>Зеленый мигающий </string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QRadioButton" name="mbrs_Yellow">
-             <property name="text">
-              <string>Желтый</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QRadioButton" name="mbrs_Yellow_Blink">
-             <property name="text">
-              <string>Желтый мигающий</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QRadioButton" name="radioButton_6">
-             <property name="text">
-              <string>Красный</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
       </item>
      </layout>
     </item>
-    <item row="2" column="0">
-     <layout class="QHBoxLayout" name="bottomLayout">
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="exitButton">
-        <property name="minimumSize">
-         <size>
-          <width>140</width>
-          <height>40</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Выход</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="bottomSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
+    <item>
+     <widget class="QFrame" name="buttonsFrame">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>132</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>132</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <layout class="QHBoxLayout" name="bottomLayout">
+       <property name="spacing">
+        <number>18</number>
+       </property>
+       <property name="leftMargin">
+        <number>18</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>18</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="exitButton">
+         <property name="text">
+          <string>Выход</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>Включить</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="bottomSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="ledModeButtonGroup"/>
+ </buttongroups>
 </ui>
