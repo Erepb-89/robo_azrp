@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QDialog
 from .ui_login import Ui_LoginDialog
+from .virtual_keyboard import VirtualKeyboard
 
 ENGINEER_LOGIN = "Admin"
 ENGINEER_PASSWORD = "123"
@@ -12,10 +13,16 @@ class LoginDialog(QDialog):
         self.ui = Ui_LoginDialog()
         self.ui.setupUi(self)
 
-        self.ui.passwordEdit.setFocus()
+        self.keyboard = VirtualKeyboard(self)
+        self.keyboard.attach(self.ui.loginEdit, self.ui.passwordEdit)
 
         self.ui.loginButton.clicked.connect(self.check_credentials)
+        self.keyboard.done.connect(self.ui.loginButton.click)
         self.ui.cancelButton.clicked.connect(self.reject)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.ui.passwordEdit.setFocus()
 
     def check_credentials(self):
         login = self.ui.loginEdit.text()
@@ -27,3 +34,4 @@ class LoginDialog(QDialog):
             self.ui.errorLabel.setText("Неверный логин или пароль")
             self.ui.passwordEdit.clear()
             self.ui.passwordEdit.setFocus()
+            self.keyboard.show_for_focused_field()

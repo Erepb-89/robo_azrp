@@ -80,6 +80,10 @@ class MainAppClass:
         self.Form.closeEvent = self.on_close
         self.Form.show()
 
+        # Открываем файл стилей (если положили его в папку ui)
+        with open("ui/style.qss", "r", encoding="utf-8") as file:
+            qss_styles = file.read()
+
         self.OperForm = MainOperWindow(
             self.RobotController,
             self.cmd_queue,
@@ -87,6 +91,10 @@ class MainAppClass:
             heartbeat=self.heartbit,
             cmd_log_queue=self.gui_log_queue
         )
+
+        # Применяем стили ко всему приложению
+        self.OperForm.setStyleSheet(qss_styles)
+
         self.OperForm.closeEvent = self.on_close
         self.OperForm.show()
 
