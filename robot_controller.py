@@ -10,7 +10,6 @@ from typing import Dict, List, Optional
 from queue import Queue, Empty
 
 from API.source.ap_interface.io import IO
-from actions import actions
 from io_map import (DI, DO, MACHINE_DI, MACHINE_MB_DI, MACHINE_DO,
                     GRIPPER_DI, GRIPPER_DO,
                     di_active, DIModbus, di_mb_active, MACHINE_DI_SIM, GRIPPER_DI_SIM)
@@ -18,7 +17,7 @@ from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
                     PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM, LED_POLL_SEC)
-from commands import Command, CmdType, RobotTrajectories, RobotActions, RobotPoints
+from commands import Command, CmdType, RobotTrajectories, RobotPoints
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 from led_control import LedStateController
 
@@ -59,7 +58,6 @@ class RobotState:
     last_error: Optional[LastError] = 0  # Optional[str] = None
     last_command: Optional[str] = None
     trajectory_state: int = 0
-    action_state: int = 0
     gripper1_cmd: bool = False
     gripper2_cmd: bool = False
     current_point: int = 0
@@ -109,13 +107,12 @@ class StateManager:
 class DataManager:
     """Управление waypoints и trajectories"""
 
-    def __init__(self, points_path: Path, traj_path: Path, actions_dict: dict, logger):
+    def __init__(self, points_path: Path, traj_path: Path, logger):
         self.points_path = points_path
         self.traj_path = traj_path
         self.log = logger
         self.waypoints: Dict[str, Dict] = {}
         self.trajectories: Dict[str, Dict] = {}
-        self.actions = actions_dict
 
     def load_waypoints(self) -> Dict[str, Dict]:
         """Загрузить waypoints из файла"""
@@ -556,7 +553,7 @@ class RobotController:
         self.state = StateManager()
         self._active_machines = {1: True, 2: True}
         self._active_machines_lock = threading.Lock()
-        self.data = DataManager(POINTS_PATH, TRAJ_PATH, actions, logger)
+        self.data = DataManager(POINTS_PATH, TRAJ_PATH, logger)
         # Раскомментить для отладки с манипулятором по месту Uncomment
         self.mc = MotionController(self.Robot, self.data, logger)
         self.io = IOController(self.Robot, logger, NUM_DIGITAL_IO,
@@ -581,8 +578,6 @@ class RobotController:
         self.waiter_active = False
         self.wait_gen = 0
         self.motion_abort = threading.Event()
-        # Машина состояний выполняемого действия (шаги: траектории/грипперы)
-        self.active_action = None  # {'action', 'commands', 'step'}
 
         # Индикация WB-LED по состоянию робота
         self.led_state = LedStateController(
@@ -639,9 +634,6 @@ class RobotController:
 
     def get_trajectories_snapshot(self) -> dict:
         return dict(self.data.trajectories)
-
-    def get_actions_snapshot(self) -> dict:
-        return dict(self.data.actions)
 
     def get_current_tcp_position(self) -> List[float]:
         return self.state.get_field('tcp_position')
@@ -970,36 +962,6 @@ class RobotController:
             self.log.error(f"move_to_point_sync {point_name}: {e}")
             return False
 
-    def execute_action(self, action: RobotActions) -> None:
-        """
-        Выполнить действие: последовательность шагов (траектории + грипперы).
-        Не блокирует главный цикл: после каждой траектории продолжение
-        цепочки шагов происходит из handle_motion_done (MOTION_DONE).
-        """
-        self.state.update(last_error=0)
-        if self.state.get_field('controller_state') != 'run':
-            self.state.update(
-                action_state=action.value + BLOCK,
-                last_error=LastError.err_not_ready
-            )
-            self.log.error("Action rejected: manipulator ot in run state")
-            return
-
-        if action.name not in self.data.actions:
-            self.state.update(action_state=action.value + EXCEPTION,
-                              last_error=LastError.err_common_action)
-            self.log.error(f"No Action mapped for {action}")
-            return
-
-        self.log.info(f"Executing action: {action.name}")
-        self.state.update(action_state=action.value + EXECUTION)
-        self.active_action = {
-            'action': action,
-            'commands': self.data.actions[action.name].commands,
-            'step': 0,
-        }
-        # self.advance_action_step()
-
     # ---------- Грипперы ----------
     def execute_gripper_1(self, clamp: bool) -> None:
         """Выполнение основной команды Гриппера 1"""
@@ -1188,7 +1150,7 @@ class RobotController:
     def handle_motion_done(self, cmd: Command) -> None:
         """
         Обработка результата вотера в главном потоке:
-        траектория -> FINISHED/EXCEPTION, при успехе — продолжение action'а.
+        траектория -> FINISHED/EXCEPTION, при успехе — продолжение.
         """
         if cmd.payload.get('gen') != self.wait_gen:
             return  # устаревший результат (после STOP_MOVE/перезапуска)
@@ -1199,7 +1161,6 @@ class RobotController:
             return
         if cmd.payload.get('ok'):
             self.state.update(trajectory_state=traj.value + FINISHED)
-            # self.advance_action_step()
         else:
             self.state.update(trajectory_state=traj.value + EXCEPTION,
                               last_error=LastError.err_timeout_trajectory)
@@ -1253,9 +1214,6 @@ class RobotController:
                 elif cmd.type == CmdType.EXECUTE_TRAJECTORY:
                     self.data.load_waypoints()
                     self.execute_trajectory(RobotTrajectories(cmd.payload['num']))
-
-                elif cmd.type == CmdType.EXECUTE_ACTION:
-                    self.execute_action(RobotActions(cmd.payload['num']))
 
                 elif cmd.type == CmdType.MOVE_TO_POINT:
                     self.data.load_waypoints()

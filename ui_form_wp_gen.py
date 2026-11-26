@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QLabel, QFrame, \
 from PyQt5.QtGui import QColor
 from datetime import datetime
 
-from commands import Command, CmdType, RobotTrajectories, RobotActions
+from commands import Command, CmdType, RobotTrajectories
 from config import (POINTS_PATH, TRAJ_PATH,
                     LOG_STYLESHEET, LOG_COLOR_NEUTRAL, LOG_COLOR_STOP,
                     LOG_COLOR_CMD, LOG_COLOR_ERROR, LOG_COLOR_SUCCESS,
@@ -48,7 +48,6 @@ class MainWindow(QMainWindow):
         self._last_nearest_wp: str = ""
         self._log_last_cmd: str = ""
         self._log_last_traj_state: int = -1
-        self._log_last_action_state: int = -1
         self._log_last_gripper1_state: int = -1
         self._log_last_gripper2_state: int = -1
         self._log_last_err: int = 0  # для детекции новых ошибок
@@ -58,7 +57,6 @@ class MainWindow(QMainWindow):
             Command(CmdType.REFRESH_WAYPOINTS, {}, source="GUI"))
         self.Waypoints = self.RobotController.get_waypoints_snapshot()
         self.Trajectories = self.RobotController.get_trajectories_snapshot()
-        self.Actions = self.RobotController.get_actions_snapshot()
         self.command_handler = command_handler
         self.nearest_info = self.RobotController.get_nearest_info()
 
@@ -81,16 +79,10 @@ class MainWindow(QMainWindow):
         self.ui.ActivateZG.toggled.connect(self.manipulator_free_drive)
         self.ui.ActivateSJ.clicked.connect(self.start_simple_joystick)
         self.ui.MoveTrajectory.clicked.connect(self.move_by_selected_trajectory)
-        self.ui.ExecuteAction.clicked.connect(self.execute_selected_action)
-        self.ui.Gripper_1.setCheckable(True)
-        self.ui.Gripper_1.toggled.connect(self.manipulator_gripper1_control)
-        self.ui.Gripper_2.setCheckable(True)
-        self.ui.Gripper_2.toggled.connect(self.manipulator_gripper2_control)
         # self.ui.SavePoint.clicked.connect(self.save_current_position)
         self.ui.AddPointToTrajectory.clicked.connect(self.add_current_point_to_trajectory)
         self.ui.TrajectoriesComboBox.currentTextChanged.connect(self.trajectory_selected)
         self.ui.trajListView.clicked.connect(self.on_traj_list_clicked)
-        self.ui.actionsListView.clicked.connect(self.on_actions_list_clicked)
         self.ui.StopMove.setStyleSheet(STOP_BTN_STYLE)
         self.ui.PowerOff.setStyleSheet(POWER_OFF_BTN_STYLE)
         self.ui.PowerOn.setStyleSheet(COMMON_BTN_STYLE)
@@ -100,13 +92,9 @@ class MainWindow(QMainWindow):
         self.ui.MoveToPoint.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.AddPointToTrajectory.setStyleSheet(COMMON_BTN_STYLE)
         self.ui.MoveTrajectory.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.ExecuteAction.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.Gripper_1.setStyleSheet(COMMON_BTN_STYLE)
-        self.ui.Gripper_2.setStyleSheet(COMMON_BTN_STYLE)
         self.update_waypoints_combo_box()
         self.update_available_waypoints_combo_box()
         self.update_trajectories()
-        self.update_actions()
         self._init_trajectory_map()
         self.ui.PowerOn.clicked.connect(lambda: self.cmd_queue.put(
             Command(CmdType.POWER, {'state': 1}, source="GUI")
@@ -115,12 +103,13 @@ class MainWindow(QMainWindow):
         self.ui.MoveToPoint.clicked.connect(self.move_to_selected_point)
         self.ui.StopMove.clicked.connect(self.stop_drive)
 
-        self.buttons_logging()
-
         self._bind_op_log_tab()
         self._bind_auto_cycle_tab()
         self._init_status_bar()
         self._bind_top_toolbar()
+
+        self.buttons_logging()
+
         self.ui.waypointsComboBox.currentTextChanged.connect(self.waypoint_selected)
         self.ui.availableWaypointsComboBox.currentTextChanged.connect(self.available_waypoint_selected)
         try:
@@ -141,10 +130,10 @@ class MainWindow(QMainWindow):
         self.ui.ActivateZG.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Свободное движение: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
-        self.ui.Gripper_1.toggled.connect(
+        self.ui.btnGripper1.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Захват: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
-        self.ui.Gripper_2.toggled.connect(
+        self.ui.btnGripper2.toggled.connect(
             lambda on: self._add_log_entry(
                 f"Смещение захвата: {'ВКЛ' if on else 'ВЫКЛ'}", "→", LOG_COLOR_NEUTRAL))
 
@@ -376,7 +365,6 @@ class MainWindow(QMainWindow):
             self._update_op_log(
                 last_cmd=getattr(state, 'last_command', None) or "",
                 trajectory_state=getattr(state, 'trajectory_state', 0) or 0,
-                action_state=getattr(state, 'action_state', 0) or 0,
                 gripper1_state=getattr(state, 'gripper1_state', 0) or 0,
                 gripper2_state=getattr(state, 'gripper2_state', 0) or 0,
             )
@@ -583,7 +571,7 @@ class MainWindow(QMainWindow):
             return
 
         names = {0: "NotActive", 1: "LoadWorkpiece",
-                 2: "Complite", 3: "Error"}
+                 2: "Complete", 3: "Error"}
         cs = getattr(state, 'cycle_state', 'idle')
         self._cyc_state.setText(f"Цикл: {cs}")
 
@@ -662,7 +650,7 @@ class MainWindow(QMainWindow):
         while self._op_log.count() > JOURNAL_COUNT:
             self._op_log.takeItem(self._op_log.count() - 1)
 
-    def _update_op_log(self, last_cmd: str, trajectory_state: int, action_state: int,
+    def _update_op_log(self, last_cmd: str, trajectory_state: int,
                        gripper1_state: int = 0, gripper2_state: int = 0) -> None:
         """
         Добавляет запись о результате команды при изменении состояния.
@@ -672,24 +660,21 @@ class MainWindow(QMainWindow):
 
         cmd_changed = last_cmd != self._log_last_cmd
         traj_changed = trajectory_state != self._log_last_traj_state
-        action_changed = action_state != self._log_last_action_state
         gripper1_changed = gripper1_state != self._log_last_gripper1_state
         gripper2_changed = gripper2_state != self._log_last_gripper2_state
 
-        if not (cmd_changed or traj_changed or action_changed or
+        if not (cmd_changed or traj_changed or
                 gripper1_changed or gripper2_changed):
             return
 
         # Сохраняем предыдущие состояния
         prev_traj = self._log_last_traj_state
-        prev_action = self._log_last_action_state
         prev_gripper1 = self._log_last_gripper1_state
         prev_gripper2 = self._log_last_gripper2_state
         prev_cmd = self._log_last_cmd
 
         # Обновляем текущие состояния
         self._log_last_traj_state = trajectory_state
-        self._log_last_action_state = action_state
         self._log_last_gripper1_state = gripper1_state
         self._log_last_gripper2_state = gripper2_state
         self._log_last_cmd = last_cmd
@@ -716,9 +701,6 @@ class MainWindow(QMainWindow):
         if traj_changed and not handled:
             handled = _handle_state(prev_traj, trajectory_state, "traj")
 
-        if action_changed and not handled:
-            handled = _handle_state(prev_action, action_state, "action")
-
         if gripper1_changed and not handled:
             handled = _handle_state(prev_gripper1, gripper1_state, "gripper1")
 
@@ -728,7 +710,7 @@ class MainWindow(QMainWindow):
         # Не-траекторная команда (PowerOn/Off, MoveToPoint…):
         # last_command обновляется ПОСЛЕ успешного выполнения → это подтверждение "✓"
         if not handled and cmd_changed and last_cmd and \
-                trajectory_state < 100 and action_state < 100 and \
+                trajectory_state < 100 and \
                 gripper1_state < 100 and gripper2_state < 100:
             self._add_log_entry(self._pending_cmd or last_cmd, "✓", LOG_COLOR_SUCCESS)
             self._pending_cmd = ""
@@ -864,26 +846,10 @@ class MainWindow(QMainWindow):
         self.ui.trajListView.setModel(items_model)
         self.ui.TrajectoriesComboBox.setCurrentIndex(last_index)
 
-    def update_actions(self) -> None:
-        items_model = QStandardItemModel()
-        for action, obj in self.Actions.items():
-            if getattr(obj, 'params', ()) or not hasattr(RobotActions, action):
-                continue
-            item = QStandardItem(action)
-            item.setData(action, Qt.ItemDataRole.UserRole)
-            item.setEditable(False)
-            items_model.appendRow(item)
-        self.ui.actionsListView.setModel(items_model)
-
     def on_traj_list_clicked(self) -> None:
         index = self.ui.trajListView.currentIndex()
         internal = index.data(Qt.ItemDataRole.UserRole) or index.data()
         self.ui.TrajectoryName.setText(internal)
-
-    def on_actions_list_clicked(self) -> None:
-        index = self.ui.actionsListView.currentIndex()
-        internal = index.data(Qt.ItemDataRole.UserRole) or index.data()
-        self.ui.ActionName.setText(internal)
 
     def trajectory_selected(self, _display_name) -> None:
         internal = self.ui.TrajectoriesComboBox.currentData(Qt.ItemDataRole.UserRole)
@@ -1090,26 +1056,6 @@ class MainWindow(QMainWindow):
             self._add_log_entry(f"Траектория: {trajectory_name}", "→", LOG_COLOR_NEUTRAL)
         except Exception as e:
             self._add_log_entry(f"Траектория: {trajectory_name}", f"✗  CMD: {e}", LOG_COLOR_ERROR)
-
-    def execute_selected_action(self) -> None:
-        action_name = self.ui.ActionName.text()
-        if not action_name:
-            QtWidgets.QMessageBox.warning(None, "Warning",
-                                          "Please select an action first!")
-            return
-
-        state = self.RobotController.get_state_snapshot()
-        if state.controller_state != 'run':
-            self._add_log_entry(f"Действие: {action_name}", "✗  не готов", LOG_COLOR_ERROR)
-            return
-
-        try:
-            # команда через хендлер
-            action_enum = getattr(RobotActions, action_name)
-            self.command_handler.set_action(action_enum.value)
-            self._add_log_entry(f"Действие: {action_name}", "→", LOG_COLOR_NEUTRAL)
-        except Exception as e:
-            self._add_log_entry(f"Действие: {action_name}", f"✗  CMD: {e}", LOG_COLOR_ERROR)
 
     def _zg_tick(self) -> None:  # 2025_09_29
         try:

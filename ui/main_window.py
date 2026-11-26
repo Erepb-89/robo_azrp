@@ -217,10 +217,32 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.update_table_selection()
 
     # Получение состояния активности cnc
-    def on_cnc_selection_changed(self, cnc_number, checked):
+    def on_cnc_selection_changed(self, cnc_number: int, checked: bool):
+        """Переключение активности станка до запуска цикла"""
         status = "ready" if checked else "inactive"
         self.set_cnc_status(cnc_number, status)
         self.ui.startButton.setEnabled(self._can_start_cycle())
+
+        box = self.cnc1CheckBox if cnc_number == 1 else self.cnc2CheckBox
+        try:
+            accepted = self.RobotController.set_machine_active(cnc_number, checked)
+        except Exception as exc:
+            accepted = False
+            self.RobotController.log.error(
+                f"set_machine_active M{cnc_number}: {exc}")
+        if accepted:
+            return
+        box.blockSignals(True)
+        try:
+            box.setChecked(not checked)
+        finally:
+            box.blockSignals(False)
+        try:
+            self.RobotController.message(
+                f"М{cnc_number}: переключение недоступно "
+                "(цикл запущен или станок занят)", 'warning')
+        except Exception:
+            pass
 
     def _can_start_cycle(self):
         return self._cycle_mode == "ready" and (
