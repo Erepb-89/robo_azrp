@@ -4,19 +4,40 @@
 """
 from typing import Optional
 
-from io_map import DI
+from io_map import DI, SIM_DI
 
 #: Полка -> концевик «полка выдвинута».
-SHELF_DI = {
-    1: DI.S1_Open,   # 18
-    2: DI.S2_Open,   # 19
-    3: DI.S3_Open,   # 20
+SHELF_OPENED_DI = {
+    1: DI.S1_Opened,   # 18
+    2: DI.S2_Opened,   # 19
+    3: DI.S3_Opened,   # 20
+}
+
+#: Полка -> концевик «полка выдвинута» sim.
+SHELF_OPENED_DI_SIM = {
+    1: SIM_DI.S1_Opened_SIM,
+    2: SIM_DI.S2_Opened_SIM,
+    3: SIM_DI.S3_Opened_SIM,
+}
+
+#: Полка -> концевик «полка двинута».
+SHELF_CLOSED_DI = {
+    1: DI.S1_Closed,   # 21
+    2: DI.S2_Closed,   # 22
+    3: DI.S3_Closed,   # 23
 }
 
 
-def shelf_di(shelf: int) -> Optional[DI]:
+def shelf_opened_di(shelf: int) -> Optional[DI]:
     """Концевик выдвижения для полки (1=верх, 2=середина, 3=низ)."""
     try:
-        return SHELF_DI[int(shelf)]
+        return SHELF_OPENED_DI[int(shelf)]
+    except (KeyError, TypeError, ValueError):
+        return None
+
+def shelf_closed_di(shelf: int) -> Optional[DI]:
+    """Концевик движения для полки (1=верх, 2=середина, 3=низ)."""
+    try:
+        return SHELF_CLOSED_DI[int(shelf)]
     except (KeyError, TypeError, ValueError):
         return None

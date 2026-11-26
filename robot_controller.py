@@ -12,8 +12,8 @@ from queue import Queue, Empty
 from API.source.ap_interface.io import IO
 from actions import actions
 from io_map import (DI, DO, MACHINE_DI, MACHINE_MB_DI, MACHINE_DO,
-                    GRIPPER_DI, GRIPPER_MB_DI, GRIPPER_DO,
-                    di_active, DIModbus, di_mb_active)
+                    GRIPPER_DI, GRIPPER_DO,
+                    di_active, DIModbus, di_mb_active, MACHINE_DI_SIM, GRIPPER_DI_SIM)
 from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     GRIPPER_2_DO_INDEX, EXECUTION, FINISHED, BLOCK, EXCEPTION,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
@@ -383,11 +383,19 @@ class IOController:
     def machine_di(self, m: int, role: str) -> bool:
         return self.get_di(MACHINE_DI[m][role])
 
+    @staticmethod
+    def machine_sim_di(m: int, role: str) -> bool:
+        return MACHINE_DI_SIM[m][role]
+
     def machine_do(self, m: int, role: str, value: bool) -> bool:
         return self.set_do(MACHINE_DO[m][role], value)
 
     def gripper_di(self, g: int, role: str) -> bool:
         return self.get_di(GRIPPER_DI[g][role])
+
+    @staticmethod
+    def gripper_sim_di(g: int, role: str) -> bool:
+        return GRIPPER_DI_SIM[g][role]
 
     def gripper_do(self, g: int, value: bool) -> bool:
         return self.set_do(GRIPPER_DO[g], value)
@@ -666,9 +674,6 @@ class RobotController:
     def machine_mb_di(self, m: int, role: str) -> bool:
         return self.get_modbus_di(MACHINE_MB_DI[m][role])
 
-    def gripper_mb_di(self, g: int, role: str) -> bool:
-        return self.get_modbus_di(GRIPPER_MB_DI[g][role])
-
     def wait_mb_di(self, mb_di: DIModbus, value: bool, timeout: float,
                    abort_event: Optional[threading.Event] = None) -> bool:
         """Прерываемое ожидание Modbus-входа с тайм-аутом."""
@@ -688,11 +693,11 @@ class RobotController:
         """Message(text): лог + очередь GUI-журнала + state."""
         log = self.gui_log if source == 'gui' else self.log.getChild(source)
         if level == 'error':
-            self.log.error(text)
+            log.error(text)
         elif level == 'warning':
-            self.log.warning(text)
+            log.warning(text)
         else:
-            self.log.info(text)
+            log.info(text)
         self.state.update(last_message=text)
 
     # ---------- Автоцикл ----------

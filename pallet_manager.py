@@ -18,7 +18,7 @@ from config import MAX_G_SEC
 from io_map import GRIPPER_DI
 from pallet_cfg import PALLET_CFG
 from pallet_errors import SHELF_ERROR_RU, ShelfError
-from shelf_io import shelf_di
+from shelf_io import shelf_opened_di, shelf_closed_di
 from shelf_motion import (
     jog_until_di,
     move_linear_pose_sync,
@@ -420,8 +420,7 @@ class PalletManager:
                 return Result.Error
         if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
             return Result.Error
-        # commissioning
-        # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
+        # if not jog_until_di(self.rc, shelf_opened_di(shelf), # uncomment commissioning
         #                     self.cfg["pull_axis"],
         #                     self.cfg["pull_dir"],
         #                     self.cfg["pull_timeout_sec"], abort):
@@ -463,7 +462,7 @@ class PalletManager:
                 'error', source='gui.pallet')
             return Result.Error
         # commissioning
-        # if not jog_until_di(self.rc, shelf_di(shelf), # uncomment commissioning
+        # if not jog_until_di(self.rc, shelf_closed_di(shelf), # uncomment commissioning
         #                     self.cfg["push_axis"],
         #                     self.cfg["push_dir"],
         #                     self.cfg["push_timeout_sec"], abort):

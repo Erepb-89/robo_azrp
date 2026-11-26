@@ -96,7 +96,8 @@ class MainAppClass:
         self.OperForm.setStyleSheet(qss_styles)
 
         self.OperForm.closeEvent = self.on_close
-        self.OperForm.show()
+        self.OperForm.showFullScreen()
+        # self.OperForm.show()
 
         self.watchdog.set_ready()
         self.logger.info("READY=1 sent")

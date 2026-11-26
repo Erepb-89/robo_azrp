@@ -236,19 +236,18 @@ class AutoCycle(threading.Thread):
             self.ops.error_reset(m, self.flags, self.abort)
         if any(self.flags.m_state[m] == MachineState.Error for m in active):
             self.rc.message("Автоцикл: ошибка станка не сброшена", 'error')
+            self.request_stop()
             return
 
         # Проверка авто-режима дверей (Reallab Modbus, только активные)
         door_auto = {m: self.rc.machine_mb_di(m, 'DoorAuto') for m in active}
         if not all(door_auto.values()):
             self.rc.message("Двери не в автоматическом режиме", 'error')
+            self.request_stop()
             return
 
-        # Перезагрузка грипперов 1, 2
-        if self.rc.gripper_mb_di(1, 'Switch'):
-            self.ops.grippers[1].reset(self.abort)
-        if self.rc.gripper_mb_di(2, 'Switch'):
-            self.ops.grippers[2].reset(self.abort)
+        self.ops.grippers[1].reset(self.abort)
+        self.ops.grippers[2].reset(self.abort)
 
         if not resume:
             self.flags.reset()
@@ -288,6 +287,15 @@ class AutoCycle(threading.Thread):
         if not active:
             return
         while not self.abort.is_set() and not self.stop.is_set():
+            if (self.rc.get_modbus_di(DIModbus.C1_SensorOpened) or
+                    self.rc.get_modbus_di(DIModbus.C2_SensorOpened) or
+                    not self.rc.get_modbus_di(DIModbus.C1_SensorClosed) or
+                    not self.rc.get_modbus_di(DIModbus.C2_SensorClosed) or
+                    not self.rc.get_modbus_di(DIModbus.C_Sensor)):
+                self.rc.message("Автоцикл: ОСТАНОВ. Тележка не зафиксирована", "error")
+                self.request_stop()
+                break
+
             # Физический СТОП: сигнал START/STOP сброшен (пауза с сохранением)
             if not self.rc.get_modbus_di(DIModbus.START_STOP):
                 self.rc.message("Автоцикл: ПАУЗА по кнопке", "warning")
@@ -310,7 +318,7 @@ class AutoCycle(threading.Thread):
             for m in active:
                 self.sync_state()
                 if not self.machine_ready(m):
-                    if flags.m_state[m] == MachineState.Error:
+                    if flags.m_state[m] == MachineState.Error: # question?
                         self.rc.message(
                             f"Автоцикл: авария M{m}, движение остановлено",
                             'error')
@@ -362,9 +370,9 @@ class AutoCycle(threading.Thread):
             self.rc.message(f"M{m}: авария станка", 'error')
             self.set_error(m, self.flags)
             return False
-        if not self.rc.machine_mb_di(m, 'DoorAuto'):
+        if not (self.rc.machine_mb_di(m, 'DoorAuto') or self.rc.io.machine_sim_di(m, 'DoorAuto')):
             return False
-        if not self.rc.io.machine_di(m, 'Ready'):
+        if not (self.rc.io.machine_di(m, 'Ready') or self.rc.io.machine_sim_di(m, 'Ready')):
             return False
         return True
 
