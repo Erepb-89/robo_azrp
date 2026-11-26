@@ -1130,6 +1130,20 @@
                     "motion": "linear"
                 }
             ]
+        },
+        {
+            "name": "tTest_Traj",
+            "comment": "Test of CTP changing",
+            "positions": [
+                {
+                    "name": "test_point_2",
+                    "motion": "linear"
+                },
+                {
+                    "name": "test_point_1",
+                    "motion": "linear"
+                }
+            ]
         }
     ]
 }

@@ -25,7 +25,8 @@ class Gripper:
         """DO G_Clamp=true + подтверждение по DI Clamped."""
         if not self.io.gripper_do(self.gripper, True):
             return Result.Error
-        if not self.io.wait_di(self._di('Clamped'), True, MAX_G_SEC, abort):
+        if (not self.io.wait_di(self._di('Clamped'), True, MAX_G_SEC, abort)
+                or self.rc.io.gripper_sim_di(self.gripper, 'Clamped')):
             self.rc.state.update(last_error=LastError.err_gripper_not_clamped)
             self.rc.message(f"Гриппер {self.gripper} не зажался", 'error')
             return Result.Error
@@ -41,7 +42,8 @@ class Gripper:
         """DO G_Clamp=false + подтверждение по DI Relax."""
         if not self.io.gripper_do(self.gripper, False):
             return Result.Error
-        if not self.io.wait_di(self._di('Relax'), True, MAX_G_SEC, abort):
+        if not (self.io.wait_di(self._di('Relax'), True, MAX_G_SEC, abort)
+            or self.rc.io.gripper_sim_di(self.gripper, 'Relax')):
             self.rc.state.update(last_error=LastError.err_gripper_not_relaxed)
             self.rc.message(f"Гриппер {self.gripper} не разжался", 'error')
             return Result.Error

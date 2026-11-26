@@ -102,10 +102,11 @@ QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QHeaderView::section
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar:vertical {
-    background-color: #f4f6f8;
+    background-color: #ffffff;
     width: 39px;
-    margin: 2px 1px;
-    border-radius: 10px;
+    margin: 2px 0;
+    border: 1px solid #d3dbe4;
+    border-radius: 11px;
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::handle:vertical {
@@ -635,10 +636,10 @@ QMainWindow#MainWindow QPushButton[cellState="blank"] {
     border: 1px solid #c5d4ea;
 }
 
-/* Пусто — светло-серый пунктир. */
+/* Пусто — светло-серая ячейка. */
 QMainWindow#MainWindow QPushButton[cellState="empty"] {
     background-color: #f4f6f8;
-    border: 1px dashed #c5ced6;
+    border: 1px solid #c5ced6;
 }
 
 /* Готовая деталь — светло-зелёный. */

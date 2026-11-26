@@ -9,7 +9,7 @@ import time
 from config import (MAX_D_SEC, MAX_C_SEC, MAX_M_SEC,
                     CHUCK_PULSE_ON_SEC, CHUCK_PULSE_OFF_SEC,
                     CNC_START_PULSE_SEC, CNC_START_SETTLE_SEC)
-from io_map import MACHINE_DI
+from io_map import MACHINE_DI, DISim
 from states_modes_errors import Result, LastError
 
 
@@ -68,11 +68,11 @@ class CncMachine:
         """Готов ли станок М к работе и открыта ли у него дверь."""
         if self._check_alarm() != Result.NoError:
             return Result.Error
-        if not self.io.machine_di(self.m, 'Ready'):
+        if not (self.io.machine_di(self.m, 'Ready') or self.io.machine_sim_di(self.m, 'Ready')):
             self.rc.state.update(last_error=LastError.err_cnc_not_ready)
             self.message("CNC Not Ready", 'error')
             return Result.Error
-        if not self.io.machine_di(self.m, 'DoorOpenSQ'):
+        if not (self.io.machine_di(self.m, 'DoorOpenSQ') or self.io.machine_sim_di(self.m, 'DoorOpenSQ')):
             self.rc.state.update(last_error=LastError.err_door_not_open)
             self.message("Door Not Open", 'error')
             return Result.Error
@@ -80,9 +80,9 @@ class CncMachine:
 
     def chuck_is_open(self) -> bool:
         """Патрон открыт: ChuckRelax активен и ChuckClamped не активен."""
-        if not self.io.machine_di(self.m, 'ChuckRelax'):
+        if not (self.io.machine_di(self.m, 'ChuckRelax') or self.io.machine_sim_di(self.m, 'ChuckRelax')):
             return False
-        if self.io.machine_di(self.m, 'ChuckClamped'):
+        if self.io.machine_di(self.m, 'ChuckClamped') or self.io.machine_sim_di(self.m, 'ChuckClamped'):
             return False
         return True
 
@@ -99,11 +99,11 @@ class CncMachine:
     def wait_for_door_open(self, abort=None) -> Result:
         if self._check_alarm() != Result.NoError:
             return Result.Error
-        if not self.io.machine_di(self.m, 'Ready'):
+        if not (self.io.machine_di(self.m, 'Ready') or self.io.machine_sim_di(self.m, 'Ready')):
             self.rc.state.update(last_error=LastError.err_door_not_open)
             self.message("CNC Not Ready", 'error')
             return Result.Error
-        if self.io.machine_di(self.m, 'DoorOpenSQ'):
+        if self.io.machine_di(self.m, 'DoorOpenSQ') or self.io.machine_sim_di(self.m, 'DoorOpenSQ'):
             return Result.NoError
         self.open_door()
         if not self.io.wait_di(self._di('DoorOpenSQ'), True, MAX_D_SEC, abort):
@@ -117,7 +117,8 @@ class CncMachine:
         if self._check_alarm() != Result.NoError:
             return Result.Error
         self.close_door()
-        if not self.io.wait_di(self._di('DoorCloseSQ'), True, MAX_D_SEC, abort):
+        if not (self.io.wait_di(self._di('DoorCloseSQ'), True, MAX_D_SEC, abort) or
+                self.io.machine_sim_di(self.m, 'DoorCloseSQ')):
             self.rc.state.update(last_error=LastError.err_door_not_close)
             self.lamp_alarm(True)
             self.message("Door Not Close", 'error')

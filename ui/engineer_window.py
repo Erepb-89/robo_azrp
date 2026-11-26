@@ -9,47 +9,47 @@ from .trajectory_map import TrajectoryMapWidget
 from .ui_engineer_window import Ui_EngineerWindow
 
 from led_control import LedPattern
-from io_map import DO
+from io_map import DO, DISim, MACHINE_DI, SIM_DI
 
 UI_DIR = Path(__file__).resolve().parent
 STYLE_PATH = UI_DIR / "style.qss"
 
 INPUT_SIGNALS = (
+    # DI
     ('di_Check_Button', 'X224:0', 'Сигнал с кнопки юстировки'),
-    ('di_M1_DoorOpen', 'X224:1', 'Станок 1. Дверь открыта'),
-    ('di_M1_DoorClose', 'X224:2', 'Станок 1. Дверь закрыта'),
+    ('di_M1_DoorOpened', 'X224:1', 'Станок 1. Дверь открыта'),
+    ('di_M1_DoorClosed', 'X224:2', 'Станок 1. Дверь закрыта'),
     ('di_M1_Ready', 'X224:3', 'Станок 1 готов к загрузке или выгрузке'),
     ('di_M1_ChuckClamped', 'X224:4', 'Станок 1. Захват закрыт'),
-    ('di_M1_ChuckRelax', 'X224:5', 'Станок 1. Захват открыт'),
+    ('di_M1_ChuckRelaxed', 'X224:5', 'Станок 1. Захват открыт'),
     ('di_M1_Alarm', 'X224:6', 'Станок 1. Сигнал об ошибке'),
     ('di_M2_Alarm', 'X224:7', 'Станок 2. Сигнал об ошибке'),
-    ('di_M2_DoorOpen', 'X225:8', 'Станок 2. Дверь открыта'),
-    ('di_M2_DoorClose', 'X225:9', 'Станок 2. Дверь закрыта'),
+    ('di_M2_DoorOpened', 'X225:8', 'Станок 2. Дверь открыта'),
+    ('di_M2_DoorClosed', 'X225:9', 'Станок 2. Дверь закрыта'),
     ('di_M2_Ready', 'X225:10', 'Станок 2 готов к загрузке или выгрузке'),
     ('di_M2_ChuckClamped', 'X225:11', 'Станок 2. Захват закрыт'),
-    ('di_M2_ChuckRelax', 'X225:12', 'Станок 2. Захват открыт'),
+    ('di_M2_ChuckRelaxed', 'X225:12', 'Станок 2. Захват открыт'),
     ('di_G1_Clamped', 'X225:13', 'Гриппер 1. Гриппер закрыт'),
-    ('di_G1_Relax', 'X225:14', 'Гриппер 1. Гриппер открыт'),
+    ('di_G1_Relaxed', 'X225:14', 'Гриппер 1. Гриппер открыт'),
     ('di_G2_Clamped', 'X225:15', 'Гриппер 2. Гриппер закрыт'),
-    ('di_G2_Relax', 'X226:16', 'Гриппер 2. Гриппер открыт'),
+    ('di_G2_Relaxed', 'X226:16', 'Гриппер 2. Гриппер открыт'),
     ('di_Gate_Sensor', 'X226:17', 'Сигнал с калитки'),
-    ('di_S1_Open', 'X226:18', 'Полка 1 выдвинута'),
-    ('di_S2_Open', 'X226:19', 'Полка 2 выдвинута'),
-    ('di_S3_Open', 'X226:20', 'Полка 3 выдвинута'),
-    ('di_S1_Close', 'X226:21', 'Полка 1 задвинута'),
-    ('di_S2_Close', 'X226:22', 'Полка 2 задвинута'),
-    ('di_S3_Close', 'X226:23', 'Полка 3 задвинута'),
+    ('di_S1_Opened', 'X226:18', 'Полка 1 выдвинута'),
+    ('di_S2_Opened', 'X226:19', 'Полка 2 выдвинута'),
+    ('di_S3_Opened', 'X226:20', 'Полка 3 выдвинута'),
+    ('di_S1_Closed', 'X226:21', 'Полка 1 задвинута'),
+    ('di_S2_Closed', 'X226:22', 'Полка 2 задвинута'),
+    ('di_S3_Closed', 'X226:23', 'Полка 3 задвинута'),
+    # Modbus TCP
     ('mbtcp_START_STOP', 'Modbus TCP · Din 0', 'Старт/Стоп работы робота'),
     ('mbtcp_M1_DoorAuto', 'Modbus TCP · Din 1', 'Станок 1. Дверь в автоматическом режиме работы'),
     ('mbtcp_M2_DoorAuto', 'Modbus TCP · Din 2', 'Станок 2. Дверь в автоматическом режиме работы'),
-    ('mbtcp_G1_Switch', 'Modbus TCP · Din 3', 'Переключение гриппера 1'),
-    ('mbtcp_G2_Switch', 'Modbus TCP · Din 4', 'Переключение гриппера 2'),
-    ('mbtcp_Pause_Resume', 'Modbus TCP · Din 5', 'Пауза/Продолжить'),
-    ('mbtcp_C1_SensorOpened', 'Modbus TCP · Din 6', 'Сигнал с пневмоцилиндра Поршень 1 открыт'),
-    ('mbtcp_C1_SensorClosed', 'Modbus TCP · Din 7', 'Сигнал с пневмоцилиндра Поршень 1 закрыт'),
-    ('mbtcp_C2_SensorOpened', 'Modbus TCP · Din 8', 'Сигнал с пневмоцилиндра Поршень 2 открыт'),
-    ('mbtcp_C2_SensorClosed', 'Modbus TCP · Din 9', 'Сигнал с пневмоцилиндра Поршень 2 закрыт'),
-    ('mbtcp_C_Sensor', 'Modbus TCP · Din 10', 'Тележка установлена'),
+    ('mbtcp_Pause_Resume', 'Modbus TCP · Din 3', 'Пауза/Продолжить (работа)'),
+    ('mbtcp_C1_SensorOpened', 'Modbus TCP · Din 4', 'Сигнал с пневмоцилиндра Поршень 1 открыт'),
+    ('mbtcp_C1_SensorClosed', 'Modbus TCP · Din 5', 'Сигнал с пневмоцилиндра Поршень 1 закрыт'),
+    ('mbtcp_C2_SensorOpened', 'Modbus TCP · Din 6', 'Сигнал с пневмоцилиндра Поршень 2 открыт'),
+    ('mbtcp_C2_SensorClosed', 'Modbus TCP · Din 7', 'Сигнал с пневмоцилиндра Поршень 2 закрыт'),
+    ('mbtcp_C_Sensor', 'Modbus TCP · Din 8', 'Тележка установлена'),
 )
 
 DISCRETE_OUTPUT_SIGNALS = (
@@ -59,18 +59,37 @@ DISCRETE_OUTPUT_SIGNALS = (
     ('do_M1_StopProcess', 'X227:3', 'Станок 1. Завершение обработки'),
     ('do_M1_DoorClose', 'X227:4', 'Станок 1. Закрыть дверь в автоматическом режиме от робота'),
     ('do_M1_DoorOpen', 'X227:5', 'Станок 1. Открыть дверь в автоматическом режиме от робота'),
-    ('do_M_AirSpray', 'X227:6', 'Подача воздуха. Пневмораспредилитель'),
+    ('do_M_AirSpray', 'X227:6', 'Подача воздуха. Пневмораспределитель'),
     ('do_M2_ChuckOpen', 'X227:7', 'Станок 2. Сигнал на открытие захвата станка'),
     ('do_M2_ChuckClose', 'X228:8', 'Станок 2. Сигнал на закрытие захвата станка'),
     ('do_M2_StartProcess', 'X228:9', 'Станок 2. Старт обработки'),
     ('do_M2_StopProcess', 'X228:10', 'Станок 2. Завершение обработки'),
     ('do_M2_DoorClose', 'X228:11', 'Станок 2. Закрыть дверь в автоматическом режиме от робота'),
     ('do_M2_DoorOpen', 'X228:12', 'Станок 2. Открыть дверь в автоматическом режиме от робота'),
-    ('do_G1_Clamp', 'X228:13', 'Гриппер 1.Сжать/разжать'),
-    ('do_G2_Clamp', 'X228:14', 'Гриппер 2.Сжать/разжать'),
+    ('do_G1_Clamp', 'X228:13', 'Гриппер 1. Сжать/разжать'),
+    ('do_G2_Clamp', 'X228:14', 'Гриппер 2. Сжать/разжать'),
     ('do_C_Switch', 'X228:15', 'Зажим тележки. Пневмоцилиндр-4шт'),
     ('do_Cart_Lamp', 'X229:16', 'Светодиод «Наличие тележки»'),
 )
+
+
+class SignalTableScrollBar(QtWidgets.QScrollBar):
+    """Продлевает фон шапки под скруглённой дорожкой прокрутки."""
+
+    def __init__(self, table):
+        super().__init__(QtCore.Qt.Vertical, table)
+        self._table = table
+
+    def paintEvent(self, event):
+        header = self._table.horizontalHeader()
+        if header.isVisible():
+            y = header.y() - self.mapTo(self._table, QtCore.QPoint()).y()
+            band = QtCore.QRect(0, y, self.width(), header.height())
+
+            painter = QtGui.QPainter(self)
+            painter.fillRect(band, header.palette().brush(QtGui.QPalette.Window))
+            painter.end()
+        super().paintEvent(event)
 
 
 class EngineerWindow(QMainWindow):
@@ -79,6 +98,7 @@ class EngineerWindow(QMainWindow):
     def __init__(self, rc, parent=None):
         super().__init__(parent, QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
+        self.di_Check_Button_Sim = False
         self.InitUI()
 
         self.rc = rc
@@ -131,6 +151,31 @@ class EngineerWindow(QMainWindow):
         self.ui.do_C_Switch.clicked.connect(self.do_c_switch)
         self.ui.do_Cart_Lamp.clicked.connect(self.do_cart_lamp)
 
+        self.ui.di_Check_Button_Sim.clicked.connect(self.set_di_check_button_sim)
+        self.ui.di_M1_DoorOpened_Sim.clicked.connect(self.set_m1_door_opened_sim)
+        self.ui.di_M1_DoorClosed_Sim.clicked.connect(self.set_m1_door_closed_sim)
+        self.ui.di_M1_Ready_Sim.clicked.connect(self.set_m1_ready_sim)
+        self.ui.di_M1_DoorClosed_Sim.clicked.connect(self.set_m1_chuck_clamped_sim)
+        self.ui.di_M1_DoorClosed_Sim.clicked.connect(self.set_m1_chuck_relaxed_sim)
+        self.ui.di_M1_Alarm_Sim.clicked.connect(self.set_m1_alarm_sim)
+        self.ui.di_M2_Alarm_Sim.clicked.connect(self.set_m2_alarm_sim)
+        self.ui.di_M2_DoorOpened_Sim.clicked.connect(self.set_m2_door_opened_sim)
+        self.ui.di_M2_DoorClosed_Sim.clicked.connect(self.set_m2_door_closed_sim)
+        self.ui.di_M2_Ready_Sim.clicked.connect(self.set_m2_ready_sim)
+        self.ui.di_M2_DoorClosed_Sim.clicked.connect(self.set_m2_chuck_clamped_sim)
+        self.ui.di_M2_DoorClosed_Sim.clicked.connect(self.set_m2_chuck_relaxed_sim)
+        self.ui.di_G1_Clamped_Sim.clicked.connect(self.set_g1_clamped_sim)
+        self.ui.di_G1_Relaxed_Sim.clicked.connect(self.set_g1_relaxed_sim)
+        self.ui.di_G2_Clamped_Sim.clicked.connect(self.set_g2_clamped_sim)
+        self.ui.di_G2_Relaxed_Sim.clicked.connect(self.set_g2_relaxed_sim)
+        self.ui.di_Gate_Sensor_Sim.clicked.connect(self.set_gate_sensor_sim)
+        self.ui.di_S1_Opened_Sim.clicked.connect(self.set_s1_opened_sim)
+        self.ui.di_S2_Opened_Sim.clicked.connect(self.set_s2_opened_sim)
+        self.ui.di_S3_Opened_Sim.clicked.connect(self.set_s3_opened_sim)
+        self.ui.di_S1_Closed_Sim.clicked.connect(self.set_s1_closed_sim)
+        self.ui.di_S2_Closed_Sim.clicked.connect(self.set_s2_closed_sim)
+        self.ui.di_S3_Closed_Sim.clicked.connect(self.set_s3_closed_sim)
+
     def showEvent(self, event):
         super().showEvent(event)
         self.ui.tabWidget.setFocus(QtCore.Qt.OtherFocusReason)
@@ -177,8 +222,8 @@ class EngineerWindow(QMainWindow):
             checkbox.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
             checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
-    @staticmethod
-    def setup_signal_table(table, row_count, column_widths):
+    def setup_signal_table(self, table, row_count, column_widths):
+        table.setVerticalScrollBar(SignalTableScrollBar(table))
         table.setRowCount(row_count)
         table.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         table.verticalHeader().setDefaultSectionSize(46)
@@ -191,6 +236,38 @@ class EngineerWindow(QMainWindow):
             table.setColumnWidth(column, width)
         header.setSectionResizeMode(table.columnCount() - 1, QtWidgets.QHeaderView.Stretch)
         QtWidgets.QScroller.grabGesture(table.viewport(), QtWidgets.QScroller.TouchGesture)
+
+        table.installEventFilter(self)
+        for child in table.findChildren(QtWidgets.QWidget, options=QtCore.Qt.FindDirectChildrenOnly):
+            child.installEventFilter(self)
+        self.clip_table_contents(table)
+
+    def eventFilter(self, widget, event):
+        if event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move, QtCore.QEvent.Show,
+                            QtCore.QEvent.ContentsRectChange):
+            table = widget if isinstance(widget, QtWidgets.QTableWidget) else widget.parentWidget()
+            if isinstance(table, QtWidgets.QTableWidget):
+                self.clip_table_contents(table)
+        return super().eventFilter(widget, event)
+
+    @staticmethod
+    def clip_table_contents(table):
+        # Внутренний радиус повторяет рамку из style.qss (12 px минус 1 px).
+        area = table.contentsRect()
+        path = QtGui.QPainterPath()
+        path.addRoundedRect(QtCore.QRectF(area), 11, 11)
+        contents = QtGui.QRegion(path.toFillPolygon().toPolygon())
+        # Оставляем нижнюю рамку единственной линией у края таблицы.
+        row_area = contents.intersected(QtGui.QRegion(area.adjusted(0, 0, 0, -2)))
+        viewport = table.viewport()
+        for child in table.findChildren(QtWidgets.QWidget, options=QtCore.Qt.FindDirectChildrenOnly):
+            bounds = QtGui.QRegion(child.rect())
+            clip = row_area if child is viewport else contents
+            mask = clip.translated(-child.pos()).intersected(bounds)
+            if mask == bounds:
+                mask = QtGui.QRegion()
+            if child.mask() != mask:
+                child.setMask(mask)
 
     @staticmethod
     def signal_text_item(text):
@@ -297,12 +374,12 @@ class EngineerWindow(QMainWindow):
         self.rc.io.set_do(DO.M1_StartProcess, False)
 
     def do_m1_door_close(self):
-        self.rc.io.set_do(DO.M1_DoorCloseCMD, True)
-        self.rc.io.set_do(DO.M1_DoorOpenCMD, False)
+        self.rc.io.set_do(DO.M1_DoorClose, True)
+        self.rc.io.set_do(DO.M1_DoorOpen, False)
 
     def do_m1_door_open(self):
-        self.rc.io.set_do(DO.M1_DoorOpenCMD, True)
-        self.rc.io.set_do(DO.M1_DoorCloseCMD, False)
+        self.rc.io.set_do(DO.M1_DoorOpen, True)
+        self.rc.io.set_do(DO.M1_DoorClose, False)
 
     def do_air_spray(self):
         self.rc.io.set_do(DO.M_AirSpray, True)
@@ -324,21 +401,188 @@ class EngineerWindow(QMainWindow):
         self.rc.io.set_do(DO.M2_StartProcess, False)
 
     def do_m2_door_close(self):
-        self.rc.io.set_do(DO.M2_DoorCloseCMD, True)
-        self.rc.io.set_do(DO.M2_DoorOpenCMD, False)
+        self.rc.io.set_do(DO.M2_DoorClose, True)
+        self.rc.io.set_do(DO.M2_DoorOpen, False)
 
     def do_m2_door_open(self):
-        self.rc.io.set_do(DO.M2_DoorOpenCMD, True)
-        self.rc.io.set_do(DO.M2_DoorCloseCMD, False)
+        self.rc.io.set_do(DO.M2_DoorOpen, True)
+        self.rc.io.set_do(DO.M2_DoorClose, False)
 
     def do_g1_clamp(self):
-        self.rc.io.set_do(DO.G1_Clamp, True)
+        if self.rc.io.get_do(DO.G1_Clamp):
+            self.rc.io.set_do(DO.G1_Clamp, False)
+        else:
+            self.rc.io.set_do(DO.G1_Clamp, True)
 
     def do_g2_clamp(self):
-        self.rc.io.set_do(DO.G2_Clamp, True)
+        if self.rc.io.get_do(DO.G2_Clamp):
+            self.rc.io.set_do(DO.G2_Clamp, False)
+        else:
+            self.rc.io.set_do(DO.G2_Clamp, True)
 
     def do_c_switch(self):
-        self.rc.io.set_do(DO.C_Switch, True)
+        if self.rc.io.get_do(DO.C_Switch):
+            self.rc.io.set_do(DO.C_Switch, False)
+        else:
+            self.rc.io.set_do(DO.C_Switch, True)
 
     def do_cart_lamp(self):
         self.rc.io.set_do(DO.Cart_Lamp, True)
+
+    def set_di_check_button_sim(self):
+        if SIM_DI.Check_Button_SIM is True:
+            SIM_DI.Check_Button_SIM = False
+            print("SIM_DI.Check_Button_SIM ", SIM_DI.Check_Button_SIM)
+        else:
+            DISim.Check_Button_SIM = True
+            print("SIM_DI.Check_Button_SIM ", SIM_DI.Check_Button_SIM)
+
+    def set_m1_door_opened_sim(self):
+        if SIM_DI.M1_DoorOpened_SIM is True:
+            SIM_DI.M1_DoorOpened_SIM = False
+            print("SIM_DI.M1_DoorOpened ", SIM_DI.M1_DoorOpened_SIM)
+        else:
+            SIM_DI.M1_DoorOpened_SIM = True
+            print("SIM_DI.M1_DoorOpened ", SIM_DI.M1_DoorOpened_SIM)
+
+    def set_m1_door_closed_sim(self):
+        if SIM_DI.M1_DoorClosed_SIM is True:
+            SIM_DI.M1_DoorClosed_SIM = False
+            print("SIM_DI.M1_DoorClosed ", SIM_DI.M1_DoorClosed_SIM)
+        else:
+            SIM_DI.M1_DoorClosed_SIM = True
+            print("SIM_DI.M1_DoorClosed ", SIM_DI.M1_DoorClosed_SIM)
+
+    def set_m1_ready_sim(self):
+        if SIM_DI.M1_Ready_SIM is True:
+            SIM_DI.M1_Ready_SIM = False
+            print("SIM_DI.M1_Ready ", SIM_DI.M1_Ready_SIM)
+        else:
+            SIM_DI.M1_Ready_SIM = True
+            print("SIM_DI.M1_Ready ", SIM_DI.M1_Ready_SIM)
+
+    def set_m1_chuck_clamped_sim(self):
+        if SIM_DI.M1_ChuckClamped_SIM is True:
+            SIM_DI.M1_ChuckClamped_SIM = False
+        else:
+            SIM_DI.M1_ChuckClamped_SIM = True
+
+    def set_m1_chuck_relaxed_sim(self):
+        if SIM_DI.M1_ChuckRelaxed_SIM is True:
+            SIM_DI.M1_ChuckRelaxed_SIM = False
+        else:
+            SIM_DI.M1_ChuckRelaxed_SIM = True
+
+    def set_m1_alarm_sim(self):
+        if SIM_DI.M1_Alarm_SIM is True:
+            SIM_DI.M1_Alarm_SIM = False
+        else:
+            SIM_DI.M1_Alarm_SIM = True
+
+    def set_m2_alarm_sim(self):
+        if SIM_DI.M2_Alarm_SIM is True:
+            SIM_DI.M2_Alarm_SIM = False
+        else:
+            SIM_DI.M2_Alarm_SIM = True
+
+    def set_m2_door_opened_sim(self):
+        if SIM_DI.M2_DoorOpened_SIM is True:
+            SIM_DI.M2_DoorOpened_SIM = False
+            print("SIM_DI.M2_DoorOpened ", SIM_DI.M2_DoorOpened_SIM)
+        else:
+            SIM_DI.M2_DoorOpened_SIM = True
+            print("SIM_DI.M2_DoorOpened ", SIM_DI.M2_DoorOpened_SIM)
+
+    def set_m2_door_closed_sim(self):
+        if SIM_DI.M2_DoorClosed_SIM is True:
+            SIM_DI.M2_DoorClosed_SIM = False
+            print("SIM_DI.M2_DoorClosed ", SIM_DI.M2_DoorClosed_SIM)
+        else:
+            SIM_DI.M1_DoorClosed_SIM = True
+            print("SIM_DI.M2_DoorClosed ", SIM_DI.M2_DoorClosed_SIM)
+
+    def set_m2_ready_sim(self):
+        if SIM_DI.M2_Ready_SIM is True:
+            SIM_DI.M2_Ready_SIM = False
+            print("SIM_DI.M2_Ready ", SIM_DI.M2_Ready_SIM)
+        else:
+            SIM_DI.M2_Ready_SIM = True
+            print("SIM_DI.M2_Ready ", SIM_DI.M2_Ready_SIM)
+
+    def set_m2_chuck_clamped_sim(self):
+        if SIM_DI.M2_ChuckClamped_SIM is True:
+            SIM_DI.M2_ChuckClamped_SIM = False
+        else:
+            SIM_DI.M2_ChuckClamped_SIM = True
+
+    def set_m2_chuck_relaxed_sim(self):
+        if SIM_DI.M2_ChuckRelaxed_SIM is True:
+            SIM_DI.M2_ChuckRelaxed_SIM = False
+        else:
+            SIM_DI.M2_ChuckRelaxed_SIM = True
+
+    def set_g1_clamped_sim(self):
+        if SIM_DI.G1_Clamped_SIM is True:
+            SIM_DI.G1_Clamped_SIM = False
+        else:
+            SIM_DI.G1_Clamped_SIM = True
+
+    def set_g1_relaxed_sim(self):
+        if SIM_DI.G1_Relaxed_SIM is True:
+            SIM_DI.G1_Relaxed_SIM = False
+        else:
+            SIM_DI.G1_Relaxed_SIM = True
+
+    def set_g2_clamped_sim(self):
+        if SIM_DI.G2_Clamped_SIM is True:
+            SIM_DI.G2_Clamped_SIM = False
+        else:
+            SIM_DI.G2_Clamped_SIM = True
+
+    def set_g2_relaxed_sim(self):
+        if SIM_DI.G2_Relaxed_SIM is True:
+            SIM_DI.G2_Relaxed_SIM = False
+        else:
+            SIM_DI.G2_Relaxed_SIM = True
+
+    def set_gate_sensor_sim(self):
+        if SIM_DI.Gate_Sensor_SIM is True:
+            SIM_DI.Gate_Sensor_SIM = False
+        else:
+            SIM_DI.Gate_Sensor_SIM = True
+
+    def set_s1_opened_sim(self):
+        if SIM_DI.S1_Opened_SIM is True:
+            SIM_DI.S1_Opened_SIM = False
+        else:
+            SIM_DI.S1_Opened_SIM = True
+
+    def set_s2_opened_sim(self):
+        if SIM_DI.S2_Opened_SIM is True:
+            SIM_DI.S2_Opened_SIM = False
+        else:
+            SIM_DI.S2_Opened_SIM = True
+
+    def set_s3_opened_sim(self):
+        if SIM_DI.S3_Opened_SIM is True:
+            SIM_DI.S3_Opened_SIM = False
+        else:
+            SIM_DI.S3_Opened_SIM = True
+
+    def set_s1_closed_sim(self):
+        if SIM_DI.S1_Closed_SIM is True:
+            SIM_DI.S1_Closed_SIM = False
+        else:
+            SIM_DI.S1_Closed_SIM = True
+
+    def set_s2_closed_sim(self):
+        if SIM_DI.S2_Closed_SIM is True:
+            SIM_DI.S2_Closed_SIM = False
+        else:
+            SIM_DI.S2_Closed_SIM = True
+
+    def set_s3_closed_sim(self):
+        if SIM_DI.S3_Closed_SIM is True:
+            SIM_DI.S3_Closed_SIM = False
+        else:
+            SIM_DI.S3_Closed_SIM = True
