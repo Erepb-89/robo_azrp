@@ -101,31 +101,29 @@ class LastError(Enum):
     err_timeout_trajectory: int = 9      # Timeout while executing trajectory
     err_common_trajectory: int = 10      # EXECUTE_TRAJECTORY failed
     # сделать обработку
-    err_timeout_action: int = 11         # Timeout while executing action
-    err_common_action: int = 12          # EXECUTE_ACTION failed
-    err_check_state: int = 13            # CheckControllerState error
-    err_rc_loop: int = 14                # Unhandled error in Robot Controller loop
-    err_not_ready: int = 15              # Manipulator not powered / not in run state
-    err_sj_activation: int = 16          # Error Simple Joystick activation
-    err_hatch_not_open: int = 17         # Hatch must be open before moving to this position
-    err_gripper1_cmd : int = 18          # GRIPPER_1_CMD failed
-    err_gripper2_cmd : int = 19          # GRIPPER_2_CMD failed
-    err_io_read: int = 20                # Ошибка чтения DI/DO
-    err_io_write: int = 21               # Ошибка записи DO
-    err_connection_lost: int = 22        # Потеря связи с роботом
-    err_door_not_open: int = 23          # Дверь не открылась (WaitForDoorOpen)
-    err_door_not_close: int = 24         # Дверь не закрылась (WaitForDoorClose)
-    err_chuck_not_relax: int = 25        # Патрон не разжался (WaitForChuckRelax)
-    err_chuck_not_clamp: int = 26        # Патрон не зажался (WaitForChuckClamp)
-    err_cnc_not_ready: int = 27          # Станок не готов (CheckMachineState)
-    err_cnc_not_started: int = 28        # Станок не запустился (StartCNC)
-    err_gripper_not_clamped: int = 29    # Гриппер не зажался
-    err_gripper_not_relaxed: int = 30    # Гриппер не разжался
-    err_cycle_aborted: int = 31          # Автоцикл прерван (СТОП)
-    err_waypoint_not_taught: int = 32    # Точка не обучена
-    err_modbus_tcp_reading: int = 33     # Error Modbus TCP reading
-    err_cnc1_alarm: int = 34             # Станок 1. Сигнал об ошибке
-    err_cnc2_alarm: int = 35             # Станок 2. Сигнал об ошибке
+    err_check_state: int = 11            # CheckControllerState error
+    err_rc_loop: int = 12                # Unhandled error in Robot Controller loop
+    err_not_ready: int = 13              # Manipulator not powered / not in run state
+    err_sj_activation: int = 14          # Error Simple Joystick activation
+    err_hatch_not_open: int = 15         # Hatch must be open before moving to this position
+    err_gripper1_cmd : int = 16          # GRIPPER_1_CMD failed
+    err_gripper2_cmd : int = 17          # GRIPPER_2_CMD failed
+    err_io_read: int = 18                # Ошибка чтения DI/DO
+    err_io_write: int = 19               # Ошибка записи DO
+    err_connection_lost: int = 20        # Потеря связи с роботом
+    err_door_not_open: int = 21          # Дверь не открылась (WaitForDoorOpen)
+    err_door_not_close: int = 22         # Дверь не закрылась (WaitForDoorClose)
+    err_chuck_not_relax: int = 23        # Патрон не разжался (WaitForChuckRelax)
+    err_chuck_not_clamp: int = 24        # Патрон не зажался (WaitForChuckClamp)
+    err_cnc_not_ready: int = 25          # Станок не готов (CheckMachineState)
+    err_cnc_not_started: int = 26        # Станок не запустился (StartCNC)
+    err_gripper_not_clamped: int = 27    # Гриппер не зажался
+    err_gripper_not_relaxed: int = 28    # Гриппер не разжался
+    err_cycle_aborted: int = 29          # Автоцикл прерван (СТОП)
+    err_waypoint_not_taught: int = 30    # Точка не обучена
+    err_modbus_tcp_reading: int = 31     # Error Modbus TCP reading
+    err_cnc1_alarm: int = 32             # Станок 1. Сигнал об ошибке
+    err_cnc2_alarm: int = 33             # Станок 2. Сигнал об ошибке
 
 
 HARDWARE_ERRORS = frozenset({
@@ -135,7 +133,6 @@ HARDWARE_ERRORS = frozenset({
     LastError.err_switching_pause_mode,
     LastError.err_switching_run_mode,
     LastError.err_switching_zero_gravity,
-    LastError.err_timeout_action,
     LastError.err_check_state,
     LastError.err_sj_activation,
     LastError.err_hatch_not_open,
@@ -216,7 +213,6 @@ LAST_ERROR_RU = {
     LastError.err_waypoint:              ("Ошибка точки маршрута",              "background:#ffcdd2"),
     LastError.err_timeout_trajectory:    ("Тайм-аут траектории",                "background:#ffcdd2"),
     LastError.err_common_trajectory:     ("Ошибка выполнения траектории",       "background:#ffcdd2"),
-    LastError.err_timeout_action:        ("Тайм-аут действия",                  "background:#ffcdd2"),
     LastError.err_check_state:           ("Ошибка проверки состояния",          "background:#ffcdd2"),
     LastError.err_rc_loop:               ("Необработанная ошибка цикла RC",     "background:#ffcdd2"),
     LastError.err_not_ready:             ("Манипулятор не готов к движению",    "background:#ffcdd2"),

@@ -8,7 +8,6 @@ class CmdType(Enum):
     POWER = auto()  # {'state': False/True}
     FREE_DRIVE = auto()  # {'state': 0|1}
     EXECUTE_TRAJECTORY = auto()  # {'num': int}
-    EXECUTE_ACTION = auto()  # {'num': int}
     MOVE_TO_POINT = auto()  # {'name': str}
     GRIPPER_CMD = auto()  # {'index': int, 'value': bool}
     REFRESH_WAYPOINTS = auto()
@@ -147,6 +146,3 @@ class RobotTrajectories(enum.Enum):
     tEG2M2P020_To_EG2M2P010 = 69
 # <trajectories:end>
 
-
-class RobotActions(enum.Enum):
-    aBGIntP010_To_BGIntP011 = 1

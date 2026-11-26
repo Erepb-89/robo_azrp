@@ -28,7 +28,6 @@ class CommandHandler:
         self.find_nearest = 0
 
         self.trajectory = 0
-        self.action = 0
         self.free_drive = 0
         self.gripper1_command = 0
         self.gripper2_command = 0
@@ -38,13 +37,9 @@ class CommandHandler:
         self._last_nearest_traj: Optional[str] = None
         self._last_nearest_dist: Optional[float] = None
         self._last_traj_state: Optional[int] = 0
-        self._last_action_state: Optional[int] = 0
 
     def set_trajectory(self, value):
         self.trajectory = value
-
-    def set_action(self, value):
-        self.action = value
 
     def start(self) -> None:
         self.running = True
@@ -54,7 +49,6 @@ class CommandHandler:
                 try:
                     self.handle_power_cmd()
                     self.handle_traj_cmd()
-                    self.handle_action_cmd()
                     self.handle_free_drive_cmd()
                     self.handle_gripper1_cmd()
                     self.handle_gripper2_cmd()
@@ -93,19 +87,6 @@ class CommandHandler:
                         Command(CmdType.EXECUTE_TRAJECTORY, {'num': int(self.trajectory)},
                                 source="CMD"))
         self.traj_prev = self.trajectory
-
-    def handle_action_cmd(self):
-        if self.act_prev != self.action:
-            if self.action == 0:
-                self.cmd_queue.put(
-                    Command(CmdType.STOP_MOVE, {},
-                            source="CMD"))
-            else:
-                if self.action in range(1, 999):
-                    self.cmd_queue.put(
-                        Command(CmdType.EXECUTE_ACTION, {'num': int(self.action)},
-                                source="CMD"))
-        self.act_prev = self.action
 
     def handle_free_drive_cmd(self) -> None:  # 1 = ON, 0 = OFF
         if self.free_drive_prev != self.free_drive:
