@@ -151,6 +151,7 @@ HARDWARE_ERRORS = frozenset({
     LastError.err_gripper_not_relaxed,
     LastError.err_cnc1_alarm,
     LastError.err_cnc2_alarm,
+    LastError.err_modbus_tcp_reading,
 })
 
 
@@ -231,6 +232,7 @@ LAST_ERROR_RU = {
     LastError.err_gripper_not_relaxed:   ("Гриппер не разжался",                "background:#ffcdd2"),
     LastError.err_cycle_aborted:         ("Автоцикл прерван",                   "background:#ffcdd2"),
     LastError.err_waypoint_not_taught:   ("Точка не обучена",                   "background:#ffcdd2"),
+    LastError.err_modbus_tcp_reading:    ("Ошибка чтения устройства Reallab (расширение сигналов DI)",   "background:#ffcdd2"),
     LastError.err_cnc1_alarm:            ("Станок 1: авария",                   "background:#ffcdd2"),
     LastError.err_cnc2_alarm:            ("Станок 2: авария",                   "background:#ffcdd2"),
 }
