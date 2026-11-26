@@ -10,6 +10,7 @@ from .ui_main_window import Ui_MainWindow
 from .login_dialog import LoginDialog
 from .engineer_window import EngineerWindow
 from commands import Command, CmdType
+from states_modes_errors import LastError, LAST_ERROR_RU
 
 
 PARTS_PER_SHELF = 8
@@ -41,6 +42,23 @@ CNC_STATUS_CONFIG = {
     "error":    ("Ошибка", "red")
 }
 
+# Состояния станка из автоцикла (auto_cycle.MachineState) -> статус ЧПУ
+MACHINE_STATE_TO_CNC_STATUS = {
+    0: "ready",     # NotActive (станок включён в задание и ждёт)
+    1: "running",   # LoadWorkpiece
+    2: "ready",     # Complete
+    3: "error",     # Error
+}
+
+# Состояние автоцикла -> режим окна оператора
+CYCLE_STATE_TO_MODE = {
+    "idle": "ready",
+    "waiting_start": "running",
+    "waiting_resume": "running",
+    "running": "running",
+    "paused": "paused",
+}
+
 class MainOperWindow(QtWidgets.QMainWindow):
 
     def __init__(self, robot_controller, cmd_queue, command_handler,
@@ -48,10 +66,15 @@ class MainOperWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.RobotController = robot_controller
         self.cmd_queue = cmd_queue
+        self.command_handler = command_handler
         self.Waypoints: Dict[str, dict] = {}
         self.Trajectories: Dict[str, dict] = {}
         self._heartbeat = heartbeat
         self._cmd_log_queue = cmd_log_queue  # очередь событий
+
+        self._last_error_val = 0
+        self._last_cycle_state = None
+        self._last_cnc_status: Dict[int, str] = {}
 
         self.engineer_window = None
         self.InitUI()
@@ -86,6 +109,10 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.set_cnc_status(1, "ready" if self.ui.cnc1CheckBox.isChecked() else "inactive")
         self.set_cnc_status(2, "ready" if self.ui.cnc2CheckBox.isChecked() else "inactive")
         self._set_cycle_mode("ready")
+
+        self.StatusTimer = QtCore.QTimer(self)
+        self.StatusTimer.timeout.connect(self._update_status)
+        self.StatusTimer.start(500)
 
     def update_clock(self):
         now = QtCore.QDateTime.currentDateTime()
@@ -151,6 +178,8 @@ class MainOperWindow(QtWidgets.QMainWindow):
         no_button.setFocus()
 
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            # self.power_off()
+
             # Выключение компьютера в Windows:
             # import subprocess
             # subprocess.Popen(["shutdown.exe", "/s", "/t", "0"])
@@ -223,7 +252,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.set_cnc_status(cnc_number, status)
         self.ui.startButton.setEnabled(self._can_start_cycle())
 
-        box = self.cnc1CheckBox if cnc_number == 1 else self.cnc2CheckBox
+        box = self.ui.cnc1CheckBox if cnc_number == 1 else self.ui.cnc2CheckBox
         try:
             accepted = self.RobotController.set_machine_active(cnc_number, checked)
         except Exception as exc:
@@ -244,10 +273,93 @@ class MainOperWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+    def _on_machine_active_toggled(self, m: int, checked: bool):
+        """Переключение активности станка (совместимо с ui_form_wp_gen)."""
+        self.on_cnc_selection_changed(m, checked)
+
     def _can_start_cycle(self):
         return self._cycle_mode == "ready" and (
             self.ui.cnc1CheckBox.isChecked() or self.ui.cnc2CheckBox.isChecked()
         )
+
+    def _set_actual_speed(self):
+        try:
+            self.RobotController.set_actual_speed(int(self.ui.speedSlider.value()))
+        except Exception:
+            pass
+
+    def _update_cycle_panel(self):
+        """Синхронизирует панель автоцикла с текущим состоянием робота."""
+        try:
+            state = self.RobotController.get_state_snapshot()
+        except Exception:
+            return
+
+        cycle_state = getattr(state, 'cycle_state', 'idle') or 'idle'
+        active = getattr(state, 'active_machines', None)
+        if not isinstance(active, dict):
+            try:
+                active = self.RobotController.get_active_machines()
+            except Exception:
+                active = {1: True, 2: True}
+        m_state = getattr(state, 'm_state', {}) or {}
+
+        idle = cycle_state == 'idle'
+        for m, box in ((1, self.ui.cnc1CheckBox), (2, self.ui.cnc2CheckBox)):
+            value = bool(active.get(m, True))
+            if box.isChecked() != value:
+                box.blockSignals(True)
+                try:
+                    box.setChecked(value)
+                finally:
+                    box.blockSignals(False)
+            box.setEnabled(idle)
+
+            if not value:
+                status = "inactive"
+            else:
+                status = MACHINE_STATE_TO_CNC_STATUS.get(
+                    m_state.get(m, 0), "ready")
+            if self._last_cnc_status.get(m) != status:
+                self.set_cnc_status(m, status)
+                self._last_cnc_status[m] = status
+
+        state_changed = cycle_state != self._last_cycle_state
+        self._last_cycle_state = cycle_state
+        if state_changed:
+            target_mode = CYCLE_STATE_TO_MODE.get(cycle_state, "running")
+            if self._cycle_mode == "paused" and cycle_state != "idle":
+                target_mode = "paused"
+            if target_mode != self._cycle_mode:
+                self._set_cycle_mode(target_mode)
+
+    def _update_status(self):
+        """Периодически обновляет статусы окна по снимку состояния."""
+        self._update_cycle_panel()
+
+        try:
+            state = self.RobotController.get_state_snapshot()
+            raw_err = getattr(state, 'last_error', 0)
+            if raw_err is not None:
+                err = raw_err if isinstance(raw_err, LastError) else LastError(raw_err)
+                err_val = err.value
+            else:
+                err = None
+                err_val = 0
+
+            if err_val != 0:
+                if err_val != self._last_error_val:
+                    text, _ = LAST_ERROR_RU.get(err, (str(err), ""))
+                    self.set_system_status("error")
+                    self.ui.operationStatusLabel.setText(f"Ошибка: {text}")
+                self._last_error_val = err_val
+            elif self._last_error_val != 0:
+                self._last_error_val = 0
+                self._set_cycle_mode(self._cycle_mode)
+        except Exception:
+            pass
+
+        self._set_actual_speed()
 
     # Управление доступностью элементов
     def set_operation_controls(self, enabled):
@@ -267,6 +379,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
 
     def update_speed_label(self, value):
         self.ui.speedNumLabel.setText(f"{value}%")
+        self._set_actual_speed()
 
     # Чтение параметров
     def read_operation_parameters(self):
@@ -335,6 +448,25 @@ class MainOperWindow(QtWidgets.QMainWindow):
             "paused": "Рабочий цикл на паузе",
         }[mode])
         self.update_table_selection()
+
+    def manipulator_command(self, cmd: Command):
+        self.cmd_queue.put(cmd)
+
+    def power_off(self):
+        self.manipulator_command(
+            Command(CmdType.POWER, {'state': 0}, source="GUI"))
+
+    def pause_drive(self):
+        self.manipulator_command(
+            Command(CmdType.PAUSE, {}, source="GUI"))
+
+    def stop_drive(self):
+        self.manipulator_command(
+            Command(CmdType.STOP_MOVE, {}, source="GUI"))
+        try:
+            self.command_handler.set_trajectory(0)
+        except Exception:
+            pass
 
     def start(self):
         if self._can_start_cycle():

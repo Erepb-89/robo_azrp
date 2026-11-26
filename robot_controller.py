@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 from queue import Queue, Empty
+from auto_cycle import AutoCycle
 
 from API.source.ap_interface.io import IO
 from io_map import (DI, DO, MACHINE_DI, MACHINE_MB_DI, MACHINE_DO,
@@ -18,6 +19,7 @@ from config import (POINTS_PATH, TRAJ_PATH, NUM_DIGITAL_IO, GRIPPER_1_DO_INDEX,
                     EXEC_TRAJ, GRIPPER_CMD, GRIPPER_1_CMD, GRIPPER_2_CMD,
                     PAUSE_DI_INDEX, IO_POLL_SEC, USE_SIM, LED_POLL_SEC)
 from commands import Command, CmdType, RobotTrajectories, RobotPoints
+from modbus_manager import ModbusRTUManager, Blinker, ModbusTCPManager
 from states_modes_errors import ControllerState, SafetyStatus, MotionMode, LastError
 from led_control import LedStateController
 
@@ -527,12 +529,10 @@ class TelemetryMonitor:
 class RobotController:
     """Главный контроллер робота"""
 
-    def __init__(self, robot_ip: str, cmd_queue: Queue, logger, blinker,
-                 mb_tcp_handler, heartbeat_cb=None):
+    def __init__(self, robot_ip: str, cmd_queue: Queue,
+                 logger, heartbeat_cb=None):
         self.koeff = 1  # speed coefficient
         self.log = logger
-        self.blinker = blinker
-        self.reallab_handler = mb_tcp_handler
         self.gui_log = logger.getChild("gui")
         self.cmd_queue = cmd_queue
         self.stop_event = threading.Event()
@@ -563,6 +563,23 @@ class RobotController:
                                             heartbeat_cb=heartbeat_cb)
         self.signal_monitor.start()
 
+        self.ModbusRTUHandler = ModbusRTUManager(rc=self,
+                                                 logger=self.log,
+                                                 heartbeat_cb=heartbeat_cb)
+        self.ModbusRTUHandlerThread = threading.Thread(
+            target=self.ModbusRTUHandler.run_sync_client,
+            name="ModbusRTUHandlerThread", daemon=True)
+        self.ModbusRTUHandlerThread.start()
+
+        self.ModbusTCPHandler = ModbusTCPManager(logger=self.log,
+                                                 heartbeat_cb=heartbeat_cb)
+        self.ModbusTCPHandlerThread = threading.Thread(
+            target=self.ModbusTCPHandler.run_sync_client,
+            name="ModbusTCPHandlerThread", daemon=True)
+        self.ModbusTCPHandlerThread.start()
+
+        self.Blinker = Blinker(self.ModbusRTUHandler.client, self.log)
+
         # Загрузка
         self.data.load_waypoints()
         self.data.load_trajectories()
@@ -581,7 +598,7 @@ class RobotController:
 
         # Индикация WB-LED по состоянию робота
         self.led_state = LedStateController(
-            self, self.blinker, self.log, interval=LED_POLL_SEC)
+            self, self.Blinker, self.log, interval=LED_POLL_SEC)
         self.led_state.start()
 
     # ---------- Публичные методы (используемые извне) ----------
@@ -650,7 +667,7 @@ class RobotController:
     def get_modbus_di(self, mb_di: DIModbus) -> bool:
         """Прочитать вход по имени из io_map с учётом полярности DI_INVERT."""
         try:
-            raw = self.reallab_handler.reg_result.bits[int(mb_di)]
+            raw = self.ModbusTCPHandler.reg_result.bits[int(mb_di)]
             return di_mb_active(mb_di, raw)
         except Exception as e:
             self.state.update(last_error=LastError.err_modbus_tcp_reading)
@@ -702,8 +719,7 @@ class RobotController:
                 "Автоцикл: оба станка отключены — запуск запрещён", 'error')
             return
         if getattr(self, 'auto_cycle', None) is None:
-            from auto_cycle import AutoCycle
-            self.auto_cycle = AutoCycle(self, self.log, self.blinker,
+            self.auto_cycle = AutoCycle(self, self.log, self.Blinker,
                                         heartbeat_cb=self._heartbeat_cb)
         if not self.auto_cycle.is_alive():
             self.auto_cycle.start()

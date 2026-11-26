@@ -14,7 +14,6 @@ from led_control import LedPattern
 
 class ModbusTCPManager:
     def __init__(self, logger, heartbeat_cb=None):
-        self.logger = None
         self.logger = logger
         self.heartbeat_cb = heartbeat_cb
         self.stop_event = threading.Event()
@@ -46,6 +45,8 @@ class ModbusTCPManager:
             except ModbusException as e:
                 print(f"Error in Modbus TCP handler loop: {e}")
                 self.logger.error(f"Error in Modbus TCP handler loop: {e}")
+                self.rc.message("Ошибка Modbus RTU (LED-подсветка)",
+                                'error')
 
             if self.heartbeat_cb:
                 try:
@@ -60,9 +61,10 @@ class ModbusTCPManager:
     def stop(self) -> None:
         self.stop_event.set()
 
+
 class ModbusRTUManager:
-    def __init__(self, logger, heartbeat_cb=None):
-        self.logger = None
+    def __init__(self, rc, logger, heartbeat_cb=None):
+        self.rc = rc
         self.logger = logger
         self.heartbeat_cb = heartbeat_cb
         self.stop_event = threading.Event()
@@ -80,6 +82,8 @@ class ModbusRTUManager:
         try:
             if not self.client.connect():
                 self.logger.error("Не удалось открыть Modbus RTU")
+                self.rc.message("Не удалось открыть Modbus RTU (LED-подсветка)",
+                                'error')
                 return
             print("Соединение открыто")
             while not self.stop_event.wait(1.0):
@@ -90,14 +94,19 @@ class ModbusRTUManager:
                         pass
         except ModbusException as e:
             self.logger.error(f"Ошибка Modbus RTU: {e}")
+            self.rc.message("Ошибка Modbus RTU (LED-подсветка)",
+                            'error')
         except Exception as e:
             self.logger.error(f"Ошибка Modbus RTU: {e}")
+            self.rc.message("Ошибка Modbus RTU (LED-подсветка)",
+                            'error')
         finally:
             self.client.close()
             print("Соединение закрыто")
 
     def stop(self) -> None:
         self.stop_event.set()
+
 
 class Blinker:
     """Неблокирующее мигание WB-LED"""
@@ -267,7 +276,6 @@ class Blinker:
             self.client.close()
         except Exception:
             pass
-
 
 # if __name__ == "__main__":
 # tcp_manager = ModbusTCPManager()
