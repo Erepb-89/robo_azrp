@@ -69,7 +69,6 @@ class MainOperWindow(QtWidgets.QMainWindow):
 
         self.engineer_window = None
         self.journal_window = None
-        self._journal_source = None
         self.InitUI()
 
     def InitUI(self):
@@ -465,7 +464,9 @@ class MainOperWindow(QtWidgets.QMainWindow):
             eng_mode = self.RobotController.get_state_snapshot().engineer_mode
             print("engineer_mode", eng_mode)
 
-        self._screens.setCurrentWidget(self.engineer_window)
+        self.engineer_window.showFullScreen()
+        self.engineer_window.raise_()
+        self.engineer_window.activateWindow()
 
     def open_journal(self):
         if self.journal_window is None:
