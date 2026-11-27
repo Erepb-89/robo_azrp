@@ -7,6 +7,8 @@ from .popup_dialogs import PopupDialogs
 from .trajectory_map import TrajectoryMapWidget
 from .ui_engineer_window import Ui_EngineerWindow
 
+from led_control import LedPattern
+from io_map import DO, DISim, SIM_DI
 
 INPUT_SIGNALS = (
     # DI
@@ -88,27 +90,16 @@ class SignalTableScrollBar(QtWidgets.QScrollBar):
 
 class EngineerWindow(QMainWindow):
     shutdown_requested = QtCore.pyqtSignal()
-    journal_requested = QtCore.pyqtSignal()
-    exit_requested = QtCore.pyqtSignal()
+    journal_requested = QtCore.pyqtSignal()  # Только навигация UI
     alert_requested = QtCore.pyqtSignal(str, str)
 
-    def __init__(self, rc=None, parent=None):
+    def __init__(self, rc, parent=None):
         super().__init__(parent, QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
-
-        # Hardware modules are imported only for the real robot. Demo uses an
-        # in-memory controller which cannot issue physical I/O commands.
-        if rc is None:
-            from .demo_backend import make_demo_engineering_backend
-            self.rc, self.DO, self.DISim, self.SIM_DI, self.LedPattern = make_demo_engineering_backend()
-        else:
-            from led_control import LedPattern
-            from io_map import DO, DISim, SIM_DI
-            self.rc, self.DO, self.DISim, self.SIM_DI, self.LedPattern = (
-                rc, DO, DISim, SIM_DI, LedPattern
-            )
 
         self.alert_requested.connect(partial(PopupDialogs.show_alert, parent=self))
         self.InitUI()
+
+        self.rc = rc
         # self.ui.di_M1_Ready.setChecked(True)
         # self.ui.di_M1_Alarm.setChecked(True)
         # self.ui.do_G1_Clamp.setChecked(True)
@@ -127,7 +118,7 @@ class EngineerWindow(QMainWindow):
         self.setup_alert_simulation_tables()
         self.trajectory_map = TrajectoryMapWidget(self.ui.tab_3)
         self.ui.trajectoryMapLayout.addWidget(self.trajectory_map)
-        self.ui.exitButton.clicked.connect(self._exit_engineer)
+        self.ui.exitButton.clicked.connect(self.close)
         self.ui.journalButton.clicked.connect(self.journal_requested)
         self.ui.powerOffButton.clicked.connect(self.shutdown_requested)
 
@@ -185,12 +176,6 @@ class EngineerWindow(QMainWindow):
         self.ui.di_S1_Closed_Sim.clicked.connect(self.set_s1_closed_sim)
         self.ui.di_S2_Closed_Sim.clicked.connect(self.set_s2_closed_sim)
         self.ui.di_S3_Closed_Sim.clicked.connect(self.set_s3_closed_sim)
-
-    def _exit_engineer(self):
-        if self.isWindow():
-            self.close()
-        else:
-            self.exit_requested.emit()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -337,252 +322,252 @@ class EngineerWindow(QMainWindow):
         item.setData(QtCore.Qt.AccessibleTextRole, text)
 
     def light_off(self):
-        self.rc.led_state.set_pattern(self.LedPattern.OFF)
+        self.rc.led_state.set_pattern(LedPattern.OFF)
 
     def green_light(self):
-        self.rc.led_state.set_pattern(self.LedPattern.GREEN_SOLID)
+        self.rc.led_state.set_pattern(LedPattern.GREEN_SOLID)
 
     def green_blink(self):
-        self.rc.led_state.set_pattern(self.LedPattern.GREEN_BLINK)
+        self.rc.led_state.set_pattern(LedPattern.GREEN_BLINK)
 
     def yellow_light(self):
-        self.rc.led_state.set_pattern(self.LedPattern.YELLOW_SOLID)
+        self.rc.led_state.set_pattern(LedPattern.YELLOW_SOLID)
 
     def yellow_blink(self):
-        self.rc.led_state.set_pattern(self.LedPattern.YELLOW_BLINK)
+        self.rc.led_state.set_pattern(LedPattern.YELLOW_BLINK)
 
     def red_light(self):
-        self.rc.led_state.set_pattern(self.LedPattern.RED_SOLID)
+        self.rc.led_state.set_pattern(LedPattern.RED_SOLID)
 
     def red_blink(self):
-        self.rc.led_state.set_pattern(self.LedPattern.RED_BLINK)
+        self.rc.led_state.set_pattern(LedPattern.RED_BLINK)
 
     def do_m1_chuck_open(self):
-        self.rc.io.set_do(self.DO.M1_ChuckOpen, True)
-        self.rc.io.set_do(self.DO.M1_ChuckClose, False)
+        self.rc.io.set_do(DO.M1_ChuckOpen, True)
+        self.rc.io.set_do(DO.M1_ChuckClose, False)
 
     def do_m1_chuck_close(self):
-        self.rc.io.set_do(self.DO.M1_ChuckClose, True)
-        self.rc.io.set_do(self.DO.M1_ChuckOpen, False)
+        self.rc.io.set_do(DO.M1_ChuckClose, True)
+        self.rc.io.set_do(DO.M1_ChuckOpen, False)
 
     def do_m1_start_process(self):
-        self.rc.io.set_do(self.DO.M1_StartProcess, True)
-        self.rc.io.set_do(self.DO.M1_StopProcess, False)
+        self.rc.io.set_do(DO.M1_StartProcess, True)
+        self.rc.io.set_do(DO.M1_StopProcess, False)
 
     def do_m1_stop_process(self):
-        self.rc.io.set_do(self.DO.M1_StopProcess, True)
-        self.rc.io.set_do(self.DO.M1_StartProcess, False)
+        self.rc.io.set_do(DO.M1_StopProcess, True)
+        self.rc.io.set_do(DO.M1_StartProcess, False)
 
     def do_m1_door_close(self):
-        self.rc.io.set_do(self.DO.M1_DoorClose, True)
-        self.rc.io.set_do(self.DO.M1_DoorOpen, False)
+        self.rc.io.set_do(DO.M1_DoorClose, True)
+        self.rc.io.set_do(DO.M1_DoorOpen, False)
 
     def do_m1_door_open(self):
-        self.rc.io.set_do(self.DO.M1_DoorOpen, True)
-        self.rc.io.set_do(self.DO.M1_DoorClose, False)
+        self.rc.io.set_do(DO.M1_DoorOpen, True)
+        self.rc.io.set_do(DO.M1_DoorClose, False)
 
     def do_air_spray(self):
-        self.rc.io.set_do(self.DO.M_AirSpray, True)
+        self.rc.io.set_do(DO.M_AirSpray, True)
 
     def do_m2_chuck_open(self):
-        self.rc.io.set_do(self.DO.M2_ChuckOpen, True)
-        self.rc.io.set_do(self.DO.M2_ChuckClose, False)
+        self.rc.io.set_do(DO.M2_ChuckOpen, True)
+        self.rc.io.set_do(DO.M2_ChuckClose, False)
 
     def do_m2_chuck_close(self):
-        self.rc.io.set_do(self.DO.M2_ChuckClose, True)
-        self.rc.io.set_do(self.DO.M2_ChuckOpen, False)
+        self.rc.io.set_do(DO.M2_ChuckClose, True)
+        self.rc.io.set_do(DO.M2_ChuckOpen, False)
 
     def do_m2_start_process(self):
-        self.rc.io.set_do(self.DO.M2_StartProcess, True)
-        self.rc.io.set_do(self.DO.M2_StopProcess, False)
+        self.rc.io.set_do(DO.M2_StartProcess, True)
+        self.rc.io.set_do(DO.M2_StopProcess, False)
 
     def do_m2_stop_process(self):
-        self.rc.io.set_do(self.DO.M2_StopProcess, True)
-        self.rc.io.set_do(self.DO.M2_StartProcess, False)
+        self.rc.io.set_do(DO.M2_StopProcess, True)
+        self.rc.io.set_do(DO.M2_StartProcess, False)
 
     def do_m2_door_close(self):
-        self.rc.io.set_do(self.DO.M2_DoorClose, True)
-        self.rc.io.set_do(self.DO.M2_DoorOpen, False)
+        self.rc.io.set_do(DO.M2_DoorClose, True)
+        self.rc.io.set_do(DO.M2_DoorOpen, False)
 
     def do_m2_door_open(self):
-        self.rc.io.set_do(self.DO.M2_DoorOpen, True)
-        self.rc.io.set_do(self.DO.M2_DoorClose, False)
+        self.rc.io.set_do(DO.M2_DoorOpen, True)
+        self.rc.io.set_do(DO.M2_DoorClose, False)
 
     def do_g1_clamp(self):
-        if self.rc.io.get_do(self.DO.G1_Clamp):
-            self.rc.io.set_do(self.DO.G1_Clamp, False)
+        if self.rc.io.get_do(DO.G1_Clamp):
+            self.rc.io.set_do(DO.G1_Clamp, False)
         else:
-            self.rc.io.set_do(self.DO.G1_Clamp, True)
+            self.rc.io.set_do(DO.G1_Clamp, True)
 
     def do_g2_clamp(self):
-        if self.rc.io.get_do(self.DO.G2_Clamp):
-            self.rc.io.set_do(self.DO.G2_Clamp, False)
+        if self.rc.io.get_do(DO.G2_Clamp):
+            self.rc.io.set_do(DO.G2_Clamp, False)
         else:
-            self.rc.io.set_do(self.DO.G2_Clamp, True)
+            self.rc.io.set_do(DO.G2_Clamp, True)
 
     def do_c_switch(self):
-        if self.rc.io.get_do(self.DO.C_Switch):
-            self.rc.io.set_do(self.DO.C_Switch, False)
+        if self.rc.io.get_do(DO.C_Switch):
+            self.rc.io.set_do(DO.C_Switch, False)
         else:
-            self.rc.io.set_do(self.DO.C_Switch, True)
+            self.rc.io.set_do(DO.C_Switch, True)
 
     def do_cart_lamp(self):
-        self.rc.io.set_do(self.DO.Cart_Lamp, True)
+        self.rc.io.set_do(DO.Cart_Lamp, True)
 
     def set_di_check_button_sim(self):
-        if self.SIM_DI.Check_Button_SIM is True:
-            self.SIM_DI.Check_Button_SIM = False
-            print("self.SIM_DI.Check_Button_SIM ", self.SIM_DI.Check_Button_SIM)
+        if SIM_DI.Check_Button_SIM is True:
+            SIM_DI.Check_Button_SIM = False
+            print("SIM_DI.Check_Button_SIM ", SIM_DI.Check_Button_SIM)
         else:
-            self.DISim.Check_Button_SIM = True
-            print("self.SIM_DI.Check_Button_SIM ", self.SIM_DI.Check_Button_SIM)
+            DISim.Check_Button_SIM = True
+            print("SIM_DI.Check_Button_SIM ", SIM_DI.Check_Button_SIM)
 
     def set_m1_door_opened_sim(self):
-        if self.SIM_DI.M1_DoorOpened_SIM is True:
-            self.SIM_DI.M1_DoorOpened_SIM = False
-            print("self.SIM_DI.M1_DoorOpened ", self.SIM_DI.M1_DoorOpened_SIM)
+        if SIM_DI.M1_DoorOpened_SIM is True:
+            SIM_DI.M1_DoorOpened_SIM = False
+            print("SIM_DI.M1_DoorOpened ", SIM_DI.M1_DoorOpened_SIM)
         else:
-            self.SIM_DI.M1_DoorOpened_SIM = True
-            print("self.SIM_DI.M1_DoorOpened ", self.SIM_DI.M1_DoorOpened_SIM)
+            SIM_DI.M1_DoorOpened_SIM = True
+            print("SIM_DI.M1_DoorOpened ", SIM_DI.M1_DoorOpened_SIM)
 
     def set_m1_door_closed_sim(self):
-        if self.SIM_DI.M1_DoorClosed_SIM is True:
-            self.SIM_DI.M1_DoorClosed_SIM = False
-            print("self.SIM_DI.M1_DoorClosed ", self.SIM_DI.M1_DoorClosed_SIM)
+        if SIM_DI.M1_DoorClosed_SIM is True:
+            SIM_DI.M1_DoorClosed_SIM = False
+            print("SIM_DI.M1_DoorClosed ", SIM_DI.M1_DoorClosed_SIM)
         else:
-            self.SIM_DI.M1_DoorClosed_SIM = True
-            print("self.SIM_DI.M1_DoorClosed ", self.SIM_DI.M1_DoorClosed_SIM)
+            SIM_DI.M1_DoorClosed_SIM = True
+            print("SIM_DI.M1_DoorClosed ", SIM_DI.M1_DoorClosed_SIM)
 
     def set_m1_ready_sim(self):
-        if self.SIM_DI.M1_Ready_SIM is True:
-            self.SIM_DI.M1_Ready_SIM = False
-            print("self.SIM_DI.M1_Ready ", self.SIM_DI.M1_Ready_SIM)
+        if SIM_DI.M1_Ready_SIM is True:
+            SIM_DI.M1_Ready_SIM = False
+            print("SIM_DI.M1_Ready ", SIM_DI.M1_Ready_SIM)
         else:
-            self.SIM_DI.M1_Ready_SIM = True
-            print("self.SIM_DI.M1_Ready ", self.SIM_DI.M1_Ready_SIM)
+            SIM_DI.M1_Ready_SIM = True
+            print("SIM_DI.M1_Ready ", SIM_DI.M1_Ready_SIM)
 
     def set_m1_chuck_clamped_sim(self):
-        if self.SIM_DI.M1_ChuckClamped_SIM is True:
-            self.SIM_DI.M1_ChuckClamped_SIM = False
+        if SIM_DI.M1_ChuckClamped_SIM is True:
+            SIM_DI.M1_ChuckClamped_SIM = False
         else:
-            self.SIM_DI.M1_ChuckClamped_SIM = True
+            SIM_DI.M1_ChuckClamped_SIM = True
 
     def set_m1_chuck_relaxed_sim(self):
-        if self.SIM_DI.M1_ChuckRelaxed_SIM is True:
-            self.SIM_DI.M1_ChuckRelaxed_SIM = False
+        if SIM_DI.M1_ChuckRelaxed_SIM is True:
+            SIM_DI.M1_ChuckRelaxed_SIM = False
         else:
-            self.SIM_DI.M1_ChuckRelaxed_SIM = True
+            SIM_DI.M1_ChuckRelaxed_SIM = True
 
     def set_m1_alarm_sim(self):
-        if self.SIM_DI.M1_Alarm_SIM is True:
-            self.SIM_DI.M1_Alarm_SIM = False
+        if SIM_DI.M1_Alarm_SIM is True:
+            SIM_DI.M1_Alarm_SIM = False
         else:
-            self.SIM_DI.M1_Alarm_SIM = True
+            SIM_DI.M1_Alarm_SIM = True
 
     def set_m2_alarm_sim(self):
-        if self.SIM_DI.M2_Alarm_SIM is True:
-            self.SIM_DI.M2_Alarm_SIM = False
+        if SIM_DI.M2_Alarm_SIM is True:
+            SIM_DI.M2_Alarm_SIM = False
         else:
-            self.SIM_DI.M2_Alarm_SIM = True
+            SIM_DI.M2_Alarm_SIM = True
 
     def set_m2_door_opened_sim(self):
-        if self.SIM_DI.M2_DoorOpened_SIM is True:
-            self.SIM_DI.M2_DoorOpened_SIM = False
-            print("self.SIM_DI.M2_DoorOpened ", self.SIM_DI.M2_DoorOpened_SIM)
+        if SIM_DI.M2_DoorOpened_SIM is True:
+            SIM_DI.M2_DoorOpened_SIM = False
+            print("SIM_DI.M2_DoorOpened ", SIM_DI.M2_DoorOpened_SIM)
         else:
-            self.SIM_DI.M2_DoorOpened_SIM = True
-            print("self.SIM_DI.M2_DoorOpened ", self.SIM_DI.M2_DoorOpened_SIM)
+            SIM_DI.M2_DoorOpened_SIM = True
+            print("SIM_DI.M2_DoorOpened ", SIM_DI.M2_DoorOpened_SIM)
 
     def set_m2_door_closed_sim(self):
-        if self.SIM_DI.M2_DoorClosed_SIM is True:
-            self.SIM_DI.M2_DoorClosed_SIM = False
-            print("self.SIM_DI.M2_DoorClosed ", self.SIM_DI.M2_DoorClosed_SIM)
+        if SIM_DI.M2_DoorClosed_SIM is True:
+            SIM_DI.M2_DoorClosed_SIM = False
+            print("SIM_DI.M2_DoorClosed ", SIM_DI.M2_DoorClosed_SIM)
         else:
-            self.SIM_DI.M1_DoorClosed_SIM = True
-            print("self.SIM_DI.M2_DoorClosed ", self.SIM_DI.M2_DoorClosed_SIM)
+            SIM_DI.M1_DoorClosed_SIM = True
+            print("SIM_DI.M2_DoorClosed ", SIM_DI.M2_DoorClosed_SIM)
 
     def set_m2_ready_sim(self):
-        if self.SIM_DI.M2_Ready_SIM is True:
-            self.SIM_DI.M2_Ready_SIM = False
-            print("self.SIM_DI.M2_Ready ", self.SIM_DI.M2_Ready_SIM)
+        if SIM_DI.M2_Ready_SIM is True:
+            SIM_DI.M2_Ready_SIM = False
+            print("SIM_DI.M2_Ready ", SIM_DI.M2_Ready_SIM)
         else:
-            self.SIM_DI.M2_Ready_SIM = True
-            print("self.SIM_DI.M2_Ready ", self.SIM_DI.M2_Ready_SIM)
+            SIM_DI.M2_Ready_SIM = True
+            print("SIM_DI.M2_Ready ", SIM_DI.M2_Ready_SIM)
 
     def set_m2_chuck_clamped_sim(self):
-        if self.SIM_DI.M2_ChuckClamped_SIM is True:
-            self.SIM_DI.M2_ChuckClamped_SIM = False
+        if SIM_DI.M2_ChuckClamped_SIM is True:
+            SIM_DI.M2_ChuckClamped_SIM = False
         else:
-            self.SIM_DI.M2_ChuckClamped_SIM = True
+            SIM_DI.M2_ChuckClamped_SIM = True
 
     def set_m2_chuck_relaxed_sim(self):
-        if self.SIM_DI.M2_ChuckRelaxed_SIM is True:
-            self.SIM_DI.M2_ChuckRelaxed_SIM = False
+        if SIM_DI.M2_ChuckRelaxed_SIM is True:
+            SIM_DI.M2_ChuckRelaxed_SIM = False
         else:
-            self.SIM_DI.M2_ChuckRelaxed_SIM = True
+            SIM_DI.M2_ChuckRelaxed_SIM = True
 
     def set_g1_clamped_sim(self):
-        if self.SIM_DI.G1_Clamped_SIM is True:
-            self.SIM_DI.G1_Clamped_SIM = False
+        if SIM_DI.G1_Clamped_SIM is True:
+            SIM_DI.G1_Clamped_SIM = False
         else:
-            self.SIM_DI.G1_Clamped_SIM = True
+            SIM_DI.G1_Clamped_SIM = True
 
     def set_g1_relaxed_sim(self):
-        if self.SIM_DI.G1_Relaxed_SIM is True:
-            self.SIM_DI.G1_Relaxed_SIM = False
+        if SIM_DI.G1_Relaxed_SIM is True:
+            SIM_DI.G1_Relaxed_SIM = False
         else:
-            self.SIM_DI.G1_Relaxed_SIM = True
+            SIM_DI.G1_Relaxed_SIM = True
 
     def set_g2_clamped_sim(self):
-        if self.SIM_DI.G2_Clamped_SIM is True:
-            self.SIM_DI.G2_Clamped_SIM = False
+        if SIM_DI.G2_Clamped_SIM is True:
+            SIM_DI.G2_Clamped_SIM = False
         else:
-            self.SIM_DI.G2_Clamped_SIM = True
+            SIM_DI.G2_Clamped_SIM = True
 
     def set_g2_relaxed_sim(self):
-        if self.SIM_DI.G2_Relaxed_SIM is True:
-            self.SIM_DI.G2_Relaxed_SIM = False
+        if SIM_DI.G2_Relaxed_SIM is True:
+            SIM_DI.G2_Relaxed_SIM = False
         else:
-            self.SIM_DI.G2_Relaxed_SIM = True
+            SIM_DI.G2_Relaxed_SIM = True
 
     def set_gate_sensor_sim(self):
-        if self.SIM_DI.Gate_Sensor_SIM is True:
-            self.SIM_DI.Gate_Sensor_SIM = False
+        if SIM_DI.Gate_Sensor_SIM is True:
+            SIM_DI.Gate_Sensor_SIM = False
         else:
-            self.SIM_DI.Gate_Sensor_SIM = True
+            SIM_DI.Gate_Sensor_SIM = True
 
     def set_s1_opened_sim(self):
-        if self.SIM_DI.S1_Opened_SIM is True:
-            self.SIM_DI.S1_Opened_SIM = False
+        if SIM_DI.S1_Opened_SIM is True:
+            SIM_DI.S1_Opened_SIM = False
         else:
-            self.SIM_DI.S1_Opened_SIM = True
+            SIM_DI.S1_Opened_SIM = True
 
     def set_s2_opened_sim(self):
-        if self.SIM_DI.S2_Opened_SIM is True:
-            self.SIM_DI.S2_Opened_SIM = False
+        if SIM_DI.S2_Opened_SIM is True:
+            SIM_DI.S2_Opened_SIM = False
         else:
-            self.SIM_DI.S2_Opened_SIM = True
+            SIM_DI.S2_Opened_SIM = True
 
     def set_s3_opened_sim(self):
-        if self.SIM_DI.S3_Opened_SIM is True:
-            self.SIM_DI.S3_Opened_SIM = False
+        if SIM_DI.S3_Opened_SIM is True:
+            SIM_DI.S3_Opened_SIM = False
         else:
-            self.SIM_DI.S3_Opened_SIM = True
+            SIM_DI.S3_Opened_SIM = True
 
     def set_s1_closed_sim(self):
-        if self.SIM_DI.S1_Closed_SIM is True:
-            self.SIM_DI.S1_Closed_SIM = False
+        if SIM_DI.S1_Closed_SIM is True:
+            SIM_DI.S1_Closed_SIM = False
         else:
-            self.SIM_DI.S1_Closed_SIM = True
+            SIM_DI.S1_Closed_SIM = True
 
     def set_s2_closed_sim(self):
-        if self.SIM_DI.S2_Closed_SIM is True:
-            self.SIM_DI.S2_Closed_SIM = False
+        if SIM_DI.S2_Closed_SIM is True:
+            SIM_DI.S2_Closed_SIM = False
         else:
-            self.SIM_DI.S2_Closed_SIM = True
+            SIM_DI.S2_Closed_SIM = True
 
     def set_s3_closed_sim(self):
-        if self.SIM_DI.S3_Closed_SIM is True:
-            self.SIM_DI.S3_Closed_SIM = False
+        if SIM_DI.S3_Closed_SIM is True:
+            SIM_DI.S3_Closed_SIM = False
         else:
-            self.SIM_DI.S3_Closed_SIM = True
+            SIM_DI.S3_Closed_SIM = True

@@ -7,6 +7,8 @@ from .engineer_window import EngineerWindow
 from .journal_window import JournalWindow
 from .popup_dialogs import PopupDialogs
 from .ui_main_window import Ui_MainWindow
+from commands import Command, CmdType
+from states_modes_errors import LastError, LAST_ERROR_RU
 
 
 PARTS_PER_SHELF = 8
@@ -47,11 +49,9 @@ CYCLE_STATE_TO_MODE = {
 
 class MainOperWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, robot_controller=None, cmd_queue=None, command_handler=None,
+    def __init__(self, robot_controller, cmd_queue, command_handler,
                  heartbeat=None, cmd_log_queue=None):
         super().__init__()
-        # None means an isolated UI preview: no robot connection or commands.
-        self._preview = robot_controller is None
         self.RobotController = robot_controller
         self.cmd_queue = cmd_queue
         self.command_handler = command_handler
@@ -66,18 +66,11 @@ class MainOperWindow(QtWidgets.QMainWindow):
 
         self.engineer_window = None
         self.journal_window = None
-        self._journal_source = None
         self.InitUI()
 
     def InitUI(self):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
-        # Shared fullscreen container for operator, engineering, and journal pages.
-        self._operator_page = self.takeCentralWidget()
-        self._screens = QtWidgets.QStackedWidget(self)
-        self._screens.addWidget(self._operator_page)
-        self.setCentralWidget(self._screens)
 
         self.clock_timer = QtCore.QTimer(self)
         self.clock_timer.timeout.connect(self.update_clock)
@@ -106,10 +99,9 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.set_cnc_status(2, "ready" if self.ui.cnc2CheckBox.isChecked() else "inactive")
         self._set_cycle_mode("ready")
 
-        if not self._preview:
-            self.StatusTimer = QtCore.QTimer(self)
-            self.StatusTimer.timeout.connect(self._update_status)
-            self.StatusTimer.start(500)
+        self.StatusTimer = QtCore.QTimer(self)
+        self.StatusTimer.timeout.connect(self._update_status)
+        self.StatusTimer.start(500)
 
     def update_clock(self):
         now = QtCore.QDateTime.currentDateTime()
@@ -194,8 +186,6 @@ class MainOperWindow(QtWidgets.QMainWindow):
         status = "ready" if checked else "inactive"
         self.set_cnc_status(cnc_number, status)
         self.ui.startButton.setEnabled(self._can_start_cycle())
-        if self._preview:
-            return
 
         box = self.ui.cnc1CheckBox if cnc_number == 1 else self.ui.cnc2CheckBox
         try:
@@ -228,8 +218,6 @@ class MainOperWindow(QtWidgets.QMainWindow):
         )
 
     def _set_actual_speed(self):
-        if self._preview:
-            return
         try:
             self.RobotController.set_actual_speed(int(self.ui.speedSlider.value()))
         except Exception:
@@ -282,9 +270,6 @@ class MainOperWindow(QtWidgets.QMainWindow):
 
     def _update_status(self):
         """Периодически обновляет статусы окна по снимку состояния."""
-        if self._preview:
-            return
-        from states_modes_errors import LastError, LAST_ERROR_RU
         self._update_cycle_panel()
 
         try:
@@ -399,47 +384,47 @@ class MainOperWindow(QtWidgets.QMainWindow):
         }[mode])
         self.update_table_selection()
 
-    def _send_command(self, command_name, payload=None):
-        """Only the real robot mode may send commands to the controller."""
-        if self._preview:
-            return
-        from commands import Command, CmdType
-        self.cmd_queue.put(Command(getattr(CmdType, command_name), payload or {}, source="GUI"))
-
-    def manipulator_command(self, cmd):
-        if not self._preview:
-            self.cmd_queue.put(cmd)
+    def manipulator_command(self, cmd: Command):
+        self.cmd_queue.put(cmd)
 
     def power_off(self):
-        self._send_command("POWER", {"state": 0})
+        self.manipulator_command(
+            Command(CmdType.POWER, {'state': 0}, source="GUI"))
 
     def pause_drive(self):
-        self._send_command("PAUSE")
+        self.manipulator_command(
+            Command(CmdType.PAUSE, {}, source="GUI"))
 
     def stop_drive(self):
-        self._send_command("STOP_MOVE")
-        if not self._preview:
-            try:
-                self.command_handler.set_trajectory(0)
-            except Exception:
-                pass
+        self.manipulator_command(
+            Command(CmdType.STOP_MOVE, {}, source="GUI"))
+        try:
+            self.command_handler.set_trajectory(0)
+        except Exception:
+            pass
 
     def start(self):
         if self._can_start_cycle():
             self._set_cycle_mode("running")
-            self._send_command("AUTO_START")
+            self.cmd_queue.put(
+                Command(CmdType.AUTO_START, {}, source="GUI"))
+
 
     def pause_resume(self):
         if self._cycle_mode == "running":
             self._set_cycle_mode("paused")
-            self._send_command("AUTO_PAUSE")
+            self.cmd_queue.put(
+                Command(CmdType.AUTO_PAUSE, {}, source="GUI"))
         elif self._cycle_mode == "paused":
             self._set_cycle_mode("running")
-            self._send_command("AUTO_START")
+            self.cmd_queue.put(
+                Command(CmdType.AUTO_START, {}, source="GUI"))
+
 
     def stop(self):
         self._set_cycle_mode("ready")
-        self._send_command("AUTO_STOP")
+        self.cmd_queue.put(
+            Command(CmdType.AUTO_STOP, {}, source="GUI"))
 
     def set_cell_state(self, cell, state):
         cell.setProperty("cellState", state)
@@ -449,45 +434,40 @@ class MainOperWindow(QtWidgets.QMainWindow):
         cell.update()
 
     def open_engineer_login(self):
-        # No authentication is skipped in production. Preview mode is offline-only.
-        if not self._preview and PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted:
+        if PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted:
             return
 
         if self.engineer_window is None:
-            self.engineer_window = EngineerWindow(
-                None if self._preview else self.RobotController, parent=self
-            )
-            self.engineer_window.setWindowFlags(QtCore.Qt.Widget)
-            self._screens.addWidget(self.engineer_window)
+            self.engineer_window = EngineerWindow(self)
+            self.engineer_window.journal_requested.connect(self.open_journal)
             self.engineer_window.shutdown_requested.connect(
                 partial(self.confirm_shutdown, parent=self.engineer_window)
             )
-            self.engineer_window.journal_requested.connect(self.open_journal)
-            self.engineer_window.exit_requested.connect(
-                partial(self._screens.setCurrentWidget, self._operator_page)
-            )
-            if not self._preview:
-                self.RobotController.set_engineer_mode(True)
+            # Открываем файл стилей (если положили его в папку ui)
+            with open("ui/style.qss", "r", encoding="utf-8") as file:
+                qss_styles = file.read()
+            # Применяем стили
+            self.engineer_window.setStyleSheet(qss_styles)
 
-        self._screens.setCurrentWidget(self.engineer_window)
+            self.engineer_window.shutdown_requested.connect(
+                partial(self.confirm_shutdown, parent=self.engineer_window)
+            )
+            self.RobotController.set_engineer_mode(True)
+            eng_mode = self.RobotController.get_state_snapshot().engineer_mode
+            print("engineer_mode", eng_mode)
+
+        self.engineer_window.showFullScreen()
+        self.engineer_window.raise_()
+        self.engineer_window.activateWindow()
 
     def open_journal(self):
         if self.journal_window is None:
             self.journal_window = JournalWindow(self)
-            self.journal_window.setWindowFlags(QtCore.Qt.Widget)
-            self._screens.addWidget(self.journal_window)
+            self.journal_window.back_requested.connect(self.journal_window.close)
             self.journal_window.shutdown_requested.connect(
                 partial(self.confirm_shutdown, parent=self.journal_window)
             )
-            self.journal_window.back_requested.connect(self._return_from_journal)
 
-        current = self._screens.currentWidget()
-        if current is self.journal_window:
-            return
-        self._journal_source = current
-        self._screens.setCurrentWidget(self.journal_window)
-
-    def _return_from_journal(self):
-        target = self._journal_source or self._operator_page
-        self._screens.setCurrentWidget(target)
-        self._journal_source = None
+        self.journal_window.showFullScreen()
+        self.journal_window.raise_()
+        self.journal_window.activateWindow()
