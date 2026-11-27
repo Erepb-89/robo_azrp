@@ -90,6 +90,8 @@ class SignalTableScrollBar(QtWidgets.QScrollBar):
 
 class EngineerWindow(QMainWindow):
     shutdown_requested = QtCore.pyqtSignal()
+    journal_requested = QtCore.pyqtSignal()  # Только навигация UI
+    exit_requested = QtCore.pyqtSignal()
     alert_requested = QtCore.pyqtSignal(str, str)
 
     def __init__(self, rc, parent=None):
@@ -117,7 +119,10 @@ class EngineerWindow(QMainWindow):
         self.setup_alert_simulation_tables()
         self.trajectory_map = TrajectoryMapWidget(self.ui.tab_3)
         self.ui.trajectoryMapLayout.addWidget(self.trajectory_map)
-        self.ui.exitButton.clicked.connect(self.close)
+        self.trajectory_map.move_button.clicked.connect(self.on_trajectory_move_clicked)
+        self.trajectory_map.stop_button.clicked.connect(self.on_trajectory_stop_clicked)
+        self.ui.exitButton.clicked.connect(self._exit_engineer)
+        self.ui.journalButton.clicked.connect(self.journal_requested)
         self.ui.powerOffButton.clicked.connect(self.shutdown_requested)
 
         self.clock_timer = QtCore.QTimer(self)
@@ -174,6 +179,18 @@ class EngineerWindow(QMainWindow):
         self.ui.di_S1_Closed_Sim.clicked.connect(self.set_s1_closed_sim)
         self.ui.di_S2_Closed_Sim.clicked.connect(self.set_s2_closed_sim)
         self.ui.di_S3_Closed_Sim.clicked.connect(self.set_s3_closed_sim)
+
+    def on_trajectory_move_clicked(self):
+        pass
+
+    def on_trajectory_stop_clicked(self):
+        pass
+
+    def _exit_engineer(self):
+        if self.isWindow():
+            self.close()
+        else:
+            self.exit_requested.emit()
 
     def showEvent(self, event):
         super().showEvent(event)

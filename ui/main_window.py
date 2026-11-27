@@ -13,6 +13,9 @@ from states_modes_errors import LastError, LAST_ERROR_RU
 
 PARTS_PER_SHELF = 8
 
+# Временный прямой доступ к инженерному экрану во всех режимах цикла.
+TEMPORARY_DIRECT_ENGINEER_ACCESS = True
+
 
 # Словарь цветов для ореола свечения вокруг лампочки
 SYSTEM_STATUS_CONFIG = {
@@ -71,6 +74,13 @@ class MainOperWindow(QtWidgets.QMainWindow):
     def InitUI(self):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Экран меняется внутри одного полноэкранного окна оператора.
+        self._operator_page = self.takeCentralWidget()
+        self._operator_page.setProperty("operatorPage", True)
+        self._screens = QtWidgets.QStackedWidget(self)
+        self._screens.addWidget(self._operator_page)
+        self.setCentralWidget(self._screens)
 
         self.clock_timer = QtCore.QTimer(self)
         self.clock_timer.timeout.connect(self.update_clock)
@@ -301,7 +311,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.ui.speedFrame.setEnabled(enabled)
         self.ui.shelfFrame.setEnabled(enabled)
         self.ui.partFrame.setEnabled(enabled)
-        self.ui.engineerButton.setEnabled(enabled)
+        self.ui.engineerButton.setEnabled(enabled or TEMPORARY_DIRECT_ENGINEER_ACCESS)
         self.ui.cnc1CheckBox.setEnabled(enabled)
         self.ui.cnc2CheckBox.setEnabled(enabled)
 
@@ -434,22 +444,21 @@ class MainOperWindow(QtWidgets.QMainWindow):
         cell.update()
 
     def open_engineer_login(self):
-        if PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted:
+        if (
+            not TEMPORARY_DIRECT_ENGINEER_ACCESS
+            and PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted
+        ):
             return
 
         if self.engineer_window is None:
-            self.engineer_window = EngineerWindow(self)
+            self.engineer_window = EngineerWindow(self.RobotController, self)
+            self._screens.addWidget(self.engineer_window)
+            self.engineer_window.journal_requested.connect(self.open_journal)
             self.engineer_window.shutdown_requested.connect(
                 partial(self.confirm_shutdown, parent=self.engineer_window)
             )
-            # Открываем файл стилей (если положили его в папку ui)
-            with open("ui/style.qss", "r", encoding="utf-8") as file:
-                qss_styles = file.read()
-            # Применяем стили
-            self.engineer_window.setStyleSheet(qss_styles)
-
-            self.engineer_window.shutdown_requested.connect(
-                partial(self.confirm_shutdown, parent=self.engineer_window)
+            self.engineer_window.exit_requested.connect(
+                partial(self._screens.setCurrentWidget, self._operator_page)
             )
             self.RobotController.set_engineer_mode(True)
             eng_mode = self.RobotController.get_state_snapshot().engineer_mode
@@ -462,10 +471,18 @@ class MainOperWindow(QtWidgets.QMainWindow):
     def open_journal(self):
         if self.journal_window is None:
             self.journal_window = JournalWindow(self)
+            self._screens.addWidget(self.journal_window)
+            self.journal_window.back_requested.connect(self._return_from_journal)
             self.journal_window.shutdown_requested.connect(
                 partial(self.confirm_shutdown, parent=self.journal_window)
             )
 
-        self.journal_window.showFullScreen()
-        self.journal_window.raise_()
-        self.journal_window.activateWindow()
+        current = self._screens.currentWidget()
+        if current is not self.journal_window:
+            self._journal_source = current
+            self._screens.setCurrentWidget(self.journal_window)
+
+    def _return_from_journal(self):
+        if self._journal_source is not None:
+            self._screens.setCurrentWidget(self._journal_source)
+            self._journal_source = None

@@ -321,7 +321,7 @@ QMainWindow#MainWindow QFrame#partFrame {
 }
 
 /* 2. Текст — все ранее согласованные размеры сохранены. */
-QMainWindow#MainWindow QWidget[objectName="centralwidget"] QLabel {
+QMainWindow#MainWindow QWidget[operatorPage="true"] QLabel {
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
     font-size: 22px;
     font-weight: normal;
@@ -1019,7 +1019,7 @@ QWidget#trajectoryMap QGraphicsView#trajectoryView {
     border-radius: 14px;
 }
 
-QWidget#trajectoryMap QLabel#trajectoryMapLegend,
+QWidget#trajectoryMap QLabel[mapLegendLabel="true"],
 QWidget#trajectoryMap QLabel#trajectoryMapStatus {
     color: #526782;
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
@@ -1032,7 +1032,7 @@ QWidget#trajectoryMap QLabel#trajectoryMapStatus {
     padding: 3px 8px;
 }
 
-QWidget#trajectoryMap QLabel#trajectoryMapLegendMarker {
+QWidget#trajectoryMap QLabel[legendKind] {
     min-width: 12px;
     max-width: 12px;
     min-height: 12px;
@@ -1040,14 +1040,16 @@ QWidget#trajectoryMap QLabel#trajectoryMapLegendMarker {
     border-radius: 6px;
 }
 
-QLabel#trajectoryMapLegendMarker[legendKind="home"] { background-color: #0b5cff; }
-QLabel#trajectoryMapLegendMarker[legendKind="base"] { background-color: #7187a0; }
-QLabel#trajectoryMapLegendMarker[legendKind="endpoint"] { background-color: #638df0; }
-QLabel#trajectoryMapLegendMarker[legendKind="blocked"] { background-color: #c62828; }
-QLabel#trajectoryMapLegendMarker[legendKind="current"] { background-color: #0c8a42; }
+QWidget#trajectoryMap QLabel[legendKind="home"] { background-color: #0b5cff; }
+QWidget#trajectoryMap QLabel[legendKind="base"] { background-color: #7187a0; }
+QWidget#trajectoryMap QLabel[legendKind="endpoint"] { background-color: #638df0; }
+QWidget#trajectoryMap QLabel[legendKind="blocked"] { background-color: #c62828; }
+QWidget#trajectoryMap QLabel[legendKind="current"] { background-color: #0c8a42; }
 
 QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton,
 QWidget#trajectoryMap QPushButton#trajectoryZoomInButton,
+QWidget#trajectoryMap QPushButton#trajectoryMoveButton,
+QWidget#trajectoryMap QPushButton#trajectoryStopButton,
 QWidget#trajectoryMap QPushButton#trajectoryFitButton {
     min-width: 33px;
     min-height: 48px;
@@ -1061,19 +1063,25 @@ QWidget#trajectoryMap QPushButton#trajectoryFitButton {
     font-weight: bold;
 }
 
-QWidget#trajectoryMap QPushButton#trajectoryFitButton {
+QWidget#trajectoryMap QPushButton#trajectoryFitButton,
+QWidget#trajectoryMap QPushButton#trajectoryMoveButton,
+QWidget#trajectoryMap QPushButton#trajectoryStopButton {
     min-width: 116px;
     padding: 0 14px;
 }
 
 QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton:hover,
 QWidget#trajectoryMap QPushButton#trajectoryZoomInButton:hover,
+QWidget#trajectoryMap QPushButton#trajectoryMoveButton:hover,
+QWidget#trajectoryMap QPushButton#trajectoryStopButton:hover,
 QWidget#trajectoryMap QPushButton#trajectoryFitButton:hover {
     background-color: #f4f7fa;
 }
 
 QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton:pressed,
 QWidget#trajectoryMap QPushButton#trajectoryZoomInButton:pressed,
+QWidget#trajectoryMap QPushButton#trajectoryMoveButton:pressed,
+QWidget#trajectoryMap QPushButton#trajectoryStopButton:pressed,
 QWidget#trajectoryMap QPushButton#trajectoryFitButton:pressed {
     background-color: #e7f0ff;
     border-color: #b9d0ff;
