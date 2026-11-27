@@ -1,18 +1,14 @@
-import logging
 from functools import partial
-from pathlib import Path
 
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from .popup_dialogs import PopupDialogs
 from .trajectory_map import TrajectoryMapWidget
 from .ui_engineer_window import Ui_EngineerWindow
 
 from led_control import LedPattern
-from io_map import DO, DISim, MACHINE_DI, SIM_DI
-
-UI_DIR = Path(__file__).resolve().parent
-STYLE_PATH = UI_DIR / "style.qss"
+from io_map import DO, DISim, SIM_DI
 
 INPUT_SIGNALS = (
     # DI
@@ -94,11 +90,12 @@ class SignalTableScrollBar(QtWidgets.QScrollBar):
 
 class EngineerWindow(QMainWindow):
     shutdown_requested = QtCore.pyqtSignal()
+    alert_requested = QtCore.pyqtSignal(str, str)
 
     def __init__(self, rc, parent=None):
         super().__init__(parent, QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
-        self.di_Check_Button_Sim = False
+        self.alert_requested.connect(partial(PopupDialogs.show_alert, parent=self))
         self.InitUI()
 
         self.rc = rc
@@ -109,16 +106,18 @@ class EngineerWindow(QMainWindow):
     def InitUI(self):
         self.ui = Ui_EngineerWindow()
         self.ui.setupUi(self)
-        self.setup_indicator_style()
+        for table in self.ui.tabWidget.findChildren(QtWidgets.QTableWidget):
+            if table.property("signalTable"):
+                self.setup_table_scrolling(table)
         self.setup_inputs_readonly()
         self.setup_input_signals_table()
         self.setup_input_simulation_table()
         self.setup_output_signals_table()
         self.setup_led_modes_table()
+        self.setup_alert_simulation_tables()
         self.trajectory_map = TrajectoryMapWidget(self.ui.tab_3)
         self.ui.trajectoryMapLayout.addWidget(self.trajectory_map)
         self.ui.exitButton.clicked.connect(self.close)
-        self.ui.powerOffButton.setIcon(QtGui.QIcon(str(UI_DIR / "power_off.png")))
         self.ui.powerOffButton.clicked.connect(self.shutdown_requested)
 
         self.clock_timer = QtCore.QTimer(self)
@@ -191,50 +190,23 @@ class EngineerWindow(QMainWindow):
         self.ui.timeLabel.setText(now.toString("HH:mm:ss"))
         self.ui.dateLabel.setText(now.toString("dd.MM.yyyy"))
 
-    def setup_indicator_style(self):
-        try:
-            shared_style = STYLE_PATH.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            logging.getLogger(__name__).warning(
-                "Не удалось загрузить стиль инженерного окна %s: %s", STYLE_PATH, error
-            )
-            shared_style = ""
-
-        self.setStyleSheet(shared_style + """
-            QCheckBox::indicator,
-            QRadioButton::indicator {
-                width: 14px;
-                height: 14px;
-                border-radius: 7px;
-                border: 1px solid #777777;
-                background-color: #bdbdbd;
-            }
-
-            QCheckBox::indicator:checked,
-            QRadioButton::indicator:checked {
-                background-color: #4CAF50;
-                border: 1px solid #388E3C;
-            }
-        """)
-
     def setup_inputs_readonly(self):
         for checkbox in self.ui.inputSignalStates.findChildren(QtWidgets.QCheckBox):
             checkbox.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
             checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
 
     def setup_signal_table(self, table, row_count, column_widths):
-        table.setVerticalScrollBar(SignalTableScrollBar(table))
         table.setRowCount(row_count)
         table.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
-        table.verticalHeader().setDefaultSectionSize(46)
 
         header = table.horizontalHeader()
-        header.setDefaultAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        header.setMinimumHeight(48)
         header.setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         for column, width in enumerate(column_widths):
             table.setColumnWidth(column, width)
         header.setSectionResizeMode(table.columnCount() - 1, QtWidgets.QHeaderView.Stretch)
+
+    def setup_table_scrolling(self, table):
+        table.setVerticalScrollBar(SignalTableScrollBar(table))
         QtWidgets.QScroller.grabGesture(table.viewport(), QtWidgets.QScroller.TouchGesture)
 
         table.installEventFilter(self)
@@ -278,7 +250,6 @@ class EngineerWindow(QMainWindow):
     def setup_input_signals_table(self):
         table = self.ui.inputSignalsTable
         self.setup_signal_table(table, len(INPUT_SIGNALS), (56, 236, 314))
-        table.setIconSize(QtCore.QSize(16, 16))
         icons = (self.input_status_icon("#c5ced8"), self.input_status_icon("#0c8a42"))
 
         for row, (object_name, port, purpose) in enumerate(INPUT_SIGNALS):
@@ -315,6 +286,18 @@ class EngineerWindow(QMainWindow):
         self.setup_signal_table(table, len(modes), ())
         for row, mode in enumerate(modes):
             table.setCellWidget(row, 0, mode)
+
+    def setup_alert_simulation_tables(self):
+        self.ui.errorSimulationTable.itemClicked.connect(
+            partial(self.open_simulated_alert, "error")
+        )
+        self.ui.warningSimulationTable.itemClicked.connect(
+            partial(self.open_simulated_alert, "warning")
+        )
+
+    def open_simulated_alert(self, severity, item):
+        code = item.text().partition(" — ")[0]
+        self.alert_requested.emit(severity, code)
 
     @staticmethod
     def input_status_icon(color):

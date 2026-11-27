@@ -337,9 +337,8 @@ class TrajectoryMapWidget(QWidget):
             ("Текущая", "current"),
         ):
             dot = QLabel()
-            dot.setFixedSize(12, 12)
-            color = NODE_STYLES[kind][0 if kind == "home" else 2]
-            dot.setStyleSheet(f"background-color: {color}; border-radius: 6px;")
+            dot.setObjectName("trajectoryMapLegendMarker")
+            dot.setProperty("legendKind", kind)
             label = QLabel(text)
             label.setObjectName("trajectoryMapLegend")
             toolbar.addWidget(dot, 0, Qt.AlignVCenter)
@@ -347,12 +346,13 @@ class TrajectoryMapWidget(QWidget):
             toolbar.addSpacing(16)
 
         toolbar.addStretch()
-        for text, tooltip, action in (
-            ("−", "Уменьшить масштаб", lambda: self._view.zoom_by(1 / 1.18)),
-            ("+", "Увеличить масштаб", lambda: self._view.zoom_by(1.18)),
-            ("Вся карта", "Показать все точки", lambda: self._view.fit_map()),
+        for name, text, tooltip, action in (
+            ("trajectoryZoomOutButton", "−", "Уменьшить масштаб", lambda: self._view.zoom_by(1 / 1.18)),
+            ("trajectoryZoomInButton", "+", "Увеличить масштаб", lambda: self._view.zoom_by(1.18)),
+            ("trajectoryFitButton", "Вся карта", "Показать все точки", lambda: self._view.fit_map()),
         ):
             button = QPushButton(text)
+            button.setObjectName(name)
             button.setToolTip(tooltip)
             button.setAccessibleName(tooltip)
             button.clicked.connect(action)

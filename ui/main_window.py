@@ -1,30 +1,18 @@
-import logging
 from functools import partial
-from pathlib import Path
 from typing import Dict
 
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QColor, QIcon
 
-from .ui_main_window import Ui_MainWindow
-from .login_dialog import LoginDialog
 from .engineer_window import EngineerWindow
+from .journal_window import JournalWindow
+from .popup_dialogs import PopupDialogs
+from .ui_main_window import Ui_MainWindow
 from commands import Command, CmdType
 from states_modes_errors import LastError, LAST_ERROR_RU
 
 
 PARTS_PER_SHELF = 8
-OPERATOR_DIALOG_SIZE = QtCore.QSize(520, 336)
-STYLE_PATH = Path(__file__).resolve().with_name("style.qss")
 
-
-# Цвета ореола свечения вокруг светодиодов
-GLOW_COLORS = {
-    "green":  QColor(34, 197, 94, 160),   # Зеленое свечение
-    "yellow": QColor(234, 179, 8, 160),   # Желтое свечение
-    "red":    QColor(239, 68, 68, 180),   # Красное свечение
-    "off":    QColor(0, 0, 0, 0)          # Без свечения
-}
 
 # Словарь цветов для ореола свечения вокруг лампочки
 SYSTEM_STATUS_CONFIG = {
@@ -77,6 +65,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self._last_cnc_status: Dict[int, str] = {}
 
         self.engineer_window = None
+        self.journal_window = None
         self.InitUI()
 
     def InitUI(self):
@@ -88,7 +77,6 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.update_clock()
         self.clock_timer.start(1000)
 
-        self.ui.powerOffButton.setIcon(QIcon(str(Path(__file__).resolve().with_name("power_off.png"))))
         self.ui.powerOffButton.clicked.connect(self.confirm_shutdown)
         self.init_table_controls()
 
@@ -102,6 +90,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.update_speed_label(self.ui.speedSlider.value())
 
         self.ui.engineerButton.clicked.connect(self.open_engineer_login)
+        self.ui.journalButton.clicked.connect(self.open_journal)
 
         self.ui.cnc1CheckBox.toggled.connect(lambda checked: self.on_cnc_selection_changed(1, checked))
         self.ui.cnc2CheckBox.toggled.connect(lambda checked: self.on_cnc_selection_changed(2, checked))
@@ -119,67 +108,13 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.ui.timeLabel.setText(now.toString("HH:mm:ss"))
         self.ui.dateLabel.setText(now.toString("dd.MM.yyyy"))
 
-    def prepare_operator_dialog(self, dialog):
-        layout = dialog.layout()
-        layout.setContentsMargins(26, 24, 26, 24)
-        layout.setSpacing(8)
-        dialog.setFixedSize(OPERATOR_DIALOG_SIZE)
-        dialog.setWindowFlag(QtCore.Qt.FramelessWindowHint)
-        dialog.setProperty("uiRole", "operatorDialog")
-        try:
-            style = STYLE_PATH.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
-            logging.getLogger(__name__).warning(
-                "Не удалось загрузить стиль диалогов %s: %s", STYLE_PATH, error
-            )
-        else:
-            dialog.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-            surface = QtWidgets.QFrame(dialog)
-            surface.setObjectName("operatorDialogSurface")
-            surface.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-            surface.setGeometry(dialog.rect())
-            surface.lower()
-            dialog.setStyleSheet(style)
+    @QtCore.pyqtSlot(str, str, result=int)
+    def show_alert(self, severity, code):
+        """Совместимость с вызовами через главное окно."""
+        return PopupDialogs.show_alert(severity, code)
 
     def confirm_shutdown(self, *, parent=None):
-        dialog = QtWidgets.QDialog(self if parent is None else parent)
-        dialog.setWindowTitle("Выключение")
-
-        layout = QtWidgets.QVBoxLayout(dialog)
-        layout.addStretch()
-
-        icon = QtWidgets.QLabel(dialog)
-        icon.setPixmap(self.ui.powerOffButton.icon().pixmap(54, 54))
-        icon.setAlignment(QtCore.Qt.AlignCenter)
-        layout.addWidget(icon)
-
-        question = QtWidgets.QLabel("Выключить систему?", dialog)
-        question.setObjectName("shutdownQuestionLabel")
-        question.setAlignment(QtCore.Qt.AlignCenter)
-        layout.addWidget(question)
-        layout.addStretch()
-
-        no_button = QtWidgets.QPushButton("Нет", dialog)
-        yes_button = QtWidgets.QPushButton("Да", dialog)
-        no_button.clicked.connect(dialog.reject)
-        yes_button.clicked.connect(dialog.accept)
-        yes_button.setProperty("dialogAction", "danger")
-        no_button.setDefault(True)
-
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.setSpacing(12)
-        buttons.addStretch()
-        buttons.addWidget(no_button)
-        buttons.addWidget(yes_button)
-        buttons.addStretch()
-        layout.addLayout(buttons)
-
-        self.prepare_operator_dialog(dialog)
-        no_button.setFocus()
-
-        if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            # self.power_off()
-
+        if PopupDialogs.confirm_shutdown(parent=parent or self) == QtWidgets.QDialog.Accepted:
             # Выключение компьютера в Windows:
             # import subprocess
             # subprocess.Popen(["shutdown.exe", "/s", "/t", "0"])
@@ -499,26 +434,38 @@ class MainOperWindow(QtWidgets.QMainWindow):
         cell.update()
 
     def open_engineer_login(self):
-        dialog = LoginDialog(self)
-        self.prepare_operator_dialog(dialog)
+        if PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted:
+            return
 
-        if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            if self.engineer_window is None:
-                self.engineer_window = EngineerWindow(self.RobotController, self)
+        if self.engineer_window is None:
+            self.engineer_window = EngineerWindow(self)
+            self.engineer_window.shutdown_requested.connect(
+                partial(self.confirm_shutdown, parent=self.engineer_window)
+            )
+            # Открываем файл стилей (если положили его в папку ui)
+            with open("ui/style.qss", "r", encoding="utf-8") as file:
+                qss_styles = file.read()
+            # Применяем стили
+            self.engineer_window.setStyleSheet(qss_styles)
 
-                # Открываем файл стилей (если положили его в папку ui)
-                with open("ui/style.qss", "r", encoding="utf-8") as file:
-                    qss_styles = file.read()
-                # Применяем стили
-                self.engineer_window.setStyleSheet(qss_styles)
+            self.engineer_window.shutdown_requested.connect(
+                partial(self.confirm_shutdown, parent=self.engineer_window)
+            )
+            self.RobotController.set_engineer_mode(True)
+            eng_mode = self.RobotController.get_state_snapshot().engineer_mode
+            print("engineer_mode", eng_mode)
 
-                self.engineer_window.shutdown_requested.connect(
-                    partial(self.confirm_shutdown, parent=self.engineer_window)
-                )
-                self.RobotController.set_engineer_mode(True)
-                eng_mode = self.RobotController.get_state_snapshot().engineer_mode
-                print("engineer_mode", eng_mode)
+        self.engineer_window.showFullScreen()
+        self.engineer_window.raise_()
+        self.engineer_window.activateWindow()
 
-            self.engineer_window.showFullScreen()
-            self.engineer_window.raise_()
-            self.engineer_window.activateWindow()
+    def open_journal(self):
+        if self.journal_window is None:
+            self.journal_window = JournalWindow(self)
+            self.journal_window.shutdown_requested.connect(
+                partial(self.confirm_shutdown, parent=self.journal_window)
+            )
+
+        self.journal_window.showFullScreen()
+        self.journal_window.raise_()
+        self.journal_window.activateWindow()

@@ -9,13 +9,20 @@
 QMainWindow#MainWindow,
 QMainWindow#MainWindow QWidget#centralwidget,
 QMainWindow#EngineerWindow,
-QMainWindow#EngineerWindow > QWidget#centralwidget {
+QMainWindow#EngineerWindow > QWidget#centralwidget,
+QMainWindow#JournalWindow,
+QMainWindow#JournalWindow > QWidget#centralwidget {
     background-color: #e6ebf1;
 }
 
+QMainWindow#MainWindow { font-size: 8pt; }
+QMainWindow#EngineerWindow,
+QMainWindow#JournalWindow { font-size: 15pt; }
+
 /* Верхняя белая полоса: скруглены только внешние верхние углы. */
 QMainWindow#MainWindow QFrame#mainFrame,
-QMainWindow#EngineerWindow QFrame#mainFrame {
+QMainWindow#EngineerWindow QFrame#mainFrame,
+QMainWindow#JournalWindow QFrame#mainFrame {
     background-color: #ffffff;
     border: 1px solid #d3dbe4;
     border-radius: 0px;
@@ -25,7 +32,8 @@ QMainWindow#EngineerWindow QFrame#mainFrame {
 
 /* Нижняя белая полоса: скруглены только внешние нижние углы. */
 QMainWindow#MainWindow QFrame#buttonFrame,
-QMainWindow#EngineerWindow QFrame#buttonsFrame {
+QMainWindow#EngineerWindow QFrame#buttonsFrame,
+QMainWindow#JournalWindow QFrame#buttonsFrame {
     background-color: #ffffff;
     border: 1px solid #d3dbe4;
     border-radius: 0px;
@@ -86,8 +94,14 @@ QMainWindow#EngineerWindow QTableWidget[signalTable="true"]::item {
     padding: 0 12px;
 }
 
+QMainWindow#EngineerWindow QTableWidget#inputSignalsTable {
+    qproperty-iconSize: 16px 16px;
+}
+
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QHeaderView {
     background-color: #f4f6f8;
+    min-height: 48px;
+    qproperty-defaultAlignment: "AlignLeft | AlignVCenter";
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QHeaderView::section {
@@ -144,6 +158,34 @@ QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QRadioButton {
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QCheckBox:hover,
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QRadioButton:hover {
     background-color: #f4f6f8;
+}
+
+QMainWindow#EngineerWindow QTableWidget[eventTable="true"] {
+    font-weight: bold;
+}
+
+QMainWindow#EngineerWindow QTableWidget[eventTable="true"]::item {
+    background-color: #f6f8fb;
+    border: 1px solid #d3dbe4;
+    margin: 7px 4px;
+    border-radius: 10px;
+    color: #17202b;
+    padding: 0 14px;
+}
+
+QMainWindow#EngineerWindow QCheckBox::indicator,
+QMainWindow#EngineerWindow QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    border: 1px solid #777777;
+    background-color: #bdbdbd;
+}
+
+QMainWindow#EngineerWindow QCheckBox::indicator:checked,
+QMainWindow#EngineerWindow QRadioButton::indicator:checked {
+    background-color: #4caf50;
+    border-color: #388e3c;
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QCheckBox::indicator,
@@ -275,7 +317,8 @@ QMainWindow#MainWindow QLabel#operationStatusLabel {
 }
 
 QMainWindow#MainWindow QLabel#mainLabel,
-QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#mainLabel {
+QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#mainLabel,
+QMainWindow#JournalWindow QFrame#mainFrame > QLabel#mainLabel {
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
     font-size: 29px;
     font-weight: bold;
@@ -283,7 +326,8 @@ QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#mainLabel {
 }
 
 QMainWindow#MainWindow QLabel#timeLabel,
-QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#timeLabel {
+QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#timeLabel,
+QMainWindow#JournalWindow QFrame#mainFrame > QLabel#timeLabel {
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
     font-size: 32px;
     font-weight: bold;
@@ -292,7 +336,8 @@ QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#timeLabel {
 }
 
 QMainWindow#MainWindow QLabel#dateLabel,
-QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#dateLabel {
+QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#dateLabel,
+QMainWindow#JournalWindow QFrame#mainFrame > QLabel#dateLabel {
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
     font-size: 18px;
     font-weight: normal;
@@ -300,21 +345,30 @@ QMainWindow#EngineerWindow QFrame#mainFrame > QLabel#dateLabel {
     qproperty-alignment: 'AlignRight | AlignVCenter';
 }
 
-QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton {
+QMainWindow#MainWindow QFrame#mainFrame > QPushButton#powerOffButton,
+QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton,
+QMainWindow#JournalWindow QFrame#mainFrame > QPushButton#powerOffButton {
     background-color: #ffffff;
     border: 1px solid #e5caca;
     border-radius: 14px;
     padding: 0;
+    qproperty-icon: url(azrp:power_off.png);
 }
-QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:hover:enabled {
+QMainWindow#MainWindow QFrame#mainFrame > QPushButton#powerOffButton:hover:enabled,
+QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:hover:enabled,
+QMainWindow#JournalWindow QFrame#mainFrame > QPushButton#powerOffButton:hover:enabled {
     background-color: #fdf2f2;
     border-color: #d38787;
 }
-QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:pressed:enabled {
+QMainWindow#MainWindow QFrame#mainFrame > QPushButton#powerOffButton:pressed:enabled,
+QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:pressed:enabled,
+QMainWindow#JournalWindow QFrame#mainFrame > QPushButton#powerOffButton:pressed:enabled {
     background-color: #f8dcdc;
     border-color: #c62828;
 }
-QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:focus {
+QMainWindow#MainWindow QFrame#mainFrame > QPushButton#powerOffButton:focus,
+QMainWindow#EngineerWindow QFrame#mainFrame > QPushButton#powerOffButton:focus,
+QMainWindow#JournalWindow QFrame#mainFrame > QPushButton#powerOffButton:focus {
     border-color: #c62828;
 }
 
@@ -410,7 +464,7 @@ QMainWindow#MainWindow QCheckBox#cnc1CheckBox::indicator:checked,
 QMainWindow#MainWindow QCheckBox#cnc2CheckBox::indicator:checked {
     background-color: #0b5cff;
     border: 2px solid #0b5cff;
-    image: url(ui/check.svg);
+    image: url(azrp:check.svg);
 }
 
 QMainWindow#MainWindow QCheckBox#cnc1CheckBox::indicator:hover,
@@ -427,6 +481,7 @@ QMainWindow#MainWindow QPushButton#pauseButton,
 QMainWindow#MainWindow QPushButton#engineerButton,
 QMainWindow#MainWindow QPushButton#journalButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton {
     min-width: 274px;
     min-height: 96px;
@@ -458,6 +513,7 @@ QMainWindow#MainWindow QPushButton#pauseButton,
 QMainWindow#MainWindow QPushButton#engineerButton,
 QMainWindow#MainWindow QPushButton#journalButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton {
     color: #17202b;
     background-color: #ffffff;
@@ -467,6 +523,7 @@ QMainWindow#MainWindow QPushButton#pauseButton:hover:enabled,
 QMainWindow#MainWindow QPushButton#engineerButton:hover:enabled,
 QMainWindow#MainWindow QPushButton#journalButton:hover:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:hover:enabled,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:hover:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:hover:enabled {
     background-color: #f6f8fb;
 }
@@ -483,6 +540,8 @@ QMainWindow#MainWindow QPushButton#engineerButton:checked,
 QMainWindow#MainWindow QPushButton#journalButton:checked,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:pressed:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:checked,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:pressed:enabled,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:checked,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:pressed:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:checked {
     background-color: #e7f0ff;
@@ -496,6 +555,7 @@ QMainWindow#MainWindow QPushButton#pauseButton:disabled,
 QMainWindow#MainWindow QPushButton#engineerButton:disabled,
 QMainWindow#MainWindow QPushButton#journalButton:disabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:disabled,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:disabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:disabled {
     color: #8b97a5;
     background-color: #eef1f5;
@@ -744,6 +804,108 @@ QDialog[uiRole="operatorDialog"] QPushButton[dialogAction="danger"]:disabled {
     color: #8b97a5;
 }
 
+/* Ошибки и предупреждения */
+QDialog[alertSeverity] QFrame#alertHeader {
+    min-height: 112px;
+    max-height: 112px;
+    border-top-left-radius: 17px;
+    border-top-right-radius: 17px;
+}
+
+QDialog[alertSeverity] QLabel#alertIcon {
+    min-width: 52px;
+    max-width: 52px;
+    min-height: 52px;
+    max-height: 52px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+QDialog[alertSeverity="error"] QLabel#alertIcon {
+    background-image: url(azrp:alert_icon_light.svg);
+}
+
+QDialog[alertSeverity="warning"] QLabel#alertIcon {
+    background-image: url(azrp:alert_icon_dark.svg);
+}
+
+QDialog[alertSeverity] QLabel#alertTitle {
+    font-size: 46px;
+    font-weight: bold;
+}
+
+QDialog[alertSeverity] QLabel#alertCode {
+    font-size: 80px;
+    font-weight: bold;
+}
+
+QDialog[alertSeverity="error"] QLabel#alertCode {
+    color: #c62828;
+}
+
+QDialog[alertSeverity] QFrame#alertRecommendations {
+    background-color: #f6f8fb;
+    border: 1px solid #d3dbe4;
+    border-radius: 14px;
+}
+
+QDialog[alertSeverity] QScrollArea#alertRecommendationScroll,
+QDialog[alertSeverity] QScrollArea#alertRecommendationScroll > QWidget,
+QDialog[alertSeverity] QWidget#alertRecommendationContents {
+    background-color: transparent;
+}
+
+QDialog[alertSeverity] QLabel#alertRecommendationText {
+    font-size: 32px;
+}
+
+QDialog[alertSeverity] QPushButton {
+    border-width: 2px;
+    min-width: 192px;
+    min-height: 80px;
+    font-size: 32px;
+}
+
+QDialog[alertSeverity="error"] QFrame#alertHeader,
+QDialog[alertSeverity="error"] QPushButton#alertOkButton {
+    background-color: #c62828;
+    color: #ffffff;
+}
+
+QDialog[alertSeverity="error"] QLabel#alertTitle {
+    color: #ffffff;
+}
+
+QDialog[alertSeverity="warning"] QFrame#alertHeader,
+QDialog[alertSeverity="warning"] QPushButton#alertOkButton {
+    background-color: #e0a100;
+    color: #17202b;
+}
+
+QDialog[alertSeverity] QPushButton#alertOkButton {
+    border-color: transparent;
+}
+
+QDialog[alertSeverity="error"] QPushButton#alertOkButton:hover {
+    background-color: #b42020;
+}
+
+QDialog[alertSeverity="error"] QPushButton#alertOkButton:pressed {
+    background-color: #951919;
+}
+
+QDialog[alertSeverity="warning"] QPushButton#alertOkButton:hover {
+    background-color: #d39500;
+}
+
+QDialog[alertSeverity="warning"] QPushButton#alertOkButton:pressed {
+    background-color: #c08700;
+}
+
+QDialog[alertSeverity] QPushButton#alertOkButton:focus {
+    border-color: #17202b;
+}
+
 /* Экранная клавиатура */
 QFrame#virtualKeyboardSurface {
     background-color: #ffffff;
@@ -802,24 +964,49 @@ QWidget#trajectoryMap QLabel#trajectoryMapStatus {
     padding: 3px 8px;
 }
 
-QWidget#trajectoryMap QPushButton {
-    min-width: 26px;
-    min-height: 38px;
-    padding: 0 12px;
+QWidget#trajectoryMap QLabel#trajectoryMapLegendMarker {
+    min-width: 12px;
+    max-width: 12px;
+    min-height: 12px;
+    max-height: 12px;
+    border-radius: 6px;
+}
+
+QLabel#trajectoryMapLegendMarker[legendKind="home"] { background-color: #0b5cff; }
+QLabel#trajectoryMapLegendMarker[legendKind="base"] { background-color: #7187a0; }
+QLabel#trajectoryMapLegendMarker[legendKind="endpoint"] { background-color: #638df0; }
+QLabel#trajectoryMapLegendMarker[legendKind="blocked"] { background-color: #c62828; }
+QLabel#trajectoryMapLegendMarker[legendKind="current"] { background-color: #0c8a42; }
+
+QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton,
+QWidget#trajectoryMap QPushButton#trajectoryZoomInButton,
+QWidget#trajectoryMap QPushButton#trajectoryFitButton {
+    min-width: 33px;
+    min-height: 48px;
+    padding: 0 15px;
     background-color: #ffffff;
     border: 1px solid #d3dbe4;
-    border-radius: 10px;
+    border-radius: 12px;
     color: #17202b;
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
-    font-size: 18px;
+    font-size: 23px;
     font-weight: bold;
 }
 
-QWidget#trajectoryMap QPushButton:hover {
+QWidget#trajectoryMap QPushButton#trajectoryFitButton {
+    min-width: 116px;
+    padding: 0 14px;
+}
+
+QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton:hover,
+QWidget#trajectoryMap QPushButton#trajectoryZoomInButton:hover,
+QWidget#trajectoryMap QPushButton#trajectoryFitButton:hover {
     background-color: #f4f7fa;
 }
 
-QWidget#trajectoryMap QPushButton:pressed {
+QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton:pressed,
+QWidget#trajectoryMap QPushButton#trajectoryZoomInButton:pressed,
+QWidget#trajectoryMap QPushButton#trajectoryFitButton:pressed {
     background-color: #e7f0ff;
     border-color: #b9d0ff;
     color: #0b5cff;

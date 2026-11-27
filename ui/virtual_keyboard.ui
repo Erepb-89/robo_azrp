@@ -1028,7 +1028,7 @@
            <bool>false</bool>
           </property>
           <property name="text">
-           <string notr="true">Done</string>
+           <string notr="true">Enter</string>
           </property>
           <property name="keyboardKey" stdset="0">
            <string notr="true">done</string>
