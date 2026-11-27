@@ -10,10 +10,6 @@ from PyQt5.QtWidgets import (
     QGraphicsScene,
     QGraphicsSimpleTextItem,
     QGraphicsView,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -37,7 +33,6 @@ PEN_NORMAL = QPen(QColor("#859ab2"), 2)
 PEN_REVERSE = QPen(QColor("#9aadc2"), 2)
 PEN_HIGHLIGHT = QPen(QColor("#0b5cff"), 3.4)
 PEN_DIM = QPen(QColor("#d6e0eb"), 1.6)
-MAP_PROMPT = "Выберите точку, чтобы увидеть её название"
 
 
 def map_font(pixel_size, bold=False):
@@ -151,15 +146,8 @@ def add_arrowhead(path, tip, direction, size):
 
 
 class TrajectoryView(QGraphicsView):
-    def __init__(self, scene, parent):
-        super().__init__(scene, parent)
-        self.setObjectName("trajectoryView")
-        self.setRenderHint(QPainter.Antialiasing)
-        self.setDragMode(QGraphicsView.ScrollHandDrag)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self._zoom = 1.0
 
     def fit_map(self):
@@ -304,77 +292,29 @@ class TrajectoryMapWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("trajectoryMap")
+        # Сгенерированная форма импортирует TrajectoryView из этого модуля.
+        from .ui_trajectory_map import Ui_TrajectoryMap
+
+        self.ui = Ui_TrajectoryMap()
+        self.ui.setupUi(self)
+        self.move_button = self.ui.trajectoryMoveButton
+        self.stop_button = self.ui.trajectoryStopButton
+        self._info_label = self.ui.trajectoryMapStatus
+        self._map_prompt = self._info_label.text()
+
         self._current_point = None
         self._selected_point = None
         self._nodes = {}
         self._edge_items = {}
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        layout.addLayout(self._make_toolbar())
-
         self._scene = QGraphicsScene(self)
-        self._view = TrajectoryView(self._scene, self)
-        layout.addWidget(self._view, 1)
+        self._view = self.ui.trajectoryView
+        self._view.setScene(self._scene)
 
-        self._info_label = QLabel(MAP_PROMPT)
-        self._info_label.setObjectName("trajectoryMapStatus")
-        footer = QHBoxLayout()
-        footer.addWidget(self._info_label)
-        footer.addStretch()
-        footer.addLayout(self._make_legend())
-        layout.addLayout(footer)
-
+        self.ui.trajectoryZoomOutButton.clicked.connect(lambda: self._view.zoom_by(1 / 1.18))
+        self.ui.trajectoryZoomInButton.clicked.connect(lambda: self._view.zoom_by(1.18))
+        self.ui.trajectoryFitButton.clicked.connect(self._view.fit_map)
         self._build_scene()
         self.node_clicked.connect(self._on_node_clicked)
-
-    def _make_toolbar(self):
-        toolbar = QHBoxLayout()
-        toolbar.setSpacing(8)
-        self.move_button = QPushButton("Движение")
-        self.move_button.setObjectName("trajectoryMoveButton")
-        toolbar.addWidget(self.move_button)
-        self.stop_button = QPushButton("Стоп")
-        self.stop_button.setObjectName("trajectoryStopButton")
-        toolbar.addWidget(self.stop_button)
-
-        toolbar.addStretch()
-        for name, text, tooltip, action in (
-            ("trajectoryZoomOutButton", "−", "Уменьшить масштаб", lambda: self._view.zoom_by(1 / 1.18)),
-            ("trajectoryZoomInButton", "+", "Увеличить масштаб", lambda: self._view.zoom_by(1.18)),
-            ("trajectoryFitButton", "Вся карта", "Показать все точки", lambda: self._view.fit_map()),
-        ):
-            button = QPushButton(text)
-            button.setObjectName(name)
-            button.setToolTip(tooltip)
-            button.setAccessibleName(tooltip)
-            button.clicked.connect(action)
-            toolbar.addWidget(button)
-        return toolbar
-
-    def _make_legend(self):
-        legend = QHBoxLayout()
-        legend.setSpacing(18)
-        for text, kind in (
-            ("Исходная", "home"),
-            ("Базовая", "base"),
-            ("Конечная", "endpoint"),
-            ("Недоступна", "blocked"),
-            ("Текущая", "current"),
-        ):
-            dot = QLabel()
-            dot.setObjectName("trajectoryMapLegendMarker")
-            dot.setProperty("legendKind", kind)
-            label = QLabel(text)
-            label.setObjectName("trajectoryMapLegend")
-            entry = QHBoxLayout()
-            entry.setSpacing(8)
-            entry.addWidget(dot, 0, Qt.AlignVCenter)
-            entry.addWidget(label)
-            legend.addLayout(entry)
-        return legend
 
     def _build_scene(self):
         horizontal_scale = 2.15
@@ -444,7 +384,7 @@ class TrajectoryMapWidget(QWidget):
             self._nodes[self._current_point].set_current(False)
         self._current_point = point_name if point_name in self._nodes else None
         if self._current_point is None:
-            self._info_label.setText(MAP_PROMPT)
+            self._info_label.setText(self._map_prompt)
             return
         self._nodes[point_name].set_current(True)
         self._info_label.setText(f"Текущая позиция: {point_name}")
@@ -478,4 +418,4 @@ class TrajectoryMapWidget(QWidget):
             for arrow, pen in zip(arrows, (PEN_NORMAL, PEN_REVERSE)):
                 arrow.setPen(pen)
                 arrow.setZValue(5)
-        self._info_label.setText(MAP_PROMPT)
+        self._info_label.setText(self._map_prompt)

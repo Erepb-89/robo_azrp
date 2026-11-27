@@ -1019,7 +1019,7 @@ QWidget#trajectoryMap QGraphicsView#trajectoryView {
     border-radius: 14px;
 }
 
-QWidget#trajectoryMap QLabel#trajectoryMapLegend,
+QWidget#trajectoryMap QLabel[mapLegendLabel="true"],
 QWidget#trajectoryMap QLabel#trajectoryMapStatus {
     color: #526782;
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
@@ -1032,7 +1032,7 @@ QWidget#trajectoryMap QLabel#trajectoryMapStatus {
     padding: 3px 8px;
 }
 
-QWidget#trajectoryMap QLabel#trajectoryMapLegendMarker {
+QWidget#trajectoryMap QLabel[legendKind] {
     min-width: 12px;
     max-width: 12px;
     min-height: 12px;
@@ -1040,11 +1040,11 @@ QWidget#trajectoryMap QLabel#trajectoryMapLegendMarker {
     border-radius: 6px;
 }
 
-QLabel#trajectoryMapLegendMarker[legendKind="home"] { background-color: #0b5cff; }
-QLabel#trajectoryMapLegendMarker[legendKind="base"] { background-color: #7187a0; }
-QLabel#trajectoryMapLegendMarker[legendKind="endpoint"] { background-color: #638df0; }
-QLabel#trajectoryMapLegendMarker[legendKind="blocked"] { background-color: #c62828; }
-QLabel#trajectoryMapLegendMarker[legendKind="current"] { background-color: #0c8a42; }
+QWidget#trajectoryMap QLabel[legendKind="home"] { background-color: #0b5cff; }
+QWidget#trajectoryMap QLabel[legendKind="base"] { background-color: #7187a0; }
+QWidget#trajectoryMap QLabel[legendKind="endpoint"] { background-color: #638df0; }
+QWidget#trajectoryMap QLabel[legendKind="blocked"] { background-color: #c62828; }
+QWidget#trajectoryMap QLabel[legendKind="current"] { background-color: #0c8a42; }
 
 QWidget#trajectoryMap QPushButton#trajectoryZoomOutButton,
 QWidget#trajectoryMap QPushButton#trajectoryZoomInButton,

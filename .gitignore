@@ -6,3 +6,4 @@ __pycache__/
 *.log
 /robot-api/
 /API/
+ui/engineer_window.ui.autosave
