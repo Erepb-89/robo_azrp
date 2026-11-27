@@ -16,8 +16,13 @@ QMainWindow#JournalWindow > QWidget#centralwidget {
 }
 
 QMainWindow#MainWindow { font-size: 8pt; }
-QMainWindow#EngineerWindow,
-QMainWindow#JournalWindow { font-size: 15pt; }
+QMainWindow#EngineerWindow { font-size: 15pt; }
+QMainWindow#JournalWindow {
+    font-size: 15pt;
+    qproperty-operatorEntryColors: "#0b5cff #e7f0ff";
+    qproperty-warningEntryColors: "#e0a100 #fff6e0";
+    qproperty-errorEntryColors: "#c62828 #fdf2f2";
+}
 
 /* Верхняя белая полоса: скруглены только внешние верхние углы. */
 QMainWindow#MainWindow QFrame#mainFrame,
@@ -41,24 +46,28 @@ QMainWindow#JournalWindow QFrame#buttonsFrame {
     border-bottom-right-radius: 18px;
 }
 
-/* Инженерное окно — панель вкладок и заголовки. */
-QMainWindow#EngineerWindow QTabWidget#tabWidget::pane {
+/* Панель вкладок инженерного окна и журнала. */
+QMainWindow#EngineerWindow QTabWidget#tabWidget::pane,
+QMainWindow#JournalWindow QTabWidget#journalTabs::pane {
     background-color: #ffffff;
     border: 1px solid #d3dbe4;
     border-radius: 18px;
 }
 
-QMainWindow#EngineerWindow QTabWidget#tabWidget::tab-bar {
+QMainWindow#EngineerWindow QTabWidget#tabWidget::tab-bar,
+QMainWindow#JournalWindow QTabWidget#journalTabs::tab-bar {
     left: 0px;
 }
 
-QMainWindow#EngineerWindow QTabWidget#tabWidget > QTabBar {
+QMainWindow#EngineerWindow QTabWidget#tabWidget > QTabBar,
+QMainWindow#JournalWindow QTabWidget#journalTabs > QTabBar {
     font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
     font-size: 30px;
     font-weight: bold;
 }
 
-QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab {
+QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab,
+QMainWindow#JournalWindow QTabWidget#journalTabs QTabBar::tab {
     background-color: #ffffff;
     color: #17202b;
     border: 1px solid #d3dbe4;
@@ -68,11 +77,13 @@ QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab {
     margin: 0 8px 8px 0;
 }
 
-QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab:hover:!selected {
+QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab:hover:!selected,
+QMainWindow#JournalWindow QTabWidget#journalTabs QTabBar::tab:hover:!selected {
     background-color: #f6f8fb;
 }
 
-QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab:selected {
+QMainWindow#EngineerWindow QTabWidget#tabWidget QTabBar::tab:selected,
+QMainWindow#JournalWindow QTabWidget#journalTabs QTabBar::tab:selected {
     background-color: #e7f0ff;
     border-color: #b9d0ff;
     color: #0b5cff;
@@ -115,7 +126,8 @@ QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QHeaderView::section
     font-weight: bold;
 }
 
-QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar:vertical {
+QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar:vertical {
     background-color: #ffffff;
     width: 39px;
     margin: 2px 0;
@@ -123,23 +135,29 @@ QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar:vertical 
     border-radius: 11px;
 }
 
-QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::handle:vertical {
+QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::handle:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::handle:vertical {
     background-color: #b9c8d9;
     border-radius: 10px;
     min-height: 40px;
 }
 
-QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::handle:vertical:hover {
+QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::handle:vertical:hover,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::handle:vertical:hover {
     background-color: #8fa3bc;
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::add-line:vertical,
-QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::sub-line:vertical {
+QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::sub-line:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::add-line:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::sub-line:vertical {
     height: 0;
 }
 
 QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::add-page:vertical,
-QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::sub-page:vertical {
+QMainWindow#EngineerWindow QTableWidget[signalTable="true"] QScrollBar::sub-page:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::add-page:vertical,
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QScrollBar::sub-page:vertical {
     background: transparent;
 }
 
@@ -171,6 +189,47 @@ QMainWindow#EngineerWindow QTableWidget[eventTable="true"]::item {
     border-radius: 10px;
     color: #17202b;
     padding: 0 14px;
+}
+
+/* Таблицы журнала. */
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] {
+    background-color: #ffffff;
+    color: #17202b;
+    border: 1px solid #d3dbe4;
+    border-radius: 12px;
+    outline: 0;
+    gridline-color: #d3dbe4;
+    font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+    font-size: 20px;
+}
+
+QMainWindow#JournalWindow QTableWidget[journalTable="true"]::item {
+    padding: 6px 14px;
+}
+
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QHeaderView {
+    background-color: transparent;
+    min-height: 48px;
+    qproperty-defaultAlignment: "AlignLeft | AlignVCenter";
+}
+
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QHeaderView::section {
+    background-color: #f4f6f8;
+    color: #64748b;
+    border: none;
+    border-bottom: 1px solid #d3dbe4;
+    padding: 0 14px;
+    font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QHeaderView::section:first {
+    border-top-left-radius: 11px;
+}
+
+QMainWindow#JournalWindow QTableWidget[journalTable="true"] QHeaderView::section:last {
+    border-top-right-radius: 11px;
 }
 
 QMainWindow#EngineerWindow QCheckBox::indicator,
@@ -480,8 +539,10 @@ QMainWindow#MainWindow QPushButton#stopButton,
 QMainWindow#MainWindow QPushButton#pauseButton,
 QMainWindow#MainWindow QPushButton#engineerButton,
 QMainWindow#MainWindow QPushButton#journalButton,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton,
 QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#saveButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton {
     min-width: 274px;
     min-height: 96px;
@@ -512,8 +573,10 @@ QMainWindow#MainWindow QPushButton#stopButton:pressed:enabled { background-color
 QMainWindow#MainWindow QPushButton#pauseButton,
 QMainWindow#MainWindow QPushButton#engineerButton,
 QMainWindow#MainWindow QPushButton#journalButton,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton,
 QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#saveButton,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton {
     color: #17202b;
     background-color: #ffffff;
@@ -522,6 +585,7 @@ QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton {
 QMainWindow#MainWindow QPushButton#pauseButton:hover:enabled,
 QMainWindow#MainWindow QPushButton#engineerButton:hover:enabled,
 QMainWindow#MainWindow QPushButton#journalButton:hover:enabled,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton:hover:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:hover:enabled,
 QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:hover:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:hover:enabled {
@@ -538,6 +602,8 @@ QMainWindow#MainWindow QPushButton#engineerButton:pressed:enabled,
 QMainWindow#MainWindow QPushButton#journalButton:pressed:enabled,
 QMainWindow#MainWindow QPushButton#engineerButton:checked,
 QMainWindow#MainWindow QPushButton#journalButton:checked,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton:pressed:enabled,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton:checked,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:pressed:enabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:checked,
 QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:pressed:enabled,
@@ -554,8 +620,10 @@ QMainWindow#MainWindow QPushButton#stopButton:disabled,
 QMainWindow#MainWindow QPushButton#pauseButton:disabled,
 QMainWindow#MainWindow QPushButton#engineerButton:disabled,
 QMainWindow#MainWindow QPushButton#journalButton:disabled,
+QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#journalButton:disabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#exitButton:disabled,
 QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#exitButton:disabled,
+QMainWindow#JournalWindow QFrame#buttonsFrame > QPushButton#saveButton:disabled,
 QMainWindow#EngineerWindow QFrame#buttonsFrame > QPushButton#pushButton:disabled {
     color: #8b97a5;
     background-color: #eef1f5;
