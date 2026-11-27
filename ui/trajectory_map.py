@@ -321,7 +321,11 @@ class TrajectoryMapWidget(QWidget):
 
         self._info_label = QLabel(MAP_PROMPT)
         self._info_label.setObjectName("trajectoryMapStatus")
-        layout.addWidget(self._info_label)
+        footer = QHBoxLayout()
+        footer.addWidget(self._info_label)
+        footer.addStretch()
+        footer.addLayout(self._make_legend())
+        layout.addLayout(footer)
 
         self._build_scene()
         self.node_clicked.connect(self._on_node_clicked)
@@ -329,21 +333,12 @@ class TrajectoryMapWidget(QWidget):
     def _make_toolbar(self):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
-        for text, kind in (
-            ("Исходная", "home"),
-            ("Базовая", "base"),
-            ("Конечная", "endpoint"),
-            ("Недоступна", "blocked"),
-            ("Текущая", "current"),
-        ):
-            dot = QLabel()
-            dot.setObjectName("trajectoryMapLegendMarker")
-            dot.setProperty("legendKind", kind)
-            label = QLabel(text)
-            label.setObjectName("trajectoryMapLegend")
-            toolbar.addWidget(dot, 0, Qt.AlignVCenter)
-            toolbar.addWidget(label)
-            toolbar.addSpacing(16)
+        self.move_button = QPushButton("Движение")
+        self.move_button.setObjectName("trajectoryMoveButton")
+        toolbar.addWidget(self.move_button)
+        self.stop_button = QPushButton("Стоп")
+        self.stop_button.setObjectName("trajectoryStopButton")
+        toolbar.addWidget(self.stop_button)
 
         toolbar.addStretch()
         for name, text, tooltip, action in (
@@ -358,6 +353,28 @@ class TrajectoryMapWidget(QWidget):
             button.clicked.connect(action)
             toolbar.addWidget(button)
         return toolbar
+
+    def _make_legend(self):
+        legend = QHBoxLayout()
+        legend.setSpacing(18)
+        for text, kind in (
+            ("Исходная", "home"),
+            ("Базовая", "base"),
+            ("Конечная", "endpoint"),
+            ("Недоступна", "blocked"),
+            ("Текущая", "current"),
+        ):
+            dot = QLabel()
+            dot.setObjectName("trajectoryMapLegendMarker")
+            dot.setProperty("legendKind", kind)
+            label = QLabel(text)
+            label.setObjectName("trajectoryMapLegend")
+            entry = QHBoxLayout()
+            entry.setSpacing(8)
+            entry.addWidget(dot, 0, Qt.AlignVCenter)
+            entry.addWidget(label)
+            legend.addLayout(entry)
+        return legend
 
     def _build_scene(self):
         horizontal_scale = 2.15
