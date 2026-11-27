@@ -13,6 +13,9 @@ from states_modes_errors import LastError, LAST_ERROR_RU
 
 PARTS_PER_SHELF = 8
 
+# Временный прямой доступ к инженерному экрану во всех режимах цикла.
+TEMPORARY_DIRECT_ENGINEER_ACCESS = True
+
 
 # Словарь цветов для ореола свечения вокруг лампочки
 SYSTEM_STATUS_CONFIG = {
@@ -309,7 +312,7 @@ class MainOperWindow(QtWidgets.QMainWindow):
         self.ui.speedFrame.setEnabled(enabled)
         self.ui.shelfFrame.setEnabled(enabled)
         self.ui.partFrame.setEnabled(enabled)
-        self.ui.engineerButton.setEnabled(enabled)
+        self.ui.engineerButton.setEnabled(enabled or TEMPORARY_DIRECT_ENGINEER_ACCESS)
         self.ui.cnc1CheckBox.setEnabled(enabled)
         self.ui.cnc2CheckBox.setEnabled(enabled)
 
@@ -442,7 +445,10 @@ class MainOperWindow(QtWidgets.QMainWindow):
         cell.update()
 
     def open_engineer_login(self):
-        if PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted:
+        if (
+            not TEMPORARY_DIRECT_ENGINEER_ACCESS
+            and PopupDialogs.show_login(parent=self) != QtWidgets.QDialog.Accepted
+        ):
             return
 
         if self.engineer_window is None:
