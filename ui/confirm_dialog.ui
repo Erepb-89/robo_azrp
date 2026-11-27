@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfirmDialog</class>
+ <widget class="QDialog" name="ConfirmDialog">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>520</width><height>336</height></rect>
+  </property>
+  <property name="minimumSize">
+   <size><width>520</width><height>336</height></size>
+  </property>
+  <property name="maximumSize">
+   <size><width>520</width><height>336</height></size>
+  </property>
+  <property name="windowFlags">
+   <set>Qt::Dialog|Qt::FramelessWindowHint</set>
+  </property>
+  <property name="uiRole" stdset="0">
+   <string notr="true">operatorDialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="rootLayout">
+   <property name="leftMargin"><number>0</number></property>
+   <property name="topMargin"><number>0</number></property>
+   <property name="rightMargin"><number>0</number></property>
+   <property name="bottomMargin"><number>0</number></property>
+   <item>
+    <widget class="QFrame" name="operatorDialogSurface">
+     <layout class="QVBoxLayout" name="contentLayout" stretch="1,0,0,1,0">
+      <property name="spacing"><number>8</number></property>
+      <property name="leftMargin"><number>25</number></property>
+      <property name="topMargin"><number>23</number></property>
+      <property name="rightMargin"><number>25</number></property>
+      <property name="bottomMargin"><number>23</number></property>
+      <item>
+       <spacer name="upperSpacer">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="confirmIcon">
+        <property name="alignment"><set>Qt::AlignCenter</set></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="shutdownQuestionLabel">
+        <property name="textFormat"><enum>Qt::PlainText</enum></property>
+        <property name="alignment"><set>Qt::AlignCenter</set></property>
+        <property name="wordWrap"><bool>true</bool></property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="lowerSpacer">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+       </spacer>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="buttonLayout" stretch="1,0,0,1">
+        <property name="spacing"><number>12</number></property>
+        <item>
+         <spacer name="buttonsLeftSpacer">
+          <property name="orientation"><enum>Qt::Horizontal</enum></property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="confirmCancelButton">
+          <property name="default"><bool>true</bool></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="confirmAcceptButton"/>
+        </item>
+        <item>
+         <spacer name="buttonsRightSpacer">
+          <property name="orientation"><enum>Qt::Horizontal</enum></property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>confirmCancelButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ConfirmDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+  <connection>
+   <sender>confirmAcceptButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ConfirmDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+ </connections>
+</ui>

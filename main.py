@@ -3,6 +3,7 @@ import sys
 import threading
 from queue import Queue
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QDir
 
 from config import ROBOT_IP, LOG_PATH
 from command_handler import CommandHandler
@@ -62,6 +63,7 @@ class MainAppClass:
         self.Form.show()
 
         # Открываем файл стилей (если положили его в папку ui)
+        QDir.setSearchPaths("azrp", [str("ui")])
         with open("ui/style.qss", "r", encoding="utf-8") as file:
             qss_styles = file.read()
 
@@ -97,9 +99,6 @@ class MainAppClass:
             print(e)
         self.CommandHandler.stop()
         self.RobotController.stop()
-        self.Blinker.close()
-        self.ModbusRTUHandler.stop()
-        self.ModbusTCPHandler.stop()
 
         event.accept()
 

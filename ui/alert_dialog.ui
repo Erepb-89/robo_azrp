@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AlertDialog</class>
+ <widget class="QDialog" name="AlertDialog">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>1080</width><height>720</height></rect>
+  </property>
+  <property name="windowFlags">
+   <set>Qt::Dialog|Qt::FramelessWindowHint</set>
+  </property>
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="uiRole" stdset="0">
+   <string notr="true">operatorDialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="rootLayout">
+   <property name="leftMargin"><number>0</number></property>
+   <property name="topMargin"><number>0</number></property>
+   <property name="rightMargin"><number>0</number></property>
+   <property name="bottomMargin"><number>0</number></property>
+   <item>
+    <widget class="QFrame" name="operatorDialogSurface">
+     <layout class="QVBoxLayout" name="surfaceLayout" stretch="0,1">
+      <property name="leftMargin"><number>1</number></property>
+      <property name="topMargin"><number>1</number></property>
+      <property name="rightMargin"><number>1</number></property>
+      <property name="bottomMargin"><number>1</number></property>
+      <property name="spacing"><number>0</number></property>
+      <item>
+       <widget class="QFrame" name="alertHeader">
+        <layout class="QHBoxLayout" name="headerLayout" stretch="1,0,0,1">
+         <property name="leftMargin"><number>24</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>24</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <property name="spacing"><number>18</number></property>
+         <item>
+          <spacer name="headerLeftSpacer">
+           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+          </spacer>
+         </item>
+         <item alignment="Qt::AlignVCenter">
+          <widget class="QLabel" name="alertIcon"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="alertTitle">
+           <property name="textFormat"><enum>Qt::PlainText</enum></property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="headerRightSpacer">
+           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="bodyLayout" stretch="0,1,0">
+        <property name="leftMargin"><number>40</number></property>
+        <property name="topMargin"><number>22</number></property>
+        <property name="rightMargin"><number>40</number></property>
+        <property name="bottomMargin"><number>32</number></property>
+        <property name="spacing"><number>24</number></property>
+        <item>
+         <widget class="QLabel" name="alertCode">
+          <property name="textFormat"><enum>Qt::PlainText</enum></property>
+          <property name="alignment"><set>Qt::AlignCenter</set></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="alertRecommendations">
+          <layout class="QVBoxLayout" name="recommendationsLayout">
+           <property name="leftMargin"><number>24</number></property>
+           <property name="topMargin"><number>18</number></property>
+           <property name="rightMargin"><number>24</number></property>
+           <property name="bottomMargin"><number>18</number></property>
+           <item>
+            <widget class="QScrollArea" name="alertRecommendationScroll">
+             <property name="focusPolicy"><enum>Qt::NoFocus</enum></property>
+             <property name="frameShape"><enum>QFrame::NoFrame</enum></property>
+             <property name="horizontalScrollBarPolicy"><enum>Qt::ScrollBarAlwaysOff</enum></property>
+             <property name="widgetResizable"><bool>true</bool></property>
+             <property name="accessibleName"><string>Рекомендации</string></property>
+             <widget class="QWidget" name="alertRecommendationContents">
+              <layout class="QVBoxLayout" name="recommendationTextLayout">
+               <property name="leftMargin"><number>0</number></property>
+               <property name="topMargin"><number>0</number></property>
+               <property name="rightMargin"><number>0</number></property>
+               <property name="bottomMargin"><number>0</number></property>
+               <item>
+                <widget class="QLabel" name="alertRecommendationText">
+                 <property name="textFormat"><enum>Qt::PlainText</enum></property>
+                 <property name="alignment"><set>Qt::AlignCenter</set></property>
+                 <property name="wordWrap"><bool>true</bool></property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="buttonLayout" stretch="1,0,0,1">
+          <property name="spacing"><number>16</number></property>
+          <item>
+           <spacer name="buttonsLeftSpacer">
+            <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="alertOkButton">
+            <property name="text"><string>ОК</string></property>
+            <property name="default"><bool>true</bool></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="alertStopButton">
+            <property name="text"><string>Стоп</string></property>
+            <property name="autoDefault"><bool>false</bool></property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="buttonsRightSpacer">
+            <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>alertOkButton</sender>
+   <signal>clicked()</signal>
+   <receiver>AlertDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+  <connection>
+   <sender>alertStopButton</sender>
+   <signal>clicked()</signal>
+   <receiver>AlertDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+ </connections>
+</ui>

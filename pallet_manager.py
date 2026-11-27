@@ -400,9 +400,6 @@ class PalletManager:
             if self.strict():
                 self._error(ShelfError.NotTaught)
                 return Result.Error
-            self.rc.message(
-                f"Паллет: параметры зацепа для выдвижения полки не сконфигурированы",
-                'error', source='gui.pallet')
             self._open_shelf = shelf
             return Result.NoError
 
@@ -411,27 +408,33 @@ class PalletManager:
         #         return Result.Error
 
         hook = self.hook_params(shelf)
-        if hook.get("approach"):
-            if not move_to_named_point_sync(self.rc, hook["approach"],
-                                            'line', abort):
-                self.rc.message(
-                    f"Паллет: точка подхода к полке {shelf} не обучена",
-                    'error', source='gui.pallet')
-                return Result.Error
-        if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
+        if not move_to_named_point_sync(self.rc, hook["approach"], 'line', abort):
+            self.rc.pause_auto_cycle()
             return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["after_approach"],'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["before_engage"],'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["shelf_out"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["engage_out"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["retreat"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+
         # if not jog_until_di(self.rc, shelf_opened_di(shelf), # uncomment commissioning
         #                     self.cfg["pull_axis"],
         #                     self.cfg["pull_dir"],
         #                     self.cfg["pull_timeout_sec"], abort):
         #     return Result.Error
-        if hook.get("retreat"):
-            if not move_to_named_point_sync(self.rc, hook["retreat"],
-                                            'line', abort):
-                self.rc.message(
-                    f"Паллет: точка отхода от полки {shelf} не обучена",
-                    'error', source='gui.pallet')
-                return Result.Error
 
         self._open_shelf = shelf
         return Result.NoError
@@ -442,38 +445,39 @@ class PalletManager:
             if self.strict():
                 self._error(ShelfError.NotTaught)
                 return Result.Error
-            self.rc.message(
-                f"Паллет: параметры зацепа для закрытия полки не сконфигурированы",
-                'error', source='gui.pallet')
             self._open_shelf = None
             return Result.NoError
 
-        push = self.push_params(shelf)
-        if push.get("approach"):
-            if not move_to_named_point_sync(self.rc, push["approach"],
-                                            'line', abort):
-                self.rc.message(
-                    f"Паллет: точка приближения к полке {shelf} не обучена",
-                    'error', source='gui.pallet')
-                return Result.Error
-        if not move_to_named_point_sync(self.rc, push["engage"], 'line', abort):
-            self.rc.message(
-                f"Паллет: точка зацепа полки {shelf} не обучена",
-                'error', source='gui.pallet')
+        # push = self.push_params(shelf)
+        hook = self.hook_params(shelf)
+        if not move_to_named_point_sync(self.rc, hook["retreat"], 'line', abort):
+            self.rc.pause_auto_cycle()
             return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["engage_out"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["shelf_out"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["engage"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["before_engage"],'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["after_approach"],'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+        if not move_to_named_point_sync(self.rc, hook["approach"], 'line', abort):
+            self.rc.pause_auto_cycle()
+            return Result.Error
+
         # commissioning
         # if not jog_until_di(self.rc, shelf_closed_di(shelf), # uncomment commissioning
         #                     self.cfg["push_axis"],
         #                     self.cfg["push_dir"],
         #                     self.cfg["push_timeout_sec"], abort):
         #     return Result.Error
-        if push.get("retreat"):
-            if not move_to_named_point_sync(self.rc, push["retreat"],
-                                            'line', abort):
-                self.rc.message(
-                    f"Паллет: точка отхода от полки {shelf} не обучена",
-                    'error', source='gui.pallet')
-                return Result.Error
 
         self._open_shelf = None
         return Result.NoError

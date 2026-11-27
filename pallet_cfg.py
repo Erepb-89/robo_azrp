@@ -60,11 +60,15 @@ PALLET_CFG = {
     "push_timeout_sec": 10.0,  # сек
 
     # Обученные точки крючка на каждую полку (имена точек points.json).
-    # approach — безопасный подъезд, engage — зацеп, retreat — отход после вытягивания
+    # approach — безопасный подъезд, after_approach - после подъезда, before_engage - зацепом, engage — зацеп,
+    # shelf_out - полка выдвинута, engage_out — после вытягивания, retreat — отход после вытягивания
     "hook": {
-        1: {"approach": "approach_1", "engage": "engage_1", "retreat": "retreat_1"},
-        2: {"approach": "approach_2", "engage": "engage_2", "retreat": "retreat_2"},
-        3: {"approach": "approach_3", "engage": "engage_3", "retreat": "retreat_3"},
+        1: {"approach": "approach_1", "after_approach": "after_approach_1", "before_engage": "before_engage_1",
+            "engage": "engage_1", "shelf_out": "shelf_out_1", "engage_out": "engage_out_1", "retreat": "retreat_1"},
+        2: {"approach": "approach_2", "after_approach": "after_approach_2", "before_engage": "before_engage_2",
+            "engage": "engage_2", "shelf_out": "shelf_out_2", "engage_out": "engage_out_2", "retreat": "retreat_2"},
+        3: {"approach": "approach_3", "after_approach": "after_approach_3", "before_engage": "before_engage_3",
+            "engage": "engage_3", "shelf_out": "shelf_out_3", "engage_out": "engage_out_3", "retreat": "retreat_3"},
     },
     # approach — безопасный подъезд, engage — зацеп, retreat — отход после задвижения
     "hook_push": {
@@ -77,5 +81,5 @@ PALLET_CFG = {
     #   False (заглушка) — отсутствие параметров/точек лишь логируется,
     #     движение по паллету пропускается (для SIM и пусконаладки);
     #   True — отсутствие любых параметров/точек = ошибка цикла.
-    "strict": False,
+    "strict": True,
 }

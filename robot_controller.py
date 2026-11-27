@@ -1297,3 +1297,6 @@ class RobotController:
         if getattr(self, 'led_state', None) is not None:
             self.led_state.stop()
             self.led_state.join(timeout=2.0)
+        self.Blinker.close()
+        self.ModbusRTUHandler.stop()
+        self.ModbusTCPHandler.stop()
